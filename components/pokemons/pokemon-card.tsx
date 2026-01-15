@@ -1,0 +1,346 @@
+"use client"
+
+import { ShoppingBag, Swords, Trash2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+
+import { StarBadgeIcon } from "@/assets/badges/star-badge";
+import MegaColored from "@/assets/logos/mega/mega-colored.svg";
+import { PokemonType, pokemonTypeColors } from "@/lib/colors";
+import { POKEMON_LOGOS, PokemonStatus } from "@/lib/logos";
+import { Pokemon } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { CircularButton } from "../shared/circular-button";
+import { CustomTagsManager } from "../shared/custom-tags-manager";
+import { EditableText } from "../shared/editable-text";
+import { AttackManager } from "./attack-manager";
+import { HealthBar } from "./health-bar";
+import { PokemonTypeDropdown } from "./pokemon-type-dropdown";
+import { StatusSelector } from "./status-selector";
+
+const MegaColoredIcon = ({ size, className }: { size?: number; className?: string }) => (
+  <Image
+    src={MegaColored}
+    width={size}
+    height={size}
+    className={className}
+    alt="Mega Evolution"
+  />
+);
+
+const MegaUniIcon = ({ size, className }: { size?: number; className?: string }) => (
+  <svg 
+    viewBox="0 0 1000 1000" 
+    width={size} 
+    height={size} 
+    className={cn(className, "grayscale opacity-50")}
+  >
+    <g transform="translate(-1731.5 -611)">
+      <path 
+        d="M2189.72 1287.47 2200.98 1302.92C2232.97 1351.02 2242.58 1381.01 2252.44 1445.14 2303 1427.12 2353.47 1399.79 2392.01 1369.39L2403.18 1359.18 2365.94 1349.86C2324.17 1338.31 2280.34 1323.99 2237.09 1307.28ZM1974.62 1027.3 1974.86 1035.42C1980.17 1060.98 1991.14 1081.6 2006 1100.67L2023.07 1119.69 2034.66 1126.07C2153.05 1187.98 2298.74 1245.8 2430.66 1285.25L2457.16 1292.69 2470.69 1264.92 2478.93 1237.5 2467.31 1233.88C2331.24 1189.89 2122.4 1101.97 1996.3 1038.46ZM2032.79 887.962 2021.47 899.327C2015.27 906.16 2008.9 913.941 2002.91 922.804L1994.73 937.911 2002.58 942.994C2097.04 1001.84 2269.74 1083.37 2431.79 1134.04L2475.53 1146.4 2466.87 1127.66C2455.46 1108 2441.51 1091.04 2431.79 1080.37 2429.49 1077.84 2425.76 1074.07 2420.91 1069.31L2420.46 1068.87 2407.79 1064.3C2306.39 1026.25 2116.95 937.661 2036.77 890.414ZM2211.22 776.754C2194.46 781.703 2163.03 796.688 2130.6 815.44L2100.4 834.549 2134.64 855.105C2159.06 868.989 2183.95 882.304 2209.06 894.681L2279.83 926.388 2266.32 909.584C2229.56 858.981 2227.94 838.401 2211.22 776.754ZM2281.57 657.502C2279.68 737.942 2283.72 786.391 2324 854.134 2364.29 921.878 2477.64 1004.78 2523.28 1063.96 2565.33 1118.49 2583.26 1186.3 2579.71 1222.52 2569.95 1322.17 2541.37 1352.22 2471.34 1409.24 2401.3 1466.26 2278.77 1524.62 2159.49 1564.63 2166 1521.13 2182.03 1438.63 2136.04 1370.14 2059.62 1256.34 1981.3 1217.73 1939.06 1155.54 1896.82 1093.34 1879.08 1033.2 1882.62 996.982 1892.39 897.333 1955.12 838.712 1991 810.259 2094.93 724.779 2206.38 681.746 2281.57 657.502Z" 
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="12"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        fillRule="evenodd"
+      />
+    </g>
+  </svg>
+);
+
+
+interface PokemonCardProps {
+  pokemon: Pokemon
+  teamIndex: number
+  isMyTeam: boolean
+  battleType: "simple" | "double"
+  isStarter: boolean
+  editingPokemonId: string | null
+  editingPokemonName: string
+  onStartEditing: (pokemon: Pokemon) => void
+  onUpdateName: (pokemonId: string, newName: string, isMyTeam: boolean) => void
+  onCancelEditing: () => void
+  onRemove: (id: string, isMyTeam: boolean) => void
+  onUpdateHealth: (id: string, isMyTeam: boolean, newHP: number) => void
+  onUpdateStatus: (
+    id: string,
+    isMyTeam: boolean,
+    updates: {
+      status?: PokemonStatus
+      confusion?: boolean
+      love?: boolean
+      sleepCounter?: number
+      confusionCounter?: number
+    },
+  ) => void
+  onUpdatePokemon: (updatedPokemon: Pokemon, isMyTeam: boolean) => void
+  onToggleHeldItem: (pokemonId: string, isMyTeam: boolean) => void
+  onToggleTerastallized: (pokemonId: string, isMyTeam: boolean) => void
+  onToggleMega: (pokemonId: string, isMyTeam: boolean) => void
+  onFlagClick: (index: number, isMyTeam: boolean) => void
+  getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
+}
+
+export function PokemonCard({
+  pokemon,
+  teamIndex,
+  isMyTeam,
+  battleType,
+  isStarter,
+  editingPokemonId,
+  editingPokemonName,
+  onStartEditing,
+  onUpdateName,
+  onCancelEditing,
+  onRemove,
+  onUpdateHealth,
+  onUpdateStatus,
+  onUpdatePokemon,
+  onToggleHeldItem,
+  onToggleTerastallized,
+  onToggleMega,
+  onFlagClick,
+  getDefaultPokemonName,
+}: PokemonCardProps) {
+  const handleUpdateCustomTags = (newTags: string[]) => {
+    const updatedPokemon: Pokemon = { ...pokemon, customTags: newTags }
+    onUpdatePokemon(updatedPokemon, isMyTeam)
+  }
+
+  const defaultName = isMyTeam 
+    ? `Pokémon ${teamIndex + 1}` 
+    : `Pokémon ${String.fromCharCode(65 + teamIndex)}`
+  const defaultItemName = isMyTeam 
+    ? `Item ${teamIndex + 1}` 
+    : `Item ${String.fromCharCode(65 + teamIndex)}`
+  const defaultAbilityName = isMyTeam 
+    ? `Ability ${teamIndex + 1}` 
+    : `Ability ${String.fromCharCode(65 + teamIndex)}`
+
+  const handleNameChange = (newName: string) => {
+    const finalName = newName.trim() || defaultName
+    onUpdateName(pokemon.id, finalName, isMyTeam)
+  }
+
+  const handleTypeChange = (index: 0 | 1, newType: PokemonType | null) => {
+    const currentTypes = pokemon.types || []
+    let newTypes: PokemonType[] = [...currentTypes]
+
+    if (index === 0) {
+        if (newType === null) {
+             // If first type is removed, shift second to first? Or just make it empty?
+             // Usually pokemon has at least one type, but user said "default is none".
+             // If type 1 becomes None, and type 2 exists, it's weird.
+             // Let's just set index 0 to null (remove it) and clean up array.
+             if (newTypes[1]) {
+                 newTypes = [newTypes[1]]
+             } else {
+                 newTypes = []
+             }
+        } else {
+             newTypes[0] = newType
+        }
+    } else {
+        if (newType === null) {
+            // Remove second type
+            if (newTypes.length > 1) {
+                newTypes.pop()
+            }
+        } else {
+            // Set second type (ensure first type exists or place it at 0 if empty?)
+            // If types is empty, setting index 1 is weird. Let's assume index 1 only changeable if index 0 set?
+            // User requirement: "Two dropdowns".
+            // If I set type 2 but type 1 is null, make it type 1.
+            if (!newTypes[0]) {
+                newTypes = [newType]
+            } else {
+                newTypes[1] = newType
+            }
+            // Ensure no duplicates? Maybe not required but good practice.
+            if (newTypes[0] === newTypes[1]) {
+                newTypes = [newTypes[0]]
+            }
+        }
+    }
+    onUpdatePokemon({ ...pokemon, types: newTypes }, isMyTeam)
+  }
+
+  const handleTeraChange = (newType: PokemonType | null) => {
+    onUpdatePokemon({ 
+      ...pokemon, 
+      teraType: newType || undefined, 
+      isTerastallized: false 
+    }, isMyTeam)
+  }
+
+  const handleItemNameChange = (newName: string) => {
+      const isNewMega = newName === "Mega Stone"
+      const isOldMega = pokemon.heldItemName === "Mega Stone"
+      
+      let updates: Partial<Pokemon> = { heldItemName: newName }
+      if (isNewMega !== isOldMega) {
+          updates.isMega = false
+      }
+      onUpdatePokemon({ ...pokemon, ...updates }, isMyTeam)
+  }
+
+  const handleAbilityNameChange = (newName: string) => {
+      onUpdatePokemon({ ...pokemon, abilityName: newName }, isMyTeam)
+  }
+
+  const types = pokemon.types || []
+  const teraType = pokemon.teraType || null // Allow null/undefined to show None
+
+  return (
+    <div
+      className={`flex flex-col p-3 border rounded-lg transition-all duration-300 gap-3 ${
+        isStarter ? (isMyTeam ? "border-blue-500 border-2" : "border-red-500 border-2") : "border-gray-200"
+      }`}
+    >
+        {/* Row 1: Name, Status selector (battle), Trash */}
+        <div className="flex justify-between items-center text-sm">
+          <div className="flex-1 mr-2 h-6 flex items-center min-w-0">
+            <EditableText
+              value={pokemon.name || defaultName}
+              placeholder={defaultName}
+              defaultValue={defaultName}
+              onChange={handleNameChange}
+              autoWidth={false}
+              width="100%"
+              height="24px"
+              className="font-semibold"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            {teraType && (
+              <div
+               className="cursor-pointer transition-transform hover:scale-110 active:scale-95"
+               onClick={() => onToggleTerastallized(pokemon.id, isMyTeam)}
+               title={pokemon.isTerastallized ? "Teracristallisation active" : "Activer la Teracristallisation"}
+              >
+                <div className="relative w-6 h-6 flex items-center justify-center">
+                  <StarBadgeIcon
+                    className={cn(
+                      "absolute inset-0 w-full h-full transition-all",
+                      !pokemon.isTerastallized && "grayscale opacity-40"
+                    )}
+                    style={{ color: pokemon.isTerastallized ? pokemonTypeColors[teraType] : "#94a3b8" }}
+                  />
+                  <div className="relative z-10 flex items-center justify-center w-full h-full scale-[0.65] transition-all">
+                    <Image
+                      src={POKEMON_LOGOS[teraType]}
+                      alt={teraType}
+                      width={12}
+                      height={12}
+                      className="brightness-0 invert opacity-100"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {pokemon.heldItem && pokemon.heldItemName === "Mega Stone" && (
+              <CircularButton
+                isActive={pokemon.isMega || false}
+                onClick={() => onToggleMega(pokemon.id, isMyTeam)}
+                icon={pokemon.isMega ? MegaColoredIcon : MegaUniIcon}
+                activeColor="bg-transparent"
+                inactiveColor="bg-white text-slate-400 hover:bg-gray-50"
+                title={pokemon.isMega ? "Méga-Évolution active" : "Activer la Méga-Évolution"}
+                variant="outlined"
+                diameter={24}
+                iconRatio={0.8}
+              />
+            )}
+
+            <CircularButton
+              isActive={isStarter}
+              onClick={() => {
+                if (battleType === "double" && teamIndex > 0) {
+                  onFlagClick(teamIndex, isMyTeam)
+                }
+              }}
+              icon={Swords}
+              activeColor={isMyTeam ? "bg-blue-500 text-white" : "bg-red-500 text-white"}
+              title={isStarter ? "Au combat" : "Cliquer pour sélectionner comme starter"}
+              variant="outlined"
+              diameter={Math.round(24 * 1)}
+              iconRatio={0.7}
+            />
+            <Button variant="ghost" size="sm" onClick={() => onRemove(pokemon.id, isMyTeam)} className="cursor-pointer h-8 w-8 p-0 ml-1">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Row 2: Types, Tera */}
+        <div className="flex items-center gap-2 flex-wrap min-h-[32px]">
+             <span className="text-xs text-gray-600 mr-1">Types :</span>
+             <PokemonTypeDropdown selectedType={types[0] || null} onSelect={(t) => handleTypeChange(0, t)} includeNull />
+             <PokemonTypeDropdown selectedType={types[1] || null} onSelect={(t) => handleTypeChange(1, t)} includeNull />
+
+             <span className="text-xs text-gray-600 mr-1 ml-2">Tera :</span>
+             <PokemonTypeDropdown selectedType={teraType} onSelect={handleTeraChange} includeNull variant="tera" />
+        </div>
+
+        {/* Row 3: Ability, Item */}
+        <div className="grid grid-cols-2 gap-4 items-center min-h-[32px]">
+             {/* Ability Section */}
+             <div className="flex items-center min-w-0">
+                 <span className="text-xs text-gray-600 mr-1 shrink-0">Ability :</span>
+                 <div className="flex-1 min-w-0">
+                     <EditableText
+                        value={pokemon.abilityName || defaultAbilityName}
+                        placeholder={defaultAbilityName}
+                        defaultValue={defaultAbilityName}
+                        onChange={handleAbilityNameChange}
+                        autoWidth={false}
+                        width="100%"
+                        height="20px"
+                     />
+                 </div>
+             </div>
+
+             {/* Item Section */}
+             <div className="flex items-center min-w-0">
+                <div className="shrink-0 mr-2">
+                    <CircularButton
+                        isActive={pokemon.heldItem}
+                        onClick={() => onToggleHeldItem(pokemon.id, isMyTeam)}
+                        icon={pokemon.heldItem && pokemon.heldItemName === "Mega Stone" ? MegaColoredIcon : ShoppingBag}
+                        activeColor={pokemon.heldItem && pokemon.heldItemName === "Mega Stone" ? "bg-transparent" : "bg-amber-700 text-white"}
+                        title={pokemon.heldItem ? (pokemon.heldItemName === "Mega Stone" ? "Méga-Gemme" : "Objet tenu") : "Aucun objet"}
+                        variant="outlined"
+                        diameter={Math.round(24 * 0.9)}
+                        iconRatio={pokemon.heldItem && pokemon.heldItemName === "Mega Stone" ? 0.7 : 0.6}
+                    />
+                </div>
+                {pokemon.heldItem && (
+                     <div className="flex-1 min-w-0">
+                         <EditableText
+                            value={pokemon.heldItemName || defaultItemName}
+                            placeholder={defaultItemName}
+                            defaultValue={defaultItemName}
+                            onChange={handleItemNameChange}
+                            autoWidth={false}
+                            width="100%"
+                            height="20px"
+                         />
+                     </div>
+                )}
+            </div>
+        </div>
+
+        <StatusSelector pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateStatus} />
+        <CustomTagsManager tags={pokemon.customTags || []} onUpdateTags={handleUpdateCustomTags} height="20px" />
+        <HealthBar pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateHealth} editable={true} />
+        <AttackManager
+          pokemon={pokemon}
+          onUpdate={(updatedPokemon) => onUpdatePokemon(updatedPokemon, isMyTeam)}
+          isMyTeam={isMyTeam}
+        />
+    </div>
+  )
+}
