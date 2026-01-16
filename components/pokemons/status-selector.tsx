@@ -27,23 +27,6 @@ interface StatusSelectorProps {
   ) => void
 }
 
-const ConfusionIcon = ({ size = 12 }: { size?: number }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M14.828 14.828 21 21" />
-    <path d="M21 16v5h-5" />
-    <path d="m21 3-9 9-4-4-6 6" />
-    <path d="M21 8V3h-5" />
-  </svg>
-)
 
 export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorProps) {
   const [showSleepCounter, setShowSleepCounter] = useState(false)
@@ -144,7 +127,7 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
 
   const statusHeight = 24
   const buttonDiameter = Math.round(statusHeight * 0.9)
-  const toggleButtonDiameter = 9
+  const toggleButtonDiameter = 10
   const counterHeight = 22
 
   return (
@@ -173,7 +156,6 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
                   title={title}
                   variant="filled"
                   diameter={buttonDiameter}
-                  iconRatio={0.6}
                 />
 
                 {isActive && (
@@ -186,7 +168,7 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
                       inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
                       title={showSleepCounter ? "Masquer le compteur" : "Afficher le compteur"}
                       diameter={toggleButtonDiameter}
-                      iconRatio={0.7}
+                      iconRatio={0.8}
                       variant="filled"
                     />
                   </div>
@@ -210,8 +192,6 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
                     defaultValue="0"
                     placeholder="0"
                     autoWidth={true}
-                    height={counterHeight}
-                    fontSizeRatio={0.6}
                     rounded={false}
                     mode="text"
                     visualMode="border"
@@ -236,7 +216,6 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
             title={pokemon.status === "badly-poison" && type === "poison" ? "Badly Poisoned" : title}
             variant="filled"
             diameter={buttonDiameter}
-            iconRatio={0.6}
           />
         )
       })}
@@ -257,7 +236,6 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
                   title={title}
                   variant="filled"
                   diameter={buttonDiameter}
-                  iconRatio={0.6}
                 />
 
                 {isActive && (
@@ -270,7 +248,7 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
                       inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
                       title={showConfusionCounter ? "Masquer le compteur" : "Afficher le compteur"}
                       diameter={toggleButtonDiameter}
-                      iconRatio={0.7}
+                      iconRatio={0.8}
                       variant="filled"
                     />
                   </div>
@@ -296,8 +274,6 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
                     defaultValue="0"
                     placeholder="0"
                     autoWidth={true}
-                    height={counterHeight}
-                    fontSizeRatio={0.6}
                     rounded={false}
                     mode="text"
                     visualMode="border"
@@ -322,7 +298,6 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
             title={title}
             variant="filled"
             diameter={buttonDiameter}
-            iconRatio={0.6}
           />
         )
       })}

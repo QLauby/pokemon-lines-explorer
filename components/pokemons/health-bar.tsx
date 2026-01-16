@@ -82,7 +82,7 @@ export function HealthBar({
               autoWidth={false}
               width="65px"
               editWidth="144px"
-              height="24px"
+              fontSize={10}
               fontSizeRatio={0.4}
               rounded={true}
               textAlign="center"

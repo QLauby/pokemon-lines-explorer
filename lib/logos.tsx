@@ -138,21 +138,32 @@ export const exclusiveStatuses: StatusInfo[] = [
     activeColor: POKEMON_COLORS.normal,
   },
 ]
-
-const ConfusionIcon = ({ className }: { className?: string }) => (
+const ConfusionIcon = ({
+  className,
+  size = 24,
+  strokeWidth = 2,
+}: {
+  className?: string
+  size?: number | string
+  strokeWidth?: number | string
+}) => (
   <svg
     className={className}
+    width={size}
+    height={size}
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth="2"
+    strokeWidth={strokeWidth}
     strokeLinecap="round"
     strokeLinejoin="round"
   >
-    <path d="M14.828 14.828 21 21" />
-    <path d="M21 16v5h-5" />
-    <path d="m21 3-9 9-4-4-6 6" />
-    <path d="M21 8V3h-5" />
+    <g transform="scale(0.85) translate(1.8, 1.8)">
+      <path d="M14.828 14.828 21 21" />
+      <path d="M21 16v5h-5" />
+      <path d="m21 3-9 9-4-4-6 6" />
+      <path d="M21 8V3h-5" />
+    </g>
   </svg>
 )
 

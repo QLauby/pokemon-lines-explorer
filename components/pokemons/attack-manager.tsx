@@ -151,7 +151,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
                             onChange={(newName) => handleAttackNameChange(attack.id, newName)}
                             autoWidth={false}
                             width="100%"
-                            height="20px"
+                            fontSize={12}
                           />
                         </div>
                         <Button
@@ -176,7 +176,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
                           min={0}
                           dynamicMax={() => attack.maxPP}
                           width="25px"
-                          height="16px"
+                          fontSize={8}
                           fontSizeRatio={0.5}
                           rounded={true}
                           textAlign="center"
@@ -191,7 +191,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
                           numberMode="integer"
                           min={0}
                           width="25px"
-                          height="16px"
+                          fontSize={8}
                           fontSizeRatio={0.5}
                           rounded={true}
                           textAlign="center"

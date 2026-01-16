@@ -130,10 +130,6 @@ export function PokemonCard({
 
     if (index === 0) {
         if (newType === null) {
-             // If first type is removed, shift second to first? Or just make it empty?
-             // Usually pokemon has at least one type, but user said "default is none".
-             // If type 1 becomes None, and type 2 exists, it's weird.
-             // Let's just set index 0 to null (remove it) and clean up array.
              if (newTypes[1]) {
                  newTypes = [newTypes[1]]
              } else {
@@ -149,10 +145,6 @@ export function PokemonCard({
                 newTypes.pop()
             }
         } else {
-            // Set second type (ensure first type exists or place it at 0 if empty?)
-            // If types is empty, setting index 1 is weird. Let's assume index 1 only changeable if index 0 set?
-            // User requirement: "Two dropdowns".
-            // If I set type 2 but type 1 is null, make it type 1.
             if (!newTypes[0]) {
                 newTypes = [newType]
             } else {
@@ -209,7 +201,8 @@ export function PokemonCard({
               onChange={handleNameChange}
               autoWidth={false}
               width="100%"
-              height="24px"
+              fontSize={14.4}
+              fontSizeRatio={0.6}
               className="font-semibold"
             />
           </div>
@@ -298,7 +291,8 @@ export function PokemonCard({
                         onChange={handleAbilityNameChange}
                         autoWidth={false}
                         width="100%"
-                        height="20px"
+                        fontSize={12}
+                        fontSizeRatio={0.6}
                      />
                  </div>
              </div>
@@ -326,7 +320,8 @@ export function PokemonCard({
                             onChange={handleItemNameChange}
                             autoWidth={false}
                             width="100%"
-                            height="20px"
+                            fontSize={12}
+                        fontSizeRatio={0.6}
                          />
                      </div>
                 )}
@@ -334,7 +329,7 @@ export function PokemonCard({
         </div>
 
         <StatusSelector pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateStatus} />
-        <CustomTagsManager tags={pokemon.customTags || []} onUpdateTags={handleUpdateCustomTags} height="20px" />
+        <CustomTagsManager tags={pokemon.customTags || []} onUpdateTags={handleUpdateCustomTags} fontSize={10} />
         <HealthBar pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateHealth} editable={true} />
         <AttackManager
           pokemon={pokemon}

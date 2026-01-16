@@ -9,7 +9,7 @@ import { CustomTag } from "./custom-tag"
 interface CustomTagsManagerProps {
   tags: string[]
   onUpdateTags: (newTags: string[]) => void
-  height?: string | number
+  fontSize?: string | number
 }
 
 interface TagAnimationState {
@@ -18,7 +18,7 @@ interface TagAnimationState {
   isExiting: boolean
 }
 
-export function CustomTagsManager({ tags, onUpdateTags, height }: CustomTagsManagerProps) {
+export function CustomTagsManager({ tags, onUpdateTags, fontSize = 10 }: CustomTagsManagerProps) {
   const [animatedTags, setAnimatedTags] = useState<TagAnimationState[]>([])
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export function CustomTagsManager({ tags, onUpdateTags, height }: CustomTagsMana
                 tag={animatedTag.tag}
                 onUpdate={(newTag) => handleUpdateTag(tagIndex, newTag)}
                 onDelete={() => handleDeleteTag(tagIndex)}
-                height={height}
+                fontSize={fontSize}
                 defaultValue={`Tag ${tagIndex + 1}`}
                 placeholder={`Tag ${tagIndex + 1}`}
               />
@@ -99,7 +99,7 @@ export function CustomTagsManager({ tags, onUpdateTags, height }: CustomTagsMana
           activeColor=""
           inactiveColor="bg-gray-100 text-gray-400 hover:bg-gray-200"
           title="Ajouter un tag"
-          diameter={Math.round((typeof height === "number" ? height : Number.parseFloat(height || "24") || 24) * 0.8)}
+          diameter={Math.round((typeof fontSize === "number" ? fontSize : Number.parseFloat(fontSize as string) || 12) / 0.4 * 0.8)}
           iconRatio={0.6} // Ratio par défaut comme demandé
           variant="filled"
         />

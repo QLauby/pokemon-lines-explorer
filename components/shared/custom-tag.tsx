@@ -17,7 +17,7 @@ interface CustomTagProps {
   autoSelectOnClick?: boolean
   defaultValue?: string
   placeholder?: string
-  height?: string | number
+  fontSize?: string | number
   fontSizeRatio?: number
   rounded?: boolean
   mode?: "text" | "button"
@@ -41,7 +41,7 @@ export function CustomTag({
   autoSelectOnClick = true,
   defaultValue,
   placeholder,
-  height = "24px", // h-6 equivalent
+  fontSize = 12,
   fontSizeRatio = 0.4, // Small text for tags
   rounded = true,
   mode = "button",
@@ -60,10 +60,11 @@ export function CustomTag({
   const [counterValue, setCounterValue] = useState("0") // Default to "0" instead of ""
   const [isCounterMounting, setIsCounterMounting] = useState(false)
 
-  const counterFontSizeRation = fontSizeRatio * 1.5 > 1 ? 1 : fontSizeRatio * 1.5
+  const counterFontSizeRatio = fontSizeRatio * 1.5 > 1 ? 1 : fontSizeRatio * 1.5
 
-  const numericHeight = typeof height === "number" ? height : Number.parseFloat(height) || 24
-  const buttonDiameter = numericHeight * 0.45
+  const numericFontSize = typeof fontSize === "number" ? fontSize : Number.parseFloat(fontSize as string) || 12
+  const numericHeight = numericFontSize / fontSizeRatio
+  const buttonDiameter = 10
 
   const handleTagChange = (newValue: string) => {
     if (newValue.trim() === "") {
@@ -112,7 +113,7 @@ export function CustomTag({
             defaultValue={defaultValue || "Tag"}
             placeholder={placeholder || defaultValue || "Tag"}
             autoWidth={true} // Always auto width for tags
-            height={height}
+            fontSize={numericFontSize}
             fontSizeRatio={fontSizeRatio}
             rounded={rounded}
             mode={mode}
@@ -139,7 +140,7 @@ export function CustomTag({
               inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
               title={showCounter ? "Masquer le compteur" : "Afficher le compteur"}
               diameter={buttonDiameter}
-              iconRatio={0.7} // Reduced from 0.8 to 0.7 for better icon centering
+              iconRatio={0.8}
               variant="filled"
             />
           </div>
@@ -159,8 +160,6 @@ export function CustomTag({
               defaultValue="0"
               placeholder="0"
               autoWidth={true}
-              height={height}
-              fontSizeRatio={counterFontSizeRation}
               rounded={false}
               mode="text"
               visualMode="border"

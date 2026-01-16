@@ -27,9 +27,19 @@ export const CircularButton = ({
   size = 12,
   scale = 1,
 }: CircularButtonProps) => {
-  const finalDiameter = diameter || size * scale * 2
+  // 1. We respect the requested diameter exactly to avoid "oval" distortions.
+  let finalDiameter = Math.round(diameter || size * scale * 2)
+  
+  // 2. To ensure perfect centering, the Icon must have the SAME PARITY as the button.
+  // (Even button = Even icon, Odd button = Odd icon) -> Error margin is always an integer.
+  let finalIconSize = Math.round(finalDiameter * iconRatio)
+  if (finalIconSize % 2 !== finalDiameter % 2) {
+    if (finalIconSize + 1 < finalDiameter) finalIconSize += 1
+    else finalIconSize -= 1
+  }
 
-  const iconSize = diameter ? Math.max(diameter * iconRatio, diameter * 0.25) : Math.max(size * scale * 0.96, 10)
+  // 3. Sharpness: use thicker stroke only if the icon is very small
+  const finalStrokeWidth = finalIconSize < 12 ? 2.2 : 2
 
   const isHexColor = activeColor.startsWith("#")
 
@@ -58,38 +68,47 @@ export const CircularButton = ({
 
   const getInactiveStyles = () => {
     if (variant === "outlined") {
-      return inactiveColor !== "bg-gray-100 text-gray-400 hover:bg-gray-200" 
-        ? inactiveColor 
+      return inactiveColor !== "bg-gray-100 text-gray-400 hover:bg-gray-200"
+        ? inactiveColor
         : "bg-white text-gray-400 hover:bg-gray-50"
     }
     return inactiveColor
   }
 
-  const buttonSize = `${finalDiameter}px`
+  const commonStyles: React.CSSProperties = {
+    width: `${finalDiameter}px`,
+    height: `${finalDiameter}px`,
+    minWidth: `${finalDiameter}px`,
+    minHeight: `${finalDiameter}px`,
+    padding: 0,
+    lineHeight: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: "none",
+    aspectRatio: "1 / 1",
+  }
+
+  const iconStyle: React.CSSProperties = {
+    display: "block",
+    margin: 0,
+    padding: 0,
+  }
 
   if (isHexColor) {
     return (
       <button
         onClick={onClick}
-        className={`rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+        className={`rounded-full transition-colors cursor-pointer border-none outline-none overflow-hidden ${
           isActive ? "text-white" : "bg-gray-100 text-gray-400 hover:bg-gray-200"
         }`}
         style={{
-          width: buttonSize,
-          height: buttonSize,
+          ...commonStyles,
           backgroundColor: isActive ? activeColor : undefined,
         }}
         title={title}
       >
-        <div
-          className="flex items-center justify-center"
-          style={{
-            width: `${iconSize}px`,
-            height: `${iconSize}px`,
-          }}
-        >
-          <Icon size={iconSize * 0.9} className="flex-shrink-0" />
-        </div>
+        <Icon size={finalIconSize} strokeWidth={finalStrokeWidth} style={iconStyle} className="flex-shrink-0" />
       </button>
     )
   }
@@ -97,21 +116,13 @@ export const CircularButton = ({
   return (
     <button
       onClick={onClick}
-      className={`rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+      className={`rounded-full transition-colors cursor-pointer border-none outline-none overflow-hidden ${
         isActive ? getActiveStyles() : getInactiveStyles()
       }`}
-      style={{ width: buttonSize, height: buttonSize }}
+      style={commonStyles}
       title={title}
     >
-      <div
-        className="flex items-center justify-center"
-        style={{
-          width: `${iconSize}px`,
-          height: `${iconSize}px`,
-        }}
-      >
-        <Icon size={iconSize * 0.9} className="flex-shrink-0" />
-      </div>
+      <Icon size={finalIconSize} strokeWidth={finalStrokeWidth} style={iconStyle} className="flex-shrink-0" />
     </button>
   )
 }

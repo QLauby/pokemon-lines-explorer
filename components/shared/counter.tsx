@@ -20,7 +20,7 @@ interface CounterProps {
   autoWidth?: boolean
   width?: string | number
   editWidth?: string | number
-  height?: string | number
+  fontSize?: string | number
   fontSizeRatio?: number
   rounded?: boolean
   mode?: "text" | "button"
@@ -50,13 +50,15 @@ export function Counter(props: CounterProps) {
     min,
     max,
     dynamicMax,
-    height = "24px",
+    fontSize = 12,
     fontSizeRatio = 0.6,
     transitionDuration = "0.3s",
     doubleClickStep = 5,
     ...editableTextProps
   } = props
 
+  const numericFontSize = typeof fontSize === "number" ? fontSize : Number.parseFloat(fontSize as string) || 16
+  const numericHeight = numericFontSize / fontSizeRatio
   const effectiveMax = dynamicMax ? dynamicMax() : max
 
   const handleIncrement = (step = 1) => {
@@ -100,7 +102,6 @@ export function Counter(props: CounterProps) {
     }
   }
 
-  const numericHeight = typeof height === "number" ? height : Number.parseFloat(height) || 24
   const borderRadiusPx = Math.round(numericHeight * 0.125)
   const arrowSize = Math.max(6, Math.min(12, Math.floor(numericHeight * 0.35)))
   const buttonOpacity = 0.8
@@ -153,7 +154,7 @@ export function Counter(props: CounterProps) {
         numberMode="integer"
         min={min}
         max={effectiveMax}
-        height={height}
+        fontSize={numericFontSize}
         fontSizeRatio={fontSizeRatio}
         autoWidth={true}
         textAlign="center"
