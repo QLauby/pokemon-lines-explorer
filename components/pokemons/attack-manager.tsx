@@ -5,9 +5,11 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 
+import { pokemonTypeColors } from "@/lib/colors"
 import { Attack, Pokemon } from "@/lib/types"
 
 import { EditableText } from "@/components/shared/editable-text"
+import { PokemonTypeDropdown } from "./pokemon-type-dropdown"
 
 interface AttackManagerProps {
   pokemon: Pokemon
@@ -144,6 +146,12 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
                     <div key={attack.id} className="border rounded-lg p-2 bg-white space-y-1">
                       <div className="flex items-center gap-1">
                         <div className="flex-1 mr-1 h-5 flex items-center min-w-0">
+                          {attack.type && (
+                            <div 
+                              className="w-[3px] h-full mr-1 rounded-full shrink-0" 
+                              style={{ backgroundColor: pokemonTypeColors[attack.type] }}
+                            />
+                          )}
                           <EditableText
                             value={attack.name}
                             placeholder={defaultName}
@@ -165,39 +173,50 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
                       </div>
 
                       <div className="flex items-center gap-1 text-xs">
-                        <span className="text-gray-600 whitespace-nowrap" style={{ fontSize: "8px" }}>
-                          PP :
-                        </span>
-                        <EditableText
-                          value={attack.currentPP.toString()}
-                          onChange={(newValue) => handleCurrentPPChange(attack.id, newValue)}
-                          type="number"
-                          numberMode="integer"
-                          min={0}
-                          dynamicMax={() => attack.maxPP}
-                          width="25px"
-                          fontSize={8}
-                          fontSizeRatio={0.5}
-                          rounded={true}
-                          textAlign="center"
-                          defaultValue="0"
-                          placeholder=""
-                        />
-                        <span className="text-gray-500">/</span>
-                        <EditableText
-                          value={attack.maxPP.toString()}
-                          onChange={(newValue) => handleMaxPPChange(attack.id, newValue)}
-                          type="number"
-                          numberMode="integer"
-                          min={0}
-                          width="25px"
-                          fontSize={8}
-                          fontSizeRatio={0.5}
-                          rounded={true}
-                          textAlign="center"
-                          defaultValue={attack.maxPP.toString()}
-                          placeholder=""
-                        />
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-600 whitespace-nowrap" style={{ fontSize: "8px" }}>
+                            PP :
+                          </span>
+                          <EditableText
+                            value={attack.currentPP.toString()}
+                            onChange={(newValue) => handleCurrentPPChange(attack.id, newValue)}
+                            type="number"
+                            numberMode="integer"
+                            min={0}
+                            dynamicMax={() => attack.maxPP}
+                            width="25px"
+                            fontSize={8}
+                            fontSizeRatio={0.5}
+                            rounded={true}
+                            textAlign="center"
+                            defaultValue="0"
+                            placeholder=""
+                          />
+                          <span className="text-gray-500">/</span>
+                          <EditableText
+                            value={attack.maxPP.toString()}
+                            onChange={(newValue) => handleMaxPPChange(attack.id, newValue)}
+                            type="number"
+                            numberMode="integer"
+                            min={0}
+                            width="25px"
+                            fontSize={8}
+                            fontSizeRatio={0.5}
+                            rounded={true}
+                            textAlign="center"
+                            defaultValue={attack.maxPP.toString()}
+                            placeholder=""
+                          />
+                        </div>
+                        <div className="flex-1 flex justify-end">
+                          <PokemonTypeDropdown 
+                            selectedType={attack.type || null} 
+                            onSelect={(type) => updateAttack(attack.id, "type", type as any)} 
+                            includeNull 
+                            buttonClassName="h-4 px-0.5 gap-0.5 rounded-full min-w-[24px]"
+                            size={16}
+                          />
+                        </div>
                       </div>
                     </div>
                   )

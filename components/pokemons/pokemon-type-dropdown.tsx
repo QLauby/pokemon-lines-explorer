@@ -38,20 +38,27 @@ interface PokemonTypeDropdownProps {
   onSelect: (type: PokemonType | null) => void
   includeNull?: boolean
   className?: string
+  buttonClassName?: string
   variant?: "circle" | "tera"
+  size?: number
 }
 
 const BadgeContainer = ({
   variant = "circle",
   color,
+  size = 20,
   children,
 }: {
   variant?: "circle" | "tera"
   color: string
+  size?: number
   children: React.ReactNode
 }) => {
   return (
-    <div className="relative w-5 h-5 shrink-0 flex items-center justify-center">
+    <div 
+      className="relative shrink-0 flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
       {variant === "tera" ? (
         <StarBadgeIcon className="absolute inset-0 w-full h-full" style={{ color: color }} />
       ) : (
@@ -72,7 +79,7 @@ const BadgeContainer = ({
   )
 }
 
-export function PokemonTypeDropdown({ selectedType, onSelect, includeNull, className, variant = "circle" }: PokemonTypeDropdownProps) {
+export function PokemonTypeDropdown({ selectedType, onSelect, includeNull, className, buttonClassName, variant = "circle", size = 20 }: PokemonTypeDropdownProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
@@ -93,19 +100,22 @@ export function PokemonTypeDropdown({ selectedType, onSelect, includeNull, class
     <div className={cn("relative inline-block text-left", className)} ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1 rounded-md border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors bg-white min-w-[32px] justify-center"
+        className={cn(
+          "flex items-center gap-2 rounded-md border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors bg-white min-w-[32px] justify-center",
+          buttonClassName || "p-1"
+        )}
         type="button"
       >
         {selectedType ? (
-          <BadgeContainer variant={variant} color={currentColor}>
-            <Image src={currentIcon} alt={selectedType} width={12} height={12} className="brightness-0 invert" />
+          <BadgeContainer variant={variant} color={currentColor} size={size * 0.75}>
+            <Image src={currentIcon} alt={selectedType} width={size * 0.5} height={size * 0.5} className="brightness-0 invert" />
           </BadgeContainer>
         ) : (
-          <BadgeContainer variant={variant} color={currentColor}>
-            <span className="text-white text-xs font-bold">-</span>
+          <BadgeContainer variant={variant} color={currentColor} size={size * 0.75}>
+            <span className="text-white font-bold" style={{ fontSize: `${size * 0.45}px` }}>-</span>
           </BadgeContainer>
         )}
-        <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" />
+        <ChevronsUpDown style={{ width: size * 0.5, height: size * 0.5 }} className="shrink-0 opacity-50" />
       </button>
 
       {isOpen && (

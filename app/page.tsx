@@ -24,7 +24,8 @@ export default function PokemonNuzlockeLines() {
           myTeam={state.myTeam}
           enemyTeam={state.enemyTeam}
           battleType={state.battleType}
-          secondStarter={state.secondStarter}
+          activeStarters={state.activeStarters}
+          getSlotForPokemon={state.getSlotForPokemon}
           editingPokemonId={state.editingPokemonId}
           editingPokemonName={state.editingPokemonName}
           onStartEditing={actions.startEditingPokemon}

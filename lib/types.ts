@@ -6,6 +6,7 @@ export interface Attack {
   name: string
   maxPP: number
   currentPP: number
+  type?: PokemonType
 }
 
 export interface StatsModifiers {

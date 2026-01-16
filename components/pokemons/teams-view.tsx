@@ -13,7 +13,8 @@ interface TeamsViewProps {
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
   battleType: "simple" | "double"
-  secondStarter: { myTeam: number; opponentTeam: number }
+  activeStarters: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
+  getSlotForPokemon: (index: number, isMyTeam: boolean) => number | null
   editingPokemonId: string | null
   editingPokemonName: string
   onStartEditing: (pokemon: Pokemon) => void
@@ -44,7 +45,8 @@ export function TeamsView({
   myTeam,
   enemyTeam,
   battleType,
-  secondStarter,
+  activeStarters,
+  getSlotForPokemon,
   editingPokemonId,
   editingPokemonName,
   onStartEditing,
@@ -101,7 +103,7 @@ export function TeamsView({
           title="Mon Équipe"
           isMyTeam={true}
           battleType={battleType}
-          secondStarter={secondStarter}
+          getSlotForPokemon={getSlotForPokemon}
           editingPokemonId={editingPokemonId}
           editingPokemonName={editingPokemonName}
           onStartEditing={onStartEditing}
@@ -125,7 +127,7 @@ export function TeamsView({
           title="Équipe Adverse"
           isMyTeam={false}
           battleType={battleType}
-          secondStarter={secondStarter}
+          getSlotForPokemon={getSlotForPokemon}
           editingPokemonId={editingPokemonId}
           editingPokemonName={editingPokemonName}
           onStartEditing={onStartEditing}

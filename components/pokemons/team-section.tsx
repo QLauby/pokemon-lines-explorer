@@ -16,7 +16,7 @@ interface TeamSectionProps {
   title: string
   isMyTeam: boolean
   battleType: "simple" | "double"
-  secondStarter: { myTeam: number; opponentTeam: number }
+  getSlotForPokemon: (index: number, isMyTeam: boolean) => number | null
   editingPokemonId: string | null
   editingPokemonName: string
   onStartEditing: (pokemon: Pokemon) => void
@@ -45,7 +45,7 @@ export function TeamSection({
   title,
   isMyTeam,
   battleType,
-  secondStarter,
+  getSlotForPokemon,
   editingPokemonId,
   editingPokemonName,
   onStartEditing,
@@ -94,6 +94,7 @@ export function TeamSection({
             onToggleTerastallized={onToggleTerastallized}
             onToggleMega={onToggleMega}
             onFlagClick={onFlagClick}
+            getSlotForPokemon={getSlotForPokemon}
             getDefaultPokemonName={getDefaultPokemonName}
           />
         ))}

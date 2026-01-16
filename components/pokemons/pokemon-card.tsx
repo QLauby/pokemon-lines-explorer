@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { StarBadgeIcon } from "@/assets/badges/star-badge";
 import MegaColored from "@/assets/logos/mega/mega-colored.svg";
 import { PokemonType, pokemonTypeColors } from "@/lib/colors";
-import { POKEMON_LOGOS, PokemonStatus } from "@/lib/logos";
+import { POKEMON_LOGOS, PokemonStatus, getStatusInfo } from "@/lib/logos";
 import { Pokemon, StatsModifiers } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -81,6 +81,7 @@ interface PokemonCardProps {
   onToggleTerastallized: (pokemonId: string, isMyTeam: boolean) => void
   onToggleMega: (pokemonId: string, isMyTeam: boolean) => void
   onFlagClick: (index: number, isMyTeam: boolean) => void
+  getSlotForPokemon: (index: number, isMyTeam: boolean) => number | null
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
 }
 
@@ -103,6 +104,7 @@ export function PokemonCard({
   onToggleTerastallized,
   onToggleMega,
   onFlagClick,
+  getSlotForPokemon,
   getDefaultPokemonName,
 }: PokemonCardProps) {
   const handleUpdateCustomTags = (newTags: string[]) => {
@@ -136,6 +138,20 @@ export function PokemonCard({
   const handleNameChange = (newName: string) => {
     const finalName = newName.trim() || defaultName
     onUpdateName(pokemon.id, finalName, isMyTeam)
+  }
+
+  const activeStatusInfos = []
+  if (pokemon.status) {
+    const info = getStatusInfo(pokemon.status)
+    if (info) activeStatusInfos.push(info)
+  }
+  if (pokemon.confusion) {
+    const info = getStatusInfo("confusion")
+    if (info) activeStatusInfos.push(info)
+  }
+  if (pokemon.love) {
+    const info = getStatusInfo("love")
+    if (info) activeStatusInfos.push(info)
   }
 
   const handleTypeChange = (index: 0 | 1, newType: PokemonType | null) => {
@@ -208,6 +224,17 @@ export function PokemonCard({
         {/* Row 1: Name, Status selector (battle), Trash */}
         <div className="flex justify-between items-center text-sm">
           <div className="flex-1 mr-2 h-6 flex items-center min-w-0">
+            {types.length > 0 && (
+              <div 
+                className="w-1 h-full mr-1.5 rounded-full shrink-0" 
+                style={{ 
+                  background: types.length === 1 
+                    ? pokemonTypeColors[types[0]] 
+                    : `linear-gradient(135deg, ${pokemonTypeColors[types[0]]} 50%, ${pokemonTypeColors[types[1]]} 50%)`
+                }}
+                title={types.join(' / ')}
+              />
+            )}
             <EditableText
               value={pokemon.name || defaultName}
               placeholder={defaultName}
@@ -221,6 +248,32 @@ export function PokemonCard({
             />
           </div>
           <div className="flex items-center gap-1">
+            {activeStatusInfos.length > 0 && (
+              <div className="flex items-center gap-1 mr-1">
+                {activeStatusInfos.map((status) => (
+                  <CircularButton
+                    key={status.type}
+                    isActive={true}
+                    onClick={() => {
+                      if (status.type === "confusion") {
+                        onUpdateStatus(pokemon.id, isMyTeam, { confusion: false, confusionCounter: 0 })
+                      } else if (status.type === "love") {
+                        onUpdateStatus(pokemon.id, isMyTeam, { love: false })
+                      } else {
+                        onUpdateStatus(pokemon.id, isMyTeam, { status: null, sleepCounter: 0 })
+                      }
+                    }}
+                    icon={status.icon}
+                    activeColor={status.activeColor}
+                    title={`Retirer le statut ${status.title}`}
+                    variant="filled"
+                    diameter={20}
+                    iconRatio={0.7}
+                  />
+                ))}
+              </div>
+            )}
+
             {teraType && (
               <div
                className="cursor-pointer transition-transform hover:scale-110 active:scale-95"
@@ -262,20 +315,26 @@ export function PokemonCard({
               />
             )}
 
-            <CircularButton
-              isActive={isStarter}
-              onClick={() => {
-                if (battleType === "double" && teamIndex > 0) {
-                  onFlagClick(teamIndex, isMyTeam)
-                }
-              }}
-              icon={Swords}
-              activeColor={isMyTeam ? "bg-blue-500 text-white" : "bg-red-500 text-white"}
-              title={isStarter ? "Au combat" : "Cliquer pour sélectionner comme starter"}
-              variant="outlined"
-              diameter={Math.round(24 * 1)}
-              iconRatio={0.7}
-            />
+            <div className="relative">
+              <CircularButton
+                isActive={isStarter}
+                onClick={() => onFlagClick(teamIndex, isMyTeam)}
+                icon={Swords}
+                activeColor={isMyTeam ? "bg-blue-500 text-white" : "bg-red-500 text-white"}
+                title={isStarter ? "Au combat" : "Cliquer pour sélectionner comme starter"}
+                variant="outlined"
+                diameter={Math.round(24 * 1)}
+                iconRatio={0.7}
+              />
+              {isStarter && (
+                <div className={cn(
+                  "absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white",
+                  isMyTeam ? "bg-blue-600 text-white" : "bg-red-600 text-white"
+                )}>
+                  {getSlotForPokemon(teamIndex, isMyTeam)}
+                </div>
+              )}
+            </div>
             <Button variant="ghost" size="sm" onClick={() => onRemove(pokemon.id, isMyTeam)} className="cursor-pointer h-8 w-8 p-0 ml-1">
               <Trash2 className="h-4 w-4" />
             </Button>
@@ -285,11 +344,30 @@ export function PokemonCard({
         {/* Row 2: Types, Tera */}
         <div className="flex items-center gap-2 flex-wrap min-h-[32px]">
              <span className="text-xs text-gray-600 mr-1">Types :</span>
-             <PokemonTypeDropdown selectedType={types[0] || null} onSelect={(t) => handleTypeChange(0, t)} includeNull />
-             <PokemonTypeDropdown selectedType={types[1] || null} onSelect={(t) => handleTypeChange(1, t)} includeNull />
+             <PokemonTypeDropdown 
+               selectedType={types[0] || null} 
+               onSelect={(t) => handleTypeChange(0, t)} 
+               includeNull 
+               buttonClassName="h-6 px-1 gap-1 rounded-full min-w-[28px]"
+               size={24}
+             />
+             <PokemonTypeDropdown 
+               selectedType={types[1] || null} 
+               onSelect={(t) => handleTypeChange(1, t)} 
+               includeNull 
+               buttonClassName="h-6 px-1 gap-1 rounded-full min-w-[28px]"
+               size={24}
+             />
 
              <span className="text-xs text-gray-600 mr-1 ml-2">Tera :</span>
-             <PokemonTypeDropdown selectedType={teraType} onSelect={handleTeraChange} includeNull variant="tera" />
+             <PokemonTypeDropdown 
+               selectedType={teraType} 
+               onSelect={handleTeraChange} 
+               includeNull 
+               variant="tera" 
+               buttonClassName="h-6 px-1 gap-1 rounded-full min-w-[28px]"
+               size={24}
+             />
         </div>
 
         {/* Row 3: Ability, Item */}

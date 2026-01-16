@@ -26,9 +26,9 @@ export function usePokemonBattle() {
 
   const nodeOrder = useRef(1)
 
-  const [secondStarter, setSecondStarter] = useState<{ myTeam: number; opponentTeam: number }>({
-    myTeam: 1,
-    opponentTeam: 1,
+  const [activeStarters, setActiveStarters] = useState<{ myTeam: (number | null)[]; opponentTeam: (number | null)[] }>({
+    myTeam: [0, 1],
+    opponentTeam: [0, 1],
   })
 
   const getDefaultPokemonName = (team: Pokemon[], teamType: "my" | "opponent") => {
@@ -435,23 +435,50 @@ export function usePokemonBattle() {
   }
 
   const isStarterPokemon = (pokemon: Pokemon, index: number, isMyTeam: boolean) => {
-    if (battleType === "simple") {
-      return index === 0
-    } else {
-      if (index === 0) return true
-      const teamSecondStarter = isMyTeam ? secondStarter.myTeam : secondStarter.opponentTeam
-      return index === teamSecondStarter
-    }
+    const starters = isMyTeam ? activeStarters.myTeam : activeStarters.opponentTeam
+    const maxSlots = battleType === "simple" ? 1 : 2
+    return starters.slice(0, maxSlots).includes(index)
+  }
+
+  const getSlotForPokemon = (index: number, isMyTeam: boolean) => {
+    const starters = isMyTeam ? activeStarters.myTeam : activeStarters.opponentTeam
+    const maxSlots = battleType === "simple" ? 1 : 2
+    const slotIndex = starters.slice(0, maxSlots).indexOf(index)
+    return slotIndex !== -1 ? slotIndex + 1 : null
   }
 
   const handleFlagClick = (index: number, isMyTeam: boolean) => {
-    if (battleType === "double" && index > 0) {
-      setSecondStarter((prev) => ({
-        ...prev,
-        [isMyTeam ? "myTeam" : "opponentTeam"]: index,
-      }))
-      resetBattleIfNeeded()
+    const teamKey = isMyTeam ? "myTeam" : "opponentTeam"
+    const currentStarters = [...activeStarters[teamKey]]
+    const maxSlots = battleType === "simple" ? 1 : 2
+
+    // Check if it's already selected
+    const existingSlot = currentStarters.slice(0, maxSlots).indexOf(index)
+
+    if (existingSlot !== -1) {
+      // Already selected, deselect it
+      currentStarters[existingSlot] = null
+    } else {
+      // Not selected, try to find an empty slot
+      if (currentStarters[0] === null) {
+        currentStarters[0] = index
+      } else if (maxSlots > 1 && currentStarters[1] === null) {
+        currentStarters[1] = index
+      } else {
+        // Both full (or simple and slot 1 full), replace Slot 2 (or Slot 1 for simple)
+        if (maxSlots === 1) {
+          currentStarters[0] = index
+        } else {
+          currentStarters[1] = index
+        }
+      }
     }
+
+    setActiveStarters((prev) => ({
+      ...prev,
+      [teamKey]: currentStarters,
+    }))
+    resetBattleIfNeeded()
   }
 
   return {
@@ -471,7 +498,8 @@ export function usePokemonBattle() {
       hpChanges,
       editingPokemonId,
       editingPokemonName,
-      secondStarter,
+      activeStarters,
+      getSlotForPokemon,
     },
     setters: {
       setCurrentView,
