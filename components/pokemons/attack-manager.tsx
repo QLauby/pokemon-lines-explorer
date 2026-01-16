@@ -123,7 +123,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
   }
 
   return (
-    <div className="mt-2">
+    <div className="">
       <Button
         variant="ghost"
         size="sm"

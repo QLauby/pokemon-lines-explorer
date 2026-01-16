@@ -452,11 +452,14 @@ export function usePokemonBattle() {
     const currentStarters = [...activeStarters[teamKey]]
     const maxSlots = battleType === "simple" ? 1 : 2
 
+    let indexLeaving: number | null = null
+
     // Check if it's already selected
     const existingSlot = currentStarters.slice(0, maxSlots).indexOf(index)
 
     if (existingSlot !== -1) {
       // Already selected, deselect it
+      indexLeaving = index
       currentStarters[existingSlot] = null
     } else {
       // Not selected, try to find an empty slot
@@ -467,10 +470,38 @@ export function usePokemonBattle() {
       } else {
         // Both full (or simple and slot 1 full), replace Slot 2 (or Slot 1 for simple)
         if (maxSlots === 1) {
+          indexLeaving = currentStarters[0]
           currentStarters[0] = index
         } else {
+          indexLeaving = currentStarters[1]
           currentStarters[1] = index
         }
+      }
+    }
+
+    // Reset data for the Pokemon leaving the field
+    if (indexLeaving !== null) {
+      const resetData = (p: Pokemon): Pokemon => ({
+        ...p,
+        confusion: false,
+        love: false,
+        confusionCounter: 0,
+        statsModifiers: {
+          att: 0,
+          def: 0,
+          spa: 0,
+          spd: 0,
+          spe: 0,
+          acc: 0,
+          ev: 0,
+          crit: 0,
+        }
+      })
+
+      if (isMyTeam) {
+        setMyTeam((prev) => prev.map((p, i) => i === indexLeaving ? resetData(p) : p))
+      } else {
+        setEnemyTeam((prev) => prev.map((p, i) => i === indexLeaving ? resetData(p) : p))
       }
     }
 

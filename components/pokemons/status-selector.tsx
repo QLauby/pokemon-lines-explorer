@@ -131,7 +131,7 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
   const counterHeight = 22
 
   return (
-    <div className="flex items-center gap-1 mb-2">
+    <div className="flex items-center gap-1">
       <span className="text-xs text-gray-600 mr-1">Statut :</span>
       {exclusiveStatuses.map(({ type, icon, activeColor, title }) => {
         if (type === "badly-poison") return null

@@ -1,6 +1,7 @@
 "use client"
 
-import { ShoppingBag, Swords, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, ShoppingBag, Swords, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -107,6 +108,8 @@ export function PokemonCard({
   getSlotForPokemon,
   getDefaultPokemonName,
 }: PokemonCardProps) {
+  const [isCollapsed, setIsCollapsed] = useState(true)
+
   const handleUpdateCustomTags = (newTags: string[]) => {
     const updatedPokemon: Pokemon = { ...pokemon, customTags: newTags }
     onUpdatePokemon(updatedPokemon, isMyTeam)
@@ -217,12 +220,32 @@ export function PokemonCard({
 
   return (
     <div
-      className={`flex flex-col p-3 border rounded-lg transition-all duration-300 gap-3 ${
+      className={cn(
+        "relative flex flex-col pt-3 pb-3 px-3 border rounded-lg transition-all duration-300",
         isStarter ? (isMyTeam ? "border-blue-500 border-2" : "border-red-500 border-2") : "border-gray-200"
-      }`}
+      )}
     >
+        {/* Toggle Collapse Button */}
+        <div className="absolute top-1 left-1 z-20">
+          <CircularButton
+            isActive={false}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            icon={isCollapsed ? ChevronDown : ChevronUp}
+            activeColor="bg-white"
+            inactiveColor={cn(
+              "bg-white border",
+              isStarter 
+                ? (isMyTeam ? "text-blue-500 border-blue-500" : "text-red-500 border-red-500") 
+                : "text-gray-400 border-gray-200 hover:text-gray-600 hover:border-gray-300"
+            )}
+            title={isCollapsed ? "Déployer la carte" : "Réduire la carte"}
+            variant="filled"
+            diameter={15}
+            iconRatio={0.8}
+          />
+        </div>
         {/* Row 1: Name, Status selector (battle), Trash */}
-        <div className="flex justify-between items-center text-sm">
+        <div className="flex justify-between items-center text-sm py-0.5">
           <div className="flex-1 mr-2 h-6 flex items-center min-w-0">
             {types.length > 0 && (
               <div 
@@ -341,37 +364,38 @@ export function PokemonCard({
           </div>
         </div>
 
-        {/* Row 2: Types, Tera */}
-        <div className="flex items-center gap-2 flex-wrap min-h-[32px]">
-             <span className="text-xs text-gray-600 mr-1">Types :</span>
-             <PokemonTypeDropdown 
-               selectedType={types[0] || null} 
-               onSelect={(t) => handleTypeChange(0, t)} 
-               includeNull 
-               buttonClassName="h-6 px-1 gap-1 rounded-full min-w-[28px]"
-               size={24}
-             />
-             <PokemonTypeDropdown 
-               selectedType={types[1] || null} 
-               onSelect={(t) => handleTypeChange(1, t)} 
-               includeNull 
-               buttonClassName="h-6 px-1 gap-1 rounded-full min-w-[28px]"
-               size={24}
-             />
+        {!isCollapsed && (
+          <div className="flex items-center gap-1 flex-wrap min-h-[32px] py-1">
+               <span className="text-xs text-gray-600 mr-1">Types :</span>
+               <PokemonTypeDropdown 
+                 selectedType={types[0] || null} 
+                 onSelect={(t) => handleTypeChange(0, t)} 
+                 includeNull 
+                 buttonClassName="h-6 px-1 gap-1 rounded-full min-w-[28px]"
+                 size={24}
+               />
+               <PokemonTypeDropdown 
+                 selectedType={types[1] || null} 
+                 onSelect={(t) => handleTypeChange(1, t)} 
+                 includeNull 
+                 buttonClassName="h-6 px-1 gap-1 rounded-full min-w-[28px]"
+                 size={24}
+               />
 
-             <span className="text-xs text-gray-600 mr-1 ml-2">Tera :</span>
-             <PokemonTypeDropdown 
-               selectedType={teraType} 
-               onSelect={handleTeraChange} 
-               includeNull 
-               variant="tera" 
-               buttonClassName="h-6 px-1 gap-1 rounded-full min-w-[28px]"
-               size={24}
-             />
-        </div>
+               <span className="text-xs text-gray-600 mr-1 ml-2">Tera :</span>
+               <PokemonTypeDropdown 
+                 selectedType={teraType} 
+                 onSelect={handleTeraChange} 
+                 includeNull 
+                 variant="tera" 
+                 buttonClassName="h-6 px-1 gap-1 rounded-full min-w-[28px]"
+                 size={24}
+               />
+          </div>
+        )}
 
         {/* Row 3: Ability, Item */}
-        <div className="grid grid-cols-2 gap-4 items-center min-h-[32px]">
+        <div className={cn("grid grid-cols-2 gap-2 items-center min-h-[32px]", isCollapsed ? "py-1" : "py-0.5")}>
              {/* Ability Section */}
              <div className="flex items-center min-w-0">
                  <span className="text-xs text-gray-600 mr-1 shrink-0">Ability :</span>
@@ -420,18 +444,38 @@ export function PokemonCard({
             </div>
         </div>
 
-        <StatusSelector pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateStatus} />
-        <CustomTagsManager tags={pokemon.customTags || []} onUpdateTags={handleUpdateCustomTags} fontSize={10} />
-        <HealthBar pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateHealth} editable={true} />
-        <StatsModifiersDisplay 
-            modifiers={pokemon.statsModifiers || { att: 0, def: 0, spa: 0, spd: 0, spe: 0, acc: 0, ev: 0, crit: 0 }}
-            onUpdate={handleUpdateStatsModifiers}
-        />
-        <AttackManager
-          pokemon={pokemon}
-          onUpdate={(updatedPokemon) => onUpdatePokemon(updatedPokemon, isMyTeam)}
-          isMyTeam={isMyTeam}
-        />
+        {!isCollapsed && (
+          <div className="py-1">
+            <StatusSelector pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateStatus} />
+          </div>
+        )}
+        {!isCollapsed && (
+          <div className="py-1">
+            <CustomTagsManager tags={pokemon.customTags || []} onUpdateTags={handleUpdateCustomTags} fontSize={10} />
+          </div>
+        )}
+        
+        <div className="py-1.5">
+          <HealthBar pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateHealth} editable={true} />
+        </div>
+        
+        {!isCollapsed && (
+          <div className="py-2">
+            <StatsModifiersDisplay 
+                modifiers={pokemon.statsModifiers || { att: 0, def: 0, spa: 0, spd: 0, spe: 0, acc: 0, ev: 0, crit: 0 }}
+                onUpdate={handleUpdateStatsModifiers}
+            />
+          </div>
+        )}
+        {!isCollapsed && (
+          <div className="pt-1">
+            <AttackManager
+              pokemon={pokemon}
+              onUpdate={(updatedPokemon) => onUpdatePokemon(updatedPokemon, isMyTeam)}
+              isMyTeam={isMyTeam}
+            />
+          </div>
+        )}
     </div>
   )
 }

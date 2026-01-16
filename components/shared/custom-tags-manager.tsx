@@ -63,7 +63,7 @@ export function CustomTagsManager({ tags, onUpdateTags, fontSize = 10 }: CustomT
   }
 
   return (
-    <div className="mb-1">
+    <div className="">
       <div className="flex flex-wrap items-center gap-1 text-xs max-w-full">
         <span className="text-gray-600 mr-1">Autre :</span>
         {animatedTags.map((animatedTag, index) => {

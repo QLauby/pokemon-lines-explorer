@@ -33,7 +33,7 @@ export function StatsModifiersDisplay({ modifiers, onUpdate }: StatsModifiersDis
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-1 gap-y-2 py-2 px-1 border-y border-gray-100 bg-gray-50/30 rounded-sm">
+    <div className="flex flex-wrap items-center justify-between gap-x-1 gap-y-2 py-1 px-1 border-y border-gray-100 bg-gray-50/30 rounded-sm">
       {MODIFIER_CONFIG.map((config) => {
         const value = modifiers[config.key as keyof StatsModifiers];
         return (
