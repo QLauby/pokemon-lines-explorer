@@ -81,6 +81,16 @@ export function usePokemonBattle() {
       isTerastallized: false,
       isMega: false,
       customTags: [], // Initialize customTags as empty array for new Pokemon
+      statsModifiers: {
+        att: 0,
+        def: 0,
+        spa: 0,
+        spd: 0,
+        spe: 0,
+        acc: 0,
+        ev: 0,
+        crit: 0,
+      },
     }
 
     setTeam([...team, newPokemon])

@@ -8,6 +8,17 @@ export interface Attack {
   currentPP: number
 }
 
+export interface StatsModifiers {
+  att: number;
+  def: number;
+  spa: number;
+  spd: number;
+  spe: number;
+  acc: number;
+  ev: number;
+  crit: number;
+}
+
 export interface Pokemon {
   id: string
   name: string
@@ -26,6 +37,7 @@ export interface Pokemon {
   customTags?: string[]
   sleepCounter?: number
   confusionCounter?: number
+  statsModifiers?: StatsModifiers;
 }
 
 export interface TreeNode {

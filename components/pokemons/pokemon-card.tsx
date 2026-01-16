@@ -8,7 +8,7 @@ import { StarBadgeIcon } from "@/assets/badges/star-badge";
 import MegaColored from "@/assets/logos/mega/mega-colored.svg";
 import { PokemonType, pokemonTypeColors } from "@/lib/colors";
 import { POKEMON_LOGOS, PokemonStatus } from "@/lib/logos";
-import { Pokemon } from "@/lib/types";
+import { Pokemon, StatsModifiers } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { CircularButton } from "../shared/circular-button";
@@ -17,6 +17,7 @@ import { EditableText } from "../shared/editable-text";
 import { AttackManager } from "./attack-manager";
 import { HealthBar } from "./health-bar";
 import { PokemonTypeDropdown } from "./pokemon-type-dropdown";
+import { StatsModifiersDisplay } from "./stats-modifiers";
 import { StatusSelector } from "./status-selector";
 
 const MegaColoredIcon = ({ size, className }: { size?: number; className?: string }) => (
@@ -106,6 +107,19 @@ export function PokemonCard({
 }: PokemonCardProps) {
   const handleUpdateCustomTags = (newTags: string[]) => {
     const updatedPokemon: Pokemon = { ...pokemon, customTags: newTags }
+    onUpdatePokemon(updatedPokemon, isMyTeam)
+  }
+
+  const handleUpdateStatsModifiers = (updates: Partial<StatsModifiers>) => {
+    const updatedPokemon: Pokemon = {
+      ...pokemon,
+      statsModifiers: {
+        ...(pokemon.statsModifiers || {
+          att: 0, def: 0, spa: 0, spd: 0, spe: 0, acc: 0, ev: 0, crit: 0
+        }),
+        ...updates
+      }
+    }
     onUpdatePokemon(updatedPokemon, isMyTeam)
   }
 
@@ -331,6 +345,10 @@ export function PokemonCard({
         <StatusSelector pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateStatus} />
         <CustomTagsManager tags={pokemon.customTags || []} onUpdateTags={handleUpdateCustomTags} fontSize={10} />
         <HealthBar pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateHealth} editable={true} />
+        <StatsModifiersDisplay 
+            modifiers={pokemon.statsModifiers || { att: 0, def: 0, spa: 0, spd: 0, spe: 0, acc: 0, ev: 0, crit: 0 }}
+            onUpdate={handleUpdateStatsModifiers}
+        />
         <AttackManager
           pokemon={pokemon}
           onUpdate={(updatedPokemon) => onUpdatePokemon(updatedPokemon, isMyTeam)}
