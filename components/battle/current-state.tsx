@@ -5,14 +5,16 @@ import { Percent } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { TreeNode } from "@/lib/types"
+import { Pokemon, TreeNode } from "@/lib/types"
 import { HealthBar } from "../pokemons/health-bar"
 
 interface CurrentStateProps {
   selectedNode: TreeNode
+  myTeam: Pokemon[]
+  enemyTeam: Pokemon[]
 }
 
-export function CurrentState({ selectedNode }: CurrentStateProps) {
+export function CurrentState({ selectedNode, myTeam, enemyTeam }: CurrentStateProps) {
   return (
     <div className="space-y-4">
       <Card>
@@ -24,7 +26,7 @@ export function CurrentState({ selectedNode }: CurrentStateProps) {
           <div className="space-y-4">
             <div>
               <h4 className="font-semibold mb-2 text-blue-600">Mon Équipe</h4>
-              {selectedNode.myTeam.map((pokemon) => (
+              {myTeam.map((pokemon) => (
                 <div key={pokemon.id} className="mb-2">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="truncate mr-2" title={pokemon.name}>
@@ -48,7 +50,7 @@ export function CurrentState({ selectedNode }: CurrentStateProps) {
             </div>
             <div>
               <h4 className="font-semibold mb-2 text-red-600">Équipe Adverse</h4>
-              {selectedNode.enemyTeam.map((pokemon) => (
+              {enemyTeam.map((pokemon) => (
                 <div key={pokemon.id} className="mb-2">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="truncate mr-2" title={pokemon.name}>

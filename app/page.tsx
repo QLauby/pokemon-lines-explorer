@@ -1,6 +1,6 @@
 "use client"
 
-import { CombatView } from "@/components/battle/combat-view"
+import { CombatView } from "@/components/battle/battle-view"
 import { AppHeader } from "@/components/layout/app-header"
 import { TeamsView } from "@/components/pokemons/teams-view"
 import { usePokemonBattle } from "@/lib/hooks/use-pokemon-battle"
@@ -70,6 +70,8 @@ export default function PokemonNuzlockeLines() {
             onHpChangesChange={setters.setHpChanges}
             onAddAction={actions.addAction}
             getAllPokemon={actions.getAllPokemon}
+            myTeam={state.myTeam}
+            enemyTeam={state.enemyTeam}
           />
         )
       )}

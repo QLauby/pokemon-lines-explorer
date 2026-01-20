@@ -18,6 +18,8 @@ interface CombatViewProps {
   onHpChangesChange: (changes: { pokemonId: string; hpChange: number }[]) => void
   onAddAction: () => void
   getAllPokemon: () => Pokemon[]
+  myTeam: Pokemon[]
+  enemyTeam: Pokemon[]
 }
 
 export function CombatView({
@@ -35,6 +37,8 @@ export function CombatView({
   onHpChangesChange,
   onAddAction,
   getAllPokemon,
+  myTeam,
+  enemyTeam,
 }: CombatViewProps) {
   return (
     <div className="grid lg:grid-cols-3 gap-6">
@@ -65,7 +69,9 @@ export function CombatView({
       </div>
 
       <div className="space-y-4">
-        {selectedNodeId && nodes.get(selectedNodeId) && <CurrentState selectedNode={nodes.get(selectedNodeId)!} />}
+        {selectedNodeId && nodes.get(selectedNodeId) && (
+          <CurrentState selectedNode={nodes.get(selectedNodeId)!} myTeam={myTeam} enemyTeam={enemyTeam} />
+        )}
       </div>
     </div>
   )

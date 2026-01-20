@@ -1,41 +1,90 @@
-import { PokemonStatus } from "@/lib/logos"
-import { BattlefieldState, Pokemon, TreeNode } from "@/lib/types"
-import { useRef, useState } from "react"
+import { BattleDelta, BattleState, Pokemon, TreeNode } from "@/lib/types"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { BattleEngine } from "../logic/battle-engine"
+import { useBattleStorage } from "./use-battle-storage"
 
 const VERTICAL_SPACING = 45
 
 export function usePokemonBattle() {
+  const { sessions, isLoaded, saveSession, createSession } = useBattleStorage()
+  
+  // UI State
   const [currentView, setCurrentView] = useState<"teams" | "combat">("teams")
-  const [battleType, setBattleType] = useState<"simple" | "double">("simple")
-
-  const [myTeam, setMyTeam] = useState<Pokemon[]>([])
-  const [enemyTeam, setEnemyTeam] = useState<Pokemon[]>([])
-  const [nodes, setNodes] = useState<Map<string, TreeNode>>(new Map())
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string>("")
-  const [battleStarted, setBattleStarted] = useState(false)
   const [scrollX, setScrollX] = useState(0)
 
+  // Forms State
   const [newMyPokemonName, setNewMyPokemonName] = useState("")
   const [newOpponentPokemonName, setNewOpponentPokemonName] = useState("")
   const [actionDescription, setActionDescription] = useState("")
   const [actionProbability, setActionProbability] = useState("")
-  const [hpChanges, setHpChanges] = useState<{ pokemonId: string; hpChange: number }[]>([])
+  
+  // Changes for the next action (Delta Builder)
+  const [pendingDeltas, setPendingDeltas] = useState<BattleDelta[]>([])
+  const [hpChangesInputs, setHpChangesInputs] = useState<{ pokemonId: string; hpChange: number }[]>([])
 
   const [editingPokemonId, setEditingPokemonId] = useState<string | null>(null)
   const [editingPokemonName, setEditingPokemonName] = useState("")
 
   const nodeOrder = useRef(1)
 
-  const [activeStarters, setActiveStarters] = useState<{ myTeam: (number | null)[]; opponentTeam: (number | null)[] }>({
-    myTeam: [0, 1],
-    opponentTeam: [0, 1],
-  })
+  // Initialize or Select Default Session
+  useEffect(() => {
+    if (isLoaded) {
+      if (sessions.length === 0) {
+        const session = createSession("Combat 1")
+        setCurrentSessionId(session.id)
+      } else if (!currentSessionId) {
+        // Default to the first one or most recent
+        setCurrentSessionId(sessions[0].id)
+      }
+    }
+  }, [isLoaded, sessions, currentSessionId, createSession])
 
-  const [battlefieldState, setBattlefieldState] = useState<BattlefieldState>({
-    customTags: [],
-    playerSide: { customTags: [] },
-    opponentSide: { customTags: [] },
-  })
+  const currentSession = useMemo(() => 
+    sessions.find(s => s.id === currentSessionId), 
+    [sessions, currentSessionId]
+  )
+
+  // Computed State for the Current View
+  // If we are in 'teams' view, we show the Initial State
+  // If we are in 'combat' view and have a selected node, we show the Computed State
+  const currentState: BattleState = useMemo(() => {
+    if (!currentSession) {
+      return {
+        myTeam: [],
+        enemyTeam: [],
+        activeStarters: { myTeam: [0, 1], opponentTeam: [0, 1] },
+        battlefieldState: { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } }
+      }
+    }
+
+    if (currentView === "teams") {
+      return currentSession.initialState
+    }
+
+    // Convert nodes array to Map for Engine
+    const nodesMap = new Map(currentSession.nodes.map(n => [n.id, n]))
+    return BattleEngine.computeState(currentSession.initialState, nodesMap, selectedNodeId || "root")
+
+  }, [currentSession, currentView, selectedNodeId])
+
+
+  // Helpers related to State
+  const { myTeam, enemyTeam, activeStarters, battlefieldState } = currentState
+
+  // --- ACTIONS ---
+
+  // 1. Initial State Modifications (Team View)
+  const updateInitialState = (updates: Partial<BattleState>) => {
+    if (!currentSession) return
+    const newSession = {
+      ...currentSession,
+      initialState: { ...currentSession.initialState, ...updates }
+    }
+    saveSession(newSession)
+  }
 
   const getDefaultPokemonName = (team: Pokemon[], teamType: "my" | "opponent") => {
     if (teamType === "my") {
@@ -45,31 +94,14 @@ export function usePokemonBattle() {
     }
   }
 
-  const resetBattleIfNeeded = () => {
-    if (battleStarted) {
-      setNodes(new Map())
-      setSelectedNodeId("")
-      setBattleStarted(false)
-      setActionDescription("")
-      setActionProbability("")
-      setHpChanges([])
-      setScrollX(0)
-    }
-  }
-
   const addPokemon = (teamType: "my" | "opponent") => {
     const team = teamType === "my" ? myTeam : enemyTeam
-    const setTeam = teamType === "my" ? setMyTeam : setEnemyTeam
     const inputValue = teamType === "my" ? newMyPokemonName : newOpponentPokemonName
     const setInputValue = teamType === "my" ? setNewMyPokemonName : setNewOpponentPokemonName
 
     const finalName = inputValue.trim() || getDefaultPokemonName(team, teamType)
-
-    const defaultItemName =
-      teamType === "my" ? `Item ${team.length + 1}` : `Item ${String.fromCharCode(65 + team.length)}`
-
-    const defaultAbilityName =
-      teamType === "my" ? `Ability ${team.length + 1}` : `Ability ${String.fromCharCode(65 + team.length)}`
+    const defaultItemName = teamType === "my" ? `Item ${team.length + 1}` : `Item ${String.fromCharCode(65 + team.length)}`
+    const defaultAbilityName = teamType === "my" ? `Ability ${team.length + 1}` : `Ability ${String.fromCharCode(65 + team.length)}`
 
     const newPokemon: Pokemon = {
       id: Date.now().toString(),
@@ -86,523 +118,353 @@ export function usePokemonBattle() {
       heldItem: false,
       isTerastallized: false,
       isMega: false,
-      customTags: [], // Initialize customTags as empty array for new Pokemon
-      statsModifiers: {
-        att: 0,
-        def: 0,
-        spa: 0,
-        spd: 0,
-        spe: 0,
-        acc: 0,
-        ev: 0,
-        crit: 0,
-      },
+      customTags: [],
+      statsModifiers: BattleEngine.getStatsModifiersDefault(),
     }
 
-    setTeam([...team, newPokemon])
+    if (teamType === "my") {
+      updateInitialState({ myTeam: [...myTeam, newPokemon] })
+    } else {
+      updateInitialState({ enemyTeam: [...enemyTeam, newPokemon] })
+    }
     setInputValue("")
-    resetBattleIfNeeded()
   }
 
   const removePokemon = (id: string, isMyTeam: boolean) => {
     if (isMyTeam) {
-      setMyTeam(myTeam.filter((p) => p.id !== id))
+      updateInitialState({ myTeam: myTeam.filter((p) => p.id !== id) })
     } else {
-      setEnemyTeam(enemyTeam.filter((p) => p.id !== id))
+      updateInitialState({ enemyTeam: enemyTeam.filter((p) => p.id !== id) })
     }
-    resetBattleIfNeeded()
   }
 
-  const updatePokemonHealth = (id: string, isMyTeam: boolean, change: number) => {
-    const updateTeam = (team: Pokemon[]) =>
-      team.map((pokemon) =>
-        pokemon.id === id ? { ...pokemon, hpPercent: Math.max(0, Math.min(100, pokemon.hpPercent + change)) } : pokemon,
-      )
+  const updatePokemon = (updatedPokemon: Pokemon, isMyTeam: boolean) => {
+     const updateTeam = (team: Pokemon[]) =>
+      team.map((pokemon) => (pokemon.id === updatedPokemon.id ? updatedPokemon : pokemon))
 
     if (isMyTeam) {
-      setMyTeam(updateTeam(myTeam))
+       updateInitialState({ myTeam: updateTeam(myTeam) })
     } else {
-      setEnemyTeam(updateTeam(enemyTeam))
+       updateInitialState({ enemyTeam: updateTeam(enemyTeam) })
     }
   }
 
-  const setPokemonHealth = (id: string, isMyTeam: boolean, newHP: number) => {
-    const updateTeam = (team: Pokemon[]) =>
-      team.map((pokemon) => (pokemon.id === id ? { ...pokemon, hpPercent: newHP } : pokemon))
-
-    if (isMyTeam) {
-      setMyTeam(updateTeam(myTeam))
-    } else {
-      setEnemyTeam(updateTeam(enemyTeam))
-    }
-    resetBattleIfNeeded()
-  }
-
-  const setPokemonStatus = (
-    id: string,
-    isMyTeam: boolean,
-    updates: {
-      status?: PokemonStatus
-      confusion?: boolean
-      love?: boolean
-      sleepCounter?: number
-      confusionCounter?: number
-    },
-  ) => {
-    const team = isMyTeam ? myTeam : enemyTeam
-    const setTeam = isMyTeam ? setMyTeam : setEnemyTeam
-
-    setTeam(team.map((pokemon) => (pokemon.id === id ? { ...pokemon, ...updates } : pokemon)))
-    resetBattleIfNeeded()
-  }
-
+  // --- Initial State Helper Wrappers (Routing to updateInitialState) ---
   const updatePokemonName = (pokemonId: string, newName: string, isMyTeam: boolean) => {
     const team = isMyTeam ? myTeam : enemyTeam
-    const setTeam = isMyTeam ? setMyTeam : setEnemyTeam
-
     const pokemon = team.find((p) => p.id === pokemonId)
     if (!pokemon) return
 
     const teamIndex = team.findIndex((p) => p.id === pokemonId)
     const finalName = newName.trim() || getDefaultPokemonName(team.slice(0, teamIndex), isMyTeam ? "my" : "opponent")
-
-    const updatedTeam = team.map((pokemon) => (pokemon.id === pokemonId ? { ...pokemon, name: finalName } : pokemon))
-    setTeam(updatedTeam)
-    setEditingPokemonId(null)
-    setEditingPokemonName("")
-    resetBattleIfNeeded()
-  }
-
-  const startEditingPokemon = (pokemon: Pokemon) => {
-    setEditingPokemonId(pokemon.id)
-    setEditingPokemonName(pokemon.name)
-  }
-
-  const cancelEditing = () => {
+    
+    updatePokemon({ ...pokemon, name: finalName }, isMyTeam)
     setEditingPokemonId(null)
     setEditingPokemonName("")
   }
 
-  const initializeBattle = () => {
-    if (myTeam.length === 0 && enemyTeam.length === 0) return
-
-    const rootNode: TreeNode = {
-      id: "root",
-      description: "État Initial",
-      probability: 100,
-      cumulativeProbability: 100,
-      myTeam: [...myTeam],
-      enemyTeam: [...enemyTeam],
-      children: [],
-      parentId: undefined,
-      createdAt: nodeOrder.current++,
-      turn: 0,
-      branchIndex: 0,
-      x: 45,
-      y: 45,
-      hpChanges: [],
-      battlefieldState: { ...battlefieldState },
-    }
-
-    setNodes(new Map([["root", rootNode]]))
-    setSelectedNodeId("root")
-    setBattleStarted(true)
-    setCurrentView("combat")
-    window.scrollTo({ top: 0, behavior: "smooth" })
+  const setPokemonHealth = (id: string, isMyTeam: boolean, newHP: number) => {
+     const team = isMyTeam ? myTeam : enemyTeam
+     const pokemon = team.find(p => p.id === id)
+     if (pokemon) updatePokemon({ ...pokemon, hpPercent: newHP }, isMyTeam)
   }
 
-  const calculateBranchPositions = (nodes: Map<string, TreeNode>): Map<string, TreeNode> => {
-    const updatedNodes = new Map(nodes)
-    const branchMap = new Map<number, number>()
-
-    const uniqueBranches = Array.from(updatedNodes.values())
-      .filter((node) => node.branchIndex !== 0)
-      .reduce((acc, node) => {
-        if (!acc.has(node.branchIndex)) {
-          acc.set(node.branchIndex, node)
-        }
-        return acc
-      }, new Map<number, TreeNode>())
-
-    const sortedBranches = Array.from(uniqueBranches.values()).sort((a, b) => {
-      if (a.turn !== b.turn) return b.turn - a.turn
-      return a.createdAt - b.createdAt
-    })
-
-    let yCounter = 1
-    sortedBranches.forEach((branch) => {
-      branchMap.set(branch.branchIndex, yCounter++)
-    })
-
-    updatedNodes.forEach((node) => {
-      const yPos = node.branchIndex === 0 ? 45 : 45 + (branchMap.get(node.branchIndex) || 0) * VERTICAL_SPACING
-
-      updatedNodes.set(node.id, { ...node, y: yPos })
-    })
-
-    return updatedNodes
-  }
-
-  const calculateNodePosition = (parentNode: TreeNode, childIndex: number, nodesMap: Map<string, TreeNode>) => {
-    const HORIZONTAL_SPACING = 70
-    const newTurn = parentNode.turn + 1
-    const x = 45 + newTurn * HORIZONTAL_SPACING
-
-    if (childIndex === 0) {
-      return {
-        turn: newTurn,
-        branchIndex: parentNode.branchIndex,
-        x,
-        y: parentNode.y,
-        updatedNodes: nodesMap,
-      }
-    }
-
-    const usedBranchIndices = new Set(Array.from(nodesMap.values()).map((n) => n.branchIndex))
-    let newBranchIndex = 1
-    while (usedBranchIndices.has(newBranchIndex)) {
-      newBranchIndex++
-    }
-
-    return {
-      turn: newTurn,
-      branchIndex: newBranchIndex,
-      x,
-      y: 0,
-      updatedNodes: nodesMap,
-    }
-  }
-
-  const addAction = () => {
-    if (!actionDescription || !actionProbability || !selectedNodeId) return
-
-    const parentNode = nodes.get(selectedNodeId)
-    if (!parentNode) return
-
-    const nodeId = Date.now().toString()
-
-    const newMyTeam = parentNode.myTeam.map((pokemon) => {
-      const change = hpChanges.find((c) => c.pokemonId === pokemon.id)
-      if (change) {
-        return {
-          ...pokemon,
-          hpPercent: Math.max(0, Math.min(100, pokemon.hpPercent + change.hpChange)),
-        }
-      }
-      return pokemon
-    })
-
-    const newEnemyTeam = parentNode.enemyTeam.map((pokemon) => {
-      const change = hpChanges.find((c) => c.pokemonId === pokemon.id)
-      if (change) {
-        return {
-          ...pokemon,
-          hpPercent: Math.max(0, Math.min(100, pokemon.hpPercent + change.hpChange)),
-        }
-      }
-      return pokemon
-    })
-
-    const childIndex = parentNode.children.length
-    const {
-      turn,
-      branchIndex,
-      x,
-      y,
-      updatedNodes: nodesAfterCalc,
-    } = calculateNodePosition(parentNode, childIndex, nodes)
-
-    const newNode: TreeNode = {
-      id: nodeId,
-      description: actionDescription,
-      probability: Number.parseFloat(actionProbability),
-      hpChanges: [...hpChanges],
-      parentId: selectedNodeId,
-      children: [],
-      turn,
-      branchIndex,
-      x,
-      y,
-      myTeam: newMyTeam,
-      enemyTeam: newEnemyTeam,
-      cumulativeProbability: parentNode.cumulativeProbability * (Number.parseFloat(actionProbability) / 100),
-      createdAt: nodeOrder.current++,
-      battlefieldState: { ...parentNode.battlefieldState },
-    }
-
-    const updatedParent = { ...parentNode, children: [...parentNode.children, nodeId] }
-    let newNodes = new Map(nodesAfterCalc)
-    newNodes.set(selectedNodeId, updatedParent)
-    newNodes.set(nodeId, newNode)
-
-    newNodes = calculateBranchPositions(newNodes)
-
-    setNodes(newNodes)
-    setSelectedNodeId(nodeId)
-
-    setActionDescription("")
-    setActionProbability("")
-    setHpChanges([])
-  }
-
-  const getAllPokemon = () => {
-    const currentNode = nodes.get(selectedNodeId)
-    if (!currentNode) return []
-    return [...currentNode.myTeam, ...currentNode.enemyTeam]
-  }
-
-  const handleScroll = (direction: "left" | "right") => {
-    const scrollAmount = 70
-    if (direction === "left") {
-      setScrollX(Math.max(0, scrollX - scrollAmount))
-    } else {
-      setScrollX(scrollX + scrollAmount)
-    }
-  }
-
-  const resetBattle = () => {
-    setNodes(new Map())
-    setSelectedNodeId("")
-    setBattleStarted(false)
-    setCurrentView("teams")
-    setActionDescription("")
-    setActionProbability("")
-    setHpChanges([])
-    setScrollX(0)
-    setBattlefieldState({
-      customTags: [],
-      playerSide: { customTags: [] },
-      opponentSide: { customTags: [] },
-    })
-  }
-
-  const getTeamCounterDisplay = (teamLength: number) => {
-    if (teamLength <= 6) {
-      return `${teamLength}/6`
-    } else {
-      return `${teamLength}/${teamLength}`
-    }
-  }
-
-  const updatePokemon = (updatedPokemon: Pokemon, isMyTeam: boolean) => {
-    const updateTeam = (team: Pokemon[]) =>
-      team.map((pokemon) => (pokemon.id === updatedPokemon.id ? updatedPokemon : pokemon))
-
-    if (isMyTeam) {
-      setMyTeam(updateTeam(myTeam))
-    } else {
-      setEnemyTeam(updateTeam(enemyTeam))
-    }
-    resetBattleIfNeeded()
+  const setPokemonStatus = (id: string, isMyTeam: boolean, updates: any) => {
+     const team = isMyTeam ? myTeam : enemyTeam
+     const pokemon = team.find(p => p.id === id)
+     if (pokemon) updatePokemon({ ...pokemon, ...updates }, isMyTeam)
   }
 
   const toggleHeldItem = (pokemonId: string, isMyTeam: boolean) => {
-    const updateLogic = (p: Pokemon, index: number): Pokemon => {
-      const defaultItemName = isMyTeam 
-        ? `Item ${index + 1}` 
-        : `Item ${String.fromCharCode(65 + index)}`
-
+      const team = isMyTeam ? myTeam : enemyTeam;
+      const index = team.findIndex(p => p.id === pokemonId);
+      if (index === -1) return;
+      
+      const p = team[index];
+      const defaultItemName = isMyTeam ? `Item ${index + 1}` : `Item ${String.fromCharCode(65 + index)}`
+      
+      let updated: Pokemon;
       if (!p.heldItem) {
-        // State 0 -> 1: Turn On. Reset name if it was Mega Stone to avoid jumping to state 2 visual.
-        return {
-          ...p,
-          heldItem: true,
-          heldItemName: p.heldItemName === "Mega Stone" ? defaultItemName : (p.heldItemName || defaultItemName),
-          isMega: false
-        }
+          updated = { ...p, heldItem: true, heldItemName: p.heldItemName === "Mega Stone" ? defaultItemName : (p.heldItemName || defaultItemName), isMega: false };
       } else {
-        if (p.heldItemName !== "Mega Stone") {
-          // State 1 -> 2: Switch to Mega Stone
-          return { ...p, heldItemName: "Mega Stone", isMega: false }
-        } else {
-          // State 2 -> 0: Turn Off
-          return { ...p, heldItem: false, isMega: false }
-        }
+          if (p.heldItemName !== "Mega Stone") {
+             updated = { ...p, heldItemName: "Mega Stone", isMega: false };
+          } else {
+             updated = { ...p, heldItem: false, isMega: false };
+          }
       }
-    }
-
-    if (isMyTeam) {
-      setMyTeam((prev) => prev.map((p, idx) => (p.id === pokemonId ? updateLogic(p, idx) : p)))
-    } else {
-      setEnemyTeam((prev) => prev.map((p, idx) => (p.id === pokemonId ? updateLogic(p, idx) : p)))
-    }
-    resetBattleIfNeeded()
+      updatePokemon(updated, isMyTeam);
   }
 
   const toggleTerastallized = (pokemonId: string, isMyTeam: boolean) => {
-    if (isMyTeam) {
-      setMyTeam((prev) => prev.map((p) => (p.id === pokemonId ? { ...p, isTerastallized: !p.isTerastallized } : p)))
-    } else {
-      setEnemyTeam((prev) => prev.map((p) => (p.id === pokemonId ? { ...p, isTerastallized: !p.isTerastallized } : p)))
-    }
-    resetBattleIfNeeded()
+      const team = isMyTeam ? myTeam : enemyTeam;
+      const p = team.find(p => p.id === pokemonId);
+      if (p) updatePokemon({ ...p, isTerastallized: !p.isTerastallized }, isMyTeam);
   }
-
+  
   const toggleMega = (pokemonId: string, isMyTeam: boolean) => {
-    if (isMyTeam) {
-      setMyTeam((prev) => prev.map((p) => (p.id === pokemonId ? { ...p, isMega: !p.isMega } : p)))
-    } else {
-      setEnemyTeam((prev) => prev.map((p) => (p.id === pokemonId ? { ...p, isMega: !p.isMega } : p)))
-    }
-    resetBattleIfNeeded()
+      const team = isMyTeam ? myTeam : enemyTeam;
+      const p = team.find(p => p.id === pokemonId);
+      if (p) updatePokemon({ ...p, isMega: !p.isMega }, isMyTeam);
   }
 
-  const isStarterPokemon = (pokemon: Pokemon, index: number, isMyTeam: boolean) => {
-    const starters = isMyTeam ? activeStarters.myTeam : activeStarters.opponentTeam
-    const maxSlots = battleType === "simple" ? 1 : 2
-    return starters.slice(0, maxSlots).includes(index)
-  }
-
-  const getSlotForPokemon = (index: number, isMyTeam: boolean) => {
-    const starters = isMyTeam ? activeStarters.myTeam : activeStarters.opponentTeam
-    const maxSlots = battleType === "simple" ? 1 : 2
-    const slotIndex = starters.slice(0, maxSlots).indexOf(index)
-    return slotIndex !== -1 ? slotIndex + 1 : null
-  }
-
-  const handleFlagClick = (index: number, isMyTeam: boolean) => {
+   const handleFlagClick = (index: number, isMyTeam: boolean) => {
     const teamKey = isMyTeam ? "myTeam" : "opponentTeam"
     const currentStarters = [...activeStarters[teamKey]]
-    const maxSlots = battleType === "simple" ? 1 : 2
+    const maxSlots = currentSession?.battleType === "simple" ? 1 : 2
 
     let indexLeaving: number | null = null
-
-    // Check if it's already selected
     const existingSlot = currentStarters.slice(0, maxSlots).indexOf(index)
 
     if (existingSlot !== -1) {
-      // Already selected, deselect it
-      indexLeaving = index
       currentStarters[existingSlot] = null
     } else {
-      // Not selected, try to find an empty slot
       if (currentStarters[0] === null) {
         currentStarters[0] = index
       } else if (maxSlots > 1 && currentStarters[1] === null) {
         currentStarters[1] = index
       } else {
-        // Both full (or simple and slot 1 full), replace Slot 2 (or Slot 1 for simple)
-        if (maxSlots === 1) {
+         // Replace logic
+         if (maxSlots === 1) {
           indexLeaving = currentStarters[0]
           currentStarters[0] = index
-        } else {
+         } else {
           indexLeaving = currentStarters[1]
           currentStarters[1] = index
-        }
+         }
       }
     }
+    
+    // In initial state we don't really need to reset data for leaving pokemon as strictly as in battle,
+    // but we can preserve the behavior if desired. For now, just update starters.
+    updateInitialState({ activeStarters: { ...activeStarters, [teamKey]: currentStarters } })
+  }
 
-    // Reset data for the Pokemon leaving the field
-    if (indexLeaving !== null) {
-      const resetData = (p: Pokemon): Pokemon => ({
-        ...p,
-        confusion: false,
-        love: false,
-        confusionCounter: 0,
-        statsModifiers: {
-          att: 0,
-          def: 0,
-          spa: 0,
-          spd: 0,
-          spe: 0,
-          acc: 0,
-          ev: 0,
-          crit: 0,
+  const updateBattlefieldTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, customTags: tags } })
+  const updatePlayerSideTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, playerSide: { customTags: tags } } })
+  const updateOpponentSideTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, opponentSide: { customTags: tags } } })
+
+  const setBattleType = (type: "simple" | "double") => {
+      if(currentSession) saveSession({ ...currentSession, battleType: type })
+  }
+
+  // --- BATTLE ACTIONS (Deltas) ---
+
+  const initializeBattle = () => {
+    if (!currentSession) return
+    if (myTeam.length === 0 && enemyTeam.length === 0) return
+
+    // Create root node if not exists
+    if (!currentSession.nodes.some(n => n.id === "root")) {
+        const rootNode: TreeNode = {
+            id: "root",
+            description: "État Initial",
+            probability: 100,
+            cumulativeProbability: 100,
+            deltas: [], 
+            children: [],
+            parentId: undefined,
+            createdAt: Date.now(),
+            turn: 0,
+            branchIndex: 0,
+            x: 45,
+            y: 45
         }
-      })
-
-      if (isMyTeam) {
-        setMyTeam((prev) => prev.map((p, i) => i === indexLeaving ? resetData(p) : p))
-      } else {
-        setEnemyTeam((prev) => prev.map((p, i) => i === indexLeaving ? resetData(p) : p))
-      }
+        saveSession({ ...currentSession, nodes: [rootNode] })
+        setSelectedNodeId("root")
     }
 
-    setActiveStarters((prev) => ({
-      ...prev,
-      [teamKey]: currentStarters,
-    }))
-    resetBattleIfNeeded()
+    setCurrentView("combat")
+    window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
-  const updateBattlefieldTags = (newTags: string[]) => {
-    setBattlefieldState((prev) => ({ ...prev, customTags: newTags }))
-    resetBattleIfNeeded()
+  // Helper to re-calculate Tree Layout (x, y)
+  // This needs to be adapted to work with the flattened array
+  const recalculateTreeLayout = (nodes: TreeNode[]): TreeNode[] => {
+
+      const nodesMap = new Map(nodes.map(n => [n.id, n]));
+       
+      const branchMap = new Map<number, number>();
+      const uniqueBranches = nodes.filter(n => n.branchIndex !== 0);
+      const uniqueBranchIndices = Array.from(new Set(uniqueBranches.map(n => n.branchIndex)));
+      
+      // Sort branches logic here if needed...
+      uniqueBranchIndices.forEach((idx, i) => branchMap.set(idx, i + 1));
+
+      // Update Y positions
+      const updated = nodes.map(node => {
+          const yPos = node.branchIndex === 0 ? 45 : 45 + (branchMap.get(node.branchIndex) || 0) * VERTICAL_SPACING;
+          return { ...node, y: yPos };
+      });
+      return updated;
   }
 
-  const updatePlayerSideTags = (newTags: string[]) => {
-    setBattlefieldState((prev) => ({
-      ...prev,
-      playerSide: { customTags: newTags },
-    }))
-    resetBattleIfNeeded()
+  const addAction = () => {
+    if (!actionDescription || !actionProbability || !selectedNodeId || !currentSession) return
+    
+    const parentNode = currentSession.nodes.find(n => n.id === selectedNodeId)
+    if (!parentNode) return
+
+    // Construct Deltas from Inputs
+    const deltas: BattleDelta[] = []
+    
+    // HP Deltas
+    hpChangesInputs.forEach(input => {
+        deltas.push({
+            type: "HP_RELATIVE", // The UI currently provides "hpChange" which is relative (+10, -10)
+            targetId: input.pokemonId,
+            amount: input.hpChange
+        })
+    })
+    
+    const nodeId = Date.now().toString()
+    
+    // Logic for Position (simplified from original)
+    const newTurn = parentNode.turn + 1
+    const HORIZONTAL_SPACING = 70
+    const x = 45 + newTurn * HORIZONTAL_SPACING
+    
+    // Branch logic
+    const childIndex = parentNode.children.length
+    let branchIndex = parentNode.branchIndex
+    let y = parentNode.y
+    
+    if (childIndex > 0) {
+        // New branch
+        const usedBranches = new Set(currentSession.nodes.map(n => n.branchIndex))
+        let newBranch = 1
+        while (usedBranches.has(newBranch)) newBranch++;
+        branchIndex = newBranch
+        y = 0 // Will be recalculated
+    }
+
+    const newNode: TreeNode = {
+        id: nodeId,
+        description: actionDescription,
+        probability: Number.parseFloat(actionProbability),
+        cumulativeProbability: parentNode.cumulativeProbability * (Number.parseFloat(actionProbability) / 100),
+        deltas: deltas,
+        children: [],
+        parentId: selectedNodeId,
+        createdAt: Date.now(),
+        turn: newTurn,
+        branchIndex: branchIndex,
+        x,
+        y // Temp
+    }
+
+    // Update Parent
+    const updatedParent = { ...parentNode, children: [...parentNode.children, nodeId] }
+    
+    // Add to list
+    let newNodesList = currentSession.nodes.map(n => n.id === selectedNodeId ? updatedParent : n)
+    newNodesList.push(newNode)
+    
+    // Recalculate Layout
+    newNodesList = recalculateTreeLayout(newNodesList)
+    
+    // Save
+    saveSession({ ...currentSession, nodes: newNodesList })
+    
+    // Cleanup
+    setSelectedNodeId(nodeId)
+    setActionDescription("")
+    setActionProbability("")
+    setHpChangesInputs([])
   }
 
-  const updateOpponentSideTags = (newTags: string[]) => {
-    setBattlefieldState((prev) => ({
-      ...prev,
-      opponentSide: { customTags: newTags },
-    }))
-    resetBattleIfNeeded()
+  const resetBattle = () => {
+      if (currentSession) {
+          saveSession({ ...currentSession, nodes: [] }) // Wipe tree
+          setSelectedNodeId("")
+          setCurrentView("teams")
+      }
+  }
+  
+  const resetBattleIfNeeded = () => {
+  }
+
+  // --- View Helpers ---
+  const handleScroll = (direction: "left" | "right") => {
+    const scrollAmount = 70
+    setScrollX(prev => direction === "left" ? Math.max(0, prev - scrollAmount) : prev + scrollAmount)
+  }
+
+  const getAllPokemon = () => [...myTeam, ...enemyTeam]
+
+  // UI helpers
+  const startEditingPokemon = (p: Pokemon) => { setEditingPokemonId(p.id); setEditingPokemonName(p.name); }
+  const cancelEditing = () => { setEditingPokemonId(null); setEditingPokemonName(""); }
+  const getTeamCounterDisplay = (len: number) => len <= 6 ? `${len}/6` : `${len}/${len}`
+  const isStarterPokemon = (p: Pokemon, idx: number, isMyTeam: boolean) => {
+    const starters = isMyTeam ? activeStarters.myTeam : activeStarters.opponentTeam
+    const maxSlots = currentSession?.battleType === "simple" ? 1 : 2
+    return starters.slice(0, maxSlots).includes(idx)
+  }
+  const getSlotForPokemon = (idx: number, isMyTeam: boolean) => {
+    const starters = isMyTeam ? activeStarters.myTeam : activeStarters.opponentTeam
+    const maxSlots = currentSession?.battleType === "simple" ? 1 : 2
+    const slot = starters.slice(0, maxSlots).indexOf(idx)
+    return slot !== -1 ? slot + 1 : null
   }
 
   return {
     state: {
-      currentView,
-      battleType,
-      myTeam,
-      enemyTeam,
-      nodes,
-      selectedNodeId,
-      battleStarted,
-      scrollX,
-      newMyPokemonName,
-      newOpponentPokemonName,
-      actionDescription,
-      actionProbability,
-      hpChanges,
-      editingPokemonId,
-      editingPokemonName,
-      activeStarters,
-      getSlotForPokemon,
-      battlefieldState,
+        currentView,
+        battleType: currentSession?.battleType || "simple",
+        myTeam,
+        enemyTeam,
+        nodes: new Map((currentSession?.nodes || []).map(n => [n.id, n])), // BattleView expects Map
+        selectedNodeId,
+        battleStarted: (currentSession?.nodes.length || 0) > 0,
+        scrollX,
+        newMyPokemonName,
+        newOpponentPokemonName,
+        actionDescription,
+        actionProbability,
+        hpChanges: hpChangesInputs,
+        editingPokemonId,
+        editingPokemonName,
+        activeStarters,
+        getSlotForPokemon,
+        battlefieldState,
     },
     setters: {
-      setCurrentView,
-      setBattleType,
-      setNewMyPokemonName,
-      setNewOpponentPokemonName,
-      setActionDescription,
-      setActionProbability,
-      setHpChanges,
-      setSelectedNodeId,     
+        setCurrentView,
+        setBattleType,
+        setNewMyPokemonName,
+        setNewOpponentPokemonName,
+        setActionDescription,
+        setActionProbability,
+        setHpChanges: setHpChangesInputs,
+        setSelectedNodeId,
     },
     actions: {
-      addPokemon,
-      removePokemon,
-      updatePokemonHealth,
-      setPokemonHealth,
-      setPokemonStatus,
-      updatePokemonName,
-      startEditingPokemon,
-      cancelEditing,
-      initializeBattle,
-      addAction,
-      getAllPokemon,
-      handleScroll,
-      resetBattle,
-      resetBattleIfNeeded,
-      getTeamCounterDisplay,
-      updatePokemon,
-      toggleHeldItem,
-      toggleTerastallized,
-      toggleMega,
-      isStarterPokemon,
-      handleFlagClick,
-      getDefaultPokemonName,
-      updateBattlefieldTags,
-      updatePlayerSideTags,
-      updateOpponentSideTags,
+        addPokemon,
+        removePokemon,
+        setPokemonHealth, // Used in Team View
+        updatePokemonHealth: (id: string, isMy: boolean, change: number) => {}, // Deprecated or mapped to setPokemonHealth? The UI calls this for +/- buttons
+        setPokemonStatus,
+        updatePokemonName,
+        startEditingPokemon,
+        cancelEditing,
+        initializeBattle,
+        addAction,
+        getAllPokemon,
+        handleScroll,
+        resetBattle,
+        resetBattleIfNeeded,
+        getTeamCounterDisplay,
+        updatePokemon,
+        toggleHeldItem,
+        toggleTerastallized,
+        toggleMega,
+        isStarterPokemon,
+        handleFlagClick,
+        getDefaultPokemonName,
+        updateBattlefieldTags,
+        updatePlayerSideTags,
+        updateOpponentSideTags,
     }
   }
 }
