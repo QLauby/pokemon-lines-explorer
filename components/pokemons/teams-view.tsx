@@ -3,9 +3,10 @@
 import { Play } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-
 import { PokemonStatus } from "@/lib/logos"
 import { Pokemon } from "@/lib/types"
+
+import { BattlefieldZone } from "./battlefield-zone"
 import { TeamSection } from "./team-section"
 
 
@@ -39,6 +40,12 @@ interface TeamsViewProps {
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
   getTeamCounterDisplay: (teamLength: number) => string
   isStarterPokemon: (pokemon: Pokemon, index: number, isMyTeam: boolean) => boolean
+  battlefieldTags: string[]
+  playerSideTags: string[]
+  opponentSideTags: string[]
+  onUpdateBattlefieldTags: (tags: string[]) => void
+  onUpdatePlayerSideTags: (tags: string[]) => void
+  onUpdateOpponentSideTags: (tags: string[]) => void
 }
 
 export function TeamsView({
@@ -67,35 +74,50 @@ export function TeamsView({
   getDefaultPokemonName,
   getTeamCounterDisplay,
   isStarterPokemon,
+  battlefieldTags,
+  playerSideTags,
+  opponentSideTags,
+  onUpdateBattlefieldTags,
+  onUpdatePlayerSideTags,
+  onUpdateOpponentSideTags,
 }: TeamsViewProps) {
   return (
     <>
       <div className="mb-6 flex justify-center">
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           <Button
             variant={battleType === "simple" ? "default" : "ghost"}
-            size="sm"
+            size="lg"
             onClick={() => {
               onBattleTypeChange("simple")
               onResetBattle()
             }}
-            className="rounded-md"
+            className="rounded-md text-base"
           >
             Combat simple
           </Button>
           <Button
             variant={battleType === "double" ? "default" : "ghost"}
-            size="sm"
+            size="lg"
             onClick={() => {
               onBattleTypeChange("double")
               onResetBattle()
             }}
-            className="rounded-md"
+            className="rounded-md text-base"
           >
             Combat double
           </Button>
         </div>
       </div>
+
+      <BattlefieldZone
+        battlefieldTags={battlefieldTags}
+        playerSideTags={playerSideTags}
+        opponentSideTags={opponentSideTags}
+        onUpdateBattlefieldTags={onUpdateBattlefieldTags}
+        onUpdatePlayerSideTags={onUpdatePlayerSideTags}
+        onUpdateOpponentSideTags={onUpdateOpponentSideTags}
+      />
 
       <div className="grid md:grid-cols-2 gap-6 md:w-2/3 mx-auto">
         <TeamSection

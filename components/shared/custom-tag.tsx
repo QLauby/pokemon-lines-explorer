@@ -140,7 +140,7 @@ export function CustomTag({
               inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
               title={showCounter ? "Masquer le compteur" : "Afficher le compteur"}
               diameter={buttonDiameter}
-              iconRatio={0.8}
+              iconRatio={0.7}
               variant="filled"
             />
           </div>

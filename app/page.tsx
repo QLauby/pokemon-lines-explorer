@@ -46,6 +46,12 @@ export default function PokemonNuzlockeLines() {
           getDefaultPokemonName={actions.getDefaultPokemonName}
           getTeamCounterDisplay={actions.getTeamCounterDisplay}
           isStarterPokemon={actions.isStarterPokemon}
+          battlefieldTags={state.battlefieldState.customTags}
+          playerSideTags={state.battlefieldState.playerSide.customTags}
+          opponentSideTags={state.battlefieldState.opponentSide.customTags}
+          onUpdateBattlefieldTags={actions.updateBattlefieldTags}
+          onUpdatePlayerSideTags={actions.updatePlayerSideTags}
+          onUpdateOpponentSideTags={actions.updateOpponentSideTags}
         />
       ) : (
         state.battleStarted && (

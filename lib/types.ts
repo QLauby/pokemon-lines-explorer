@@ -41,6 +41,16 @@ export interface Pokemon {
   statsModifiers?: StatsModifiers;
 }
 
+export interface SideState {
+  customTags: string[]
+}
+
+export interface BattlefieldState {
+  customTags: string[]
+  playerSide: SideState
+  opponentSide: SideState
+}
+
 export interface TreeNode {
   id: string
   description: string
@@ -56,4 +66,5 @@ export interface TreeNode {
   enemyTeam: Pokemon[]
   cumulativeProbability: number
   createdAt: number
+  battlefieldState: BattlefieldState
 }

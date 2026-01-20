@@ -10,6 +10,7 @@ interface CustomTagsManagerProps {
   tags: string[]
   onUpdateTags: (newTags: string[]) => void
   fontSize?: string | number
+  label?: string | null
 }
 
 interface TagAnimationState {
@@ -18,7 +19,12 @@ interface TagAnimationState {
   isExiting: boolean
 }
 
-export function CustomTagsManager({ tags, onUpdateTags, fontSize = 10 }: CustomTagsManagerProps) {
+export function CustomTagsManager({
+  tags,
+  onUpdateTags,
+  fontSize = 10,
+  label = "Autre :",
+}: CustomTagsManagerProps) {
   const [animatedTags, setAnimatedTags] = useState<TagAnimationState[]>([])
 
   useEffect(() => {
@@ -65,7 +71,7 @@ export function CustomTagsManager({ tags, onUpdateTags, fontSize = 10 }: CustomT
   return (
     <div className="">
       <div className="flex flex-wrap items-center gap-1 text-xs max-w-full">
-        <span className="text-gray-600 mr-1">Autre :</span>
+        {label && <span className="text-gray-600 mr-1">{label}</span>}
         {animatedTags.map((animatedTag, index) => {
           const tagIndex = tags.findIndex((tag) => tag === animatedTag.tag)
           if (tagIndex === -1) return null
@@ -97,10 +103,10 @@ export function CustomTagsManager({ tags, onUpdateTags, fontSize = 10 }: CustomT
           onClick={handleAddTag}
           icon={Plus}
           activeColor=""
-          inactiveColor="bg-gray-100 text-gray-400 hover:bg-gray-200"
+          inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
           title="Ajouter un tag"
           diameter={Math.round((typeof fontSize === "number" ? fontSize : Number.parseFloat(fontSize as string) || 12) / 0.4 * 0.8)}
-          iconRatio={0.6} // Ratio par défaut comme demandé
+          iconRatio={0.7} // Ratio par défaut comme demandé
           variant="filled"
         />
       </div>

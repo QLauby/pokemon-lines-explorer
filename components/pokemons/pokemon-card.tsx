@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { StarBadgeIcon } from "@/assets/badges/star-badge";
 import MegaColored from "@/assets/logos/mega/mega-colored.svg";
 import { PokemonType, pokemonTypeColors } from "@/lib/colors";
-import { POKEMON_LOGOS, PokemonStatus, getStatusInfo } from "@/lib/logos";
+import { getStatusInfo, POKEMON_LOGOS, PokemonStatus } from "@/lib/logos";
 import { Pokemon, StatsModifiers } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -226,17 +226,17 @@ export function PokemonCard({
       )}
     >
         {/* Toggle Collapse Button */}
-        <div className="absolute top-1 left-1 z-20">
+        <div className="absolute top-1 right-1 z-20">
           <CircularButton
             isActive={false}
             onClick={() => setIsCollapsed(!isCollapsed)}
             icon={isCollapsed ? ChevronDown : ChevronUp}
-            activeColor="bg-white"
+            activeColor="bg-transparent"
             inactiveColor={cn(
-              "bg-white border",
+              "bg-transparent",
               isStarter 
-                ? (isMyTeam ? "text-blue-500 border-blue-500" : "text-red-500 border-red-500") 
-                : "text-gray-400 border-gray-200 hover:text-gray-600 hover:border-gray-300"
+                ? (isMyTeam ? "text-blue-500" : "text-red-500") 
+                : "text-gray-400 hover:text-gray-600"
             )}
             title={isCollapsed ? "Déployer la carte" : "Réduire la carte"}
             variant="filled"

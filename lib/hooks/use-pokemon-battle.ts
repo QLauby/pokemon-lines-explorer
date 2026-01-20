@@ -1,5 +1,5 @@
 import { PokemonStatus } from "@/lib/logos"
-import { Pokemon, TreeNode } from "@/lib/types"
+import { BattlefieldState, Pokemon, TreeNode } from "@/lib/types"
 import { useRef, useState } from "react"
 
 const VERTICAL_SPACING = 45
@@ -29,6 +29,12 @@ export function usePokemonBattle() {
   const [activeStarters, setActiveStarters] = useState<{ myTeam: (number | null)[]; opponentTeam: (number | null)[] }>({
     myTeam: [0, 1],
     opponentTeam: [0, 1],
+  })
+
+  const [battlefieldState, setBattlefieldState] = useState<BattlefieldState>({
+    customTags: [],
+    playerSide: { customTags: [] },
+    opponentSide: { customTags: [] },
   })
 
   const getDefaultPokemonName = (team: Pokemon[], teamType: "my" | "opponent") => {
@@ -195,6 +201,7 @@ export function usePokemonBattle() {
       x: 45,
       y: 45,
       hpChanges: [],
+      battlefieldState: { ...battlefieldState },
     }
 
     setNodes(new Map([["root", rootNode]]))
@@ -320,6 +327,7 @@ export function usePokemonBattle() {
       enemyTeam: newEnemyTeam,
       cumulativeProbability: parentNode.cumulativeProbability * (Number.parseFloat(actionProbability) / 100),
       createdAt: nodeOrder.current++,
+      battlefieldState: { ...parentNode.battlefieldState },
     }
 
     const updatedParent = { ...parentNode, children: [...parentNode.children, nodeId] }
@@ -361,6 +369,11 @@ export function usePokemonBattle() {
     setActionProbability("")
     setHpChanges([])
     setScrollX(0)
+    setBattlefieldState({
+      customTags: [],
+      playerSide: { customTags: [] },
+      opponentSide: { customTags: [] },
+    })
   }
 
   const getTeamCounterDisplay = (teamLength: number) => {
@@ -512,6 +525,27 @@ export function usePokemonBattle() {
     resetBattleIfNeeded()
   }
 
+  const updateBattlefieldTags = (newTags: string[]) => {
+    setBattlefieldState((prev) => ({ ...prev, customTags: newTags }))
+    resetBattleIfNeeded()
+  }
+
+  const updatePlayerSideTags = (newTags: string[]) => {
+    setBattlefieldState((prev) => ({
+      ...prev,
+      playerSide: { customTags: newTags },
+    }))
+    resetBattleIfNeeded()
+  }
+
+  const updateOpponentSideTags = (newTags: string[]) => {
+    setBattlefieldState((prev) => ({
+      ...prev,
+      opponentSide: { customTags: newTags },
+    }))
+    resetBattleIfNeeded()
+  }
+
   return {
     state: {
       currentView,
@@ -531,6 +565,7 @@ export function usePokemonBattle() {
       editingPokemonName,
       activeStarters,
       getSlotForPokemon,
+      battlefieldState,
     },
     setters: {
       setCurrentView,
@@ -564,7 +599,10 @@ export function usePokemonBattle() {
       toggleMega,
       isStarterPokemon,
       handleFlagClick,
-      getDefaultPokemonName
+      getDefaultPokemonName,
+      updateBattlefieldTags,
+      updatePlayerSideTags,
+      updateOpponentSideTags,
     }
   }
 }
