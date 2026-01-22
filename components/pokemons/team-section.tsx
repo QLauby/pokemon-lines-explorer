@@ -27,7 +27,15 @@ interface TeamSectionProps {
   onUpdateStatus: (
     id: string,
     isMyTeam: boolean,
-    updates: { status?: PokemonStatus; confusion?: boolean; love?: boolean },
+    updates: {
+      status?: PokemonStatus
+      confusion?: boolean
+      love?: boolean
+      sleepCounter?: number
+      confusionCounter?: number
+      showSleepCounter?: boolean
+      showConfusionCounter?: boolean
+    },
   ) => void
   onUpdatePokemon: (updatedPokemon: Pokemon, isMyTeam: boolean) => void
   onToggleHeldItem: (pokemonId: string, isMyTeam: boolean) => void
@@ -38,7 +46,10 @@ interface TeamSectionProps {
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
   getTeamCounterDisplay: (teamLength: number) => string
   isStarterPokemon: (pokemon: Pokemon, index: number, isMyTeam: boolean) => boolean
+  expandedPokemonIds?: string[]
+  onToggleExpansion?: (id: string) => void
 }
+
 
 export function TeamSection({
   team,
@@ -63,7 +74,10 @@ export function TeamSection({
   getDefaultPokemonName,
   getTeamCounterDisplay,
   isStarterPokemon,
+  expandedPokemonIds,
+  onToggleExpansion,
 }: TeamSectionProps) {
+
   return (
     <Card>
       <CardHeader>
@@ -96,7 +110,10 @@ export function TeamSection({
             onFlagClick={onFlagClick}
             getSlotForPokemon={getSlotForPokemon}
             getDefaultPokemonName={getDefaultPokemonName}
+            isExpanded={expandedPokemonIds?.includes(pokemon.id)}
+            onToggleExpansion={() => onToggleExpansion?.(pokemon.id)}
           />
+
         ))}
 
         <div className="pt-2">

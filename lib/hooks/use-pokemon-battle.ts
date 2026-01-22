@@ -56,7 +56,8 @@ export function usePokemonBattle() {
         myTeam: [],
         enemyTeam: [],
         activeStarters: { myTeam: [0, 1], opponentTeam: [0, 1] },
-        battlefieldState: { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } }
+        battlefieldState: { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } },
+        expandedPokemonIds: []
       }
     }
 
@@ -72,7 +73,7 @@ export function usePokemonBattle() {
 
 
   // Helpers related to State
-  const { myTeam, enemyTeam, activeStarters, battlefieldState } = currentState
+  const { myTeam, enemyTeam, activeStarters, battlefieldState, expandedPokemonIds } = currentState
 
   // --- ACTIONS ---
 
@@ -212,11 +213,13 @@ export function usePokemonBattle() {
     const teamKey = isMyTeam ? "myTeam" : "opponentTeam"
     const currentStarters = [...activeStarters[teamKey]]
     const maxSlots = currentSession?.battleType === "simple" ? 1 : 2
+    const team = isMyTeam ? myTeam : enemyTeam
 
     let indexLeaving: number | null = null
     const existingSlot = currentStarters.slice(0, maxSlots).indexOf(index)
 
     if (existingSlot !== -1) {
+      indexLeaving = index
       currentStarters[existingSlot] = null
     } else {
       if (currentStarters[0] === null) {
@@ -224,7 +227,6 @@ export function usePokemonBattle() {
       } else if (maxSlots > 1 && currentStarters[1] === null) {
         currentStarters[1] = index
       } else {
-         // Replace logic
          if (maxSlots === 1) {
           indexLeaving = currentStarters[0]
           currentStarters[0] = index
@@ -235,14 +237,43 @@ export function usePokemonBattle() {
       }
     }
     
-    // In initial state we don't really need to reset data for leaving pokemon as strictly as in battle,
-    // but we can preserve the behavior if desired. For now, just update starters.
-    updateInitialState({ activeStarters: { ...activeStarters, [teamKey]: currentStarters } })
+    const updates: Partial<BattleState> = { activeStarters: { ...activeStarters, [teamKey]: currentStarters } }
+
+    if (indexLeaving !== null) {
+        const pokemonLeaving = team[indexLeaving]
+        if (pokemonLeaving) {
+             const cleaned = {
+                 ...pokemonLeaving,
+                 love: false,
+                 confusion: false,
+                 confusionCounter: 0,
+                 showConfusionCounter: false
+             }
+             const newTeam = [...team]
+             newTeam[indexLeaving] = cleaned
+             
+             if (isMyTeam) updates.myTeam = newTeam
+             else updates.enemyTeam = newTeam
+        }
+    }
+
+    updateInitialState(updates)
   }
 
   const updateBattlefieldTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, customTags: tags } })
   const updatePlayerSideTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, playerSide: { customTags: tags } } })
   const updateOpponentSideTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, opponentSide: { customTags: tags } } })
+
+  const togglePokemonExpansion = (id: string) => {
+    const currentExpanded = expandedPokemonIds || []
+    const isExpanded = currentExpanded.includes(id)
+    const newExpanded = isExpanded 
+      ? currentExpanded.filter(pid => pid !== id)
+      : [...currentExpanded, id]
+    
+    updateInitialState({ expandedPokemonIds: newExpanded })
+  }
+
 
   const setBattleType = (type: "simple" | "double") => {
       if(currentSession) saveSession({ ...currentSession, battleType: type })
@@ -428,6 +459,7 @@ export function usePokemonBattle() {
         activeStarters,
         getSlotForPokemon,
         battlefieldState,
+        expandedPokemonIds,
         currentSession,
     },
     setters: {
@@ -466,6 +498,7 @@ export function usePokemonBattle() {
         updateBattlefieldTags,
         updatePlayerSideTags,
         updateOpponentSideTags,
+        togglePokemonExpansion,
     }
   }
 }

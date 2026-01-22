@@ -26,7 +26,15 @@ interface TeamsViewProps {
   onUpdateStatus: (
     id: string,
     isMyTeam: boolean,
-    updates: { status?: PokemonStatus; confusion?: boolean; love?: boolean },
+    updates: {
+      status?: PokemonStatus
+      confusion?: boolean
+      love?: boolean
+      sleepCounter?: number
+      confusionCounter?: number
+      showSleepCounter?: boolean
+      showConfusionCounter?: boolean
+    },
   ) => void
   onUpdatePokemon: (updatedPokemon: Pokemon, isMyTeam: boolean) => void
   onToggleHeldItem: (pokemonId: string, isMyTeam: boolean) => void
@@ -46,6 +54,8 @@ interface TeamsViewProps {
   onUpdateBattlefieldTags: (tags: string[]) => void
   onUpdatePlayerSideTags: (tags: string[]) => void
   onUpdateOpponentSideTags: (tags: string[]) => void
+  expandedPokemonIds?: string[]
+  onToggleExpansion?: (id: string) => void
 }
 
 export function TeamsView({
@@ -80,7 +90,10 @@ export function TeamsView({
   onUpdateBattlefieldTags,
   onUpdatePlayerSideTags,
   onUpdateOpponentSideTags,
+  expandedPokemonIds,
+  onToggleExpansion,
 }: TeamsViewProps) {
+
   return (
     <>
       <div className="mb-6 flex justify-center">
@@ -143,7 +156,10 @@ export function TeamsView({
           getDefaultPokemonName={getDefaultPokemonName}
           getTeamCounterDisplay={getTeamCounterDisplay}
           isStarterPokemon={isStarterPokemon}
+          expandedPokemonIds={expandedPokemonIds}
+          onToggleExpansion={onToggleExpansion}
         />
+
         <TeamSection
           team={enemyTeam}
           title="Équipe Adverse"
@@ -167,7 +183,10 @@ export function TeamsView({
           getDefaultPokemonName={getDefaultPokemonName}
           getTeamCounterDisplay={getTeamCounterDisplay}
           isStarterPokemon={isStarterPokemon}
+          expandedPokemonIds={expandedPokemonIds}
+          onToggleExpansion={onToggleExpansion}
         />
+
       </div>
 
       {(myTeam.length > 0 || enemyTeam.length > 0) && (

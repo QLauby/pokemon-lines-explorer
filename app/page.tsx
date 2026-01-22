@@ -52,7 +52,10 @@ export default function PokemonNuzlockeLines() {
           onUpdateBattlefieldTags={actions.updateBattlefieldTags}
           onUpdatePlayerSideTags={actions.updatePlayerSideTags}
           onUpdateOpponentSideTags={actions.updateOpponentSideTags}
+          expandedPokemonIds={state.expandedPokemonIds}
+          onToggleExpansion={actions.togglePokemonExpansion}
         />
+
       ) : (
         state.battleStarted && (
           <CombatView

@@ -160,7 +160,7 @@ export function EditableText({
   const textStyle: React.CSSProperties = {
     fontFamily: "inherit",
     fontSize: calculatedFontSize,
-    lineHeight: "inherit",
+    lineHeight: "normal",
     minHeight: calculatedHeight,
     height: calculatedHeight,
     textAlign: textAlign,
@@ -529,12 +529,8 @@ export function EditableText({
         <span
           className={cn(
             isPlaceholderLook && "text-gray-400 italic",
-            "flex items-center w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap leading-none",
-            textAlign === "center" && "justify-center",
-            textAlign === "left" && "justify-start",
-            textAlign === "right" && "justify-end",
+            "block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
           )}
-          style={{ height: "100%" }}
           title={displayText}
         >
           {displayText}

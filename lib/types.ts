@@ -38,6 +38,8 @@ export interface Pokemon {
   customTags?: string[]
   sleepCounter?: number
   confusionCounter?: number
+  showSleepCounter?: boolean
+  showConfusionCounter?: boolean
   statsModifiers?: StatsModifiers;
 }
 
@@ -78,6 +80,8 @@ export type BattleDelta =
       love?: boolean
       sleepCounter?: number
       confusionCounter?: number
+      showSleepCounter?: boolean
+      showConfusionCounter?: boolean
     }
   | { type: "SWITCH"; team: "my" | "opponent"; slotIndex: number; newPokemonId: string | null }
   | { type: "TAG_UPDATE"; targetId: string | "field" | "player_side" | "opponent_side"; tags: string[] }
@@ -107,4 +111,5 @@ export interface BattleState {
   enemyTeam: Pokemon[]
   activeStarters: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   battlefieldState: BattlefieldState
+  expandedPokemonIds?: string[]
 }

@@ -6,9 +6,9 @@ import { Minus, Plus } from "lucide-react"
 
 import { exclusiveStatuses, independentStatuses, type PokemonStatus } from "@/lib/logos"
 
+import { CircularButton } from "@/components/shared/circular-button"
+import { Counter } from "@/components/shared/counter"
 import { Pokemon } from "@/lib/types"
-import { CircularButton } from "../shared/circular-button"
-import { Counter } from "../shared/counter"
 
 
 interface StatusSelectorProps {
@@ -23,6 +23,8 @@ interface StatusSelectorProps {
       love?: boolean
       sleepCounter?: number
       confusionCounter?: number
+      showSleepCounter?: boolean
+      showConfusionCounter?: boolean
     },
   ) => void
   readOnly?: boolean
@@ -30,10 +32,18 @@ interface StatusSelectorProps {
 
 
 export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false }: StatusSelectorProps) {
-  const [showSleepCounter, setShowSleepCounter] = useState(false)
-  const [isCounterMounting, setIsCounterMounting] = useState(false)
-  const [showConfusionCounter, setShowConfusionCounter] = useState(false)
-  const [isConfusionCounterMounting, setIsConfusionCounterMounting] = useState(false)
+  const showSleepCounter = pokemon.showSleepCounter
+  const showConfusionCounter = pokemon.showConfusionCounter
+  const [isCounterMounting, setIsCounterMounting] = useState(showSleepCounter)
+  const [isConfusionCounterMounting, setIsConfusionCounterMounting] = useState(showConfusionCounter)
+
+  // Synchronize mounting state for animations
+  if (showSleepCounter !== isCounterMounting) {
+      setTimeout(() => setIsCounterMounting(showSleepCounter), 10)
+  }
+  if (showConfusionCounter !== isConfusionCounterMounting) {
+      setTimeout(() => setIsConfusionCounterMounting(showConfusionCounter), 10)
+  }
 
   const handleExclusiveStatusClick = (statusType: PokemonStatus) => {
     if (readOnly) return;
@@ -54,9 +64,8 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false }
     }
 
     if (statusType === "sleep" && newStatus !== "sleep") {
-      setShowSleepCounter(false)
       setIsCounterMounting(false)
-      onUpdate(pokemon.id, isMyTeam, { status: newStatus, sleepCounter: 0 })
+      onUpdate(pokemon.id, isMyTeam, { status: newStatus, sleepCounter: 0, showSleepCounter: false })
     } else {
       onUpdate(pokemon.id, isMyTeam, { status: newStatus })
     }
@@ -66,9 +75,8 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false }
     if (readOnly) return;
     const newValue = !pokemon[statusType]
     if (statusType === "confusion" && !newValue) {
-      setShowConfusionCounter(false)
       setIsConfusionCounterMounting(false)
-      onUpdate(pokemon.id, isMyTeam, { [statusType]: newValue, confusionCounter: 0 })
+      onUpdate(pokemon.id, isMyTeam, { [statusType]: newValue, confusionCounter: 0, showConfusionCounter: false })
     } else {
       onUpdate(pokemon.id, isMyTeam, { [statusType]: newValue })
     }
@@ -78,13 +86,10 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false }
     if (showSleepCounter) {
       setIsCounterMounting(false)
       setTimeout(() => {
-        setShowSleepCounter(false)
-        onUpdate(pokemon.id, isMyTeam, { sleepCounter: 0 })
+        onUpdate(pokemon.id, isMyTeam, { sleepCounter: 0, showSleepCounter: false })
       }, 300)
     } else {
-      setShowSleepCounter(true)
-      setTimeout(() => setIsCounterMounting(true), 10)
-      onUpdate(pokemon.id, isMyTeam, { sleepCounter: 0 })
+      onUpdate(pokemon.id, isMyTeam, { sleepCounter: 0, showSleepCounter: true })
     }
   }
 
@@ -96,8 +101,7 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false }
   const handleCounterValidateEmpty = () => {
     setIsCounterMounting(false)
     setTimeout(() => {
-      setShowSleepCounter(false)
-      onUpdate(pokemon.id, isMyTeam, { sleepCounter: 0 })
+      onUpdate(pokemon.id, isMyTeam, { sleepCounter: 0, showSleepCounter: false })
     }, 300)
   }
 
@@ -105,13 +109,10 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false }
     if (showConfusionCounter) {
       setIsConfusionCounterMounting(false)
       setTimeout(() => {
-        setShowConfusionCounter(false)
-        onUpdate(pokemon.id, isMyTeam, { confusionCounter: 0 })
+        onUpdate(pokemon.id, isMyTeam, { confusionCounter: 0, showConfusionCounter: false })
       }, 300)
     } else {
-      setShowConfusionCounter(true)
-      setTimeout(() => setIsConfusionCounterMounting(true), 10)
-      onUpdate(pokemon.id, isMyTeam, { confusionCounter: 0 })
+      onUpdate(pokemon.id, isMyTeam, { confusionCounter: 0, showConfusionCounter: true })
     }
   }
 
@@ -123,8 +124,7 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false }
   const handleConfusionCounterValidateEmpty = () => {
     setIsConfusionCounterMounting(false)
     setTimeout(() => {
-      setShowConfusionCounter(false)
-      onUpdate(pokemon.id, isMyTeam, { confusionCounter: 0 })
+      onUpdate(pokemon.id, isMyTeam, { confusionCounter: 0, showConfusionCounter: false })
     }, 300)
   }
 

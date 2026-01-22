@@ -78,7 +78,7 @@ export function CurrentState({
              </div>
 
              {/* Active Pokemon Cards */}
-             <div className={cn("grid gap-2", battleType === "double" ? "grid-cols-2" : "grid-cols-1")}>
+             <div className={cn("grid gap-2 items-start", battleType === "double" ? "grid-cols-2" : "grid-cols-1")}>
                 {myActive.map((pokemon) => (
                     <PokemonCardDisplay 
                         key={`active-${pokemon.id}`}
@@ -116,7 +116,7 @@ export function CurrentState({
              </div>
 
              {/* Active Enemy Pokemon Cards */}
-             <div className={cn("grid gap-2", battleType === "double" ? "grid-cols-2" : "grid-cols-1")}>
+             <div className={cn("grid gap-2 items-start", battleType === "double" ? "grid-cols-2" : "grid-cols-1")}>
                 {enemyActive.map((pokemon) => (
                     <PokemonCardDisplay 
                         key={`active-enemy-${pokemon.id}`}

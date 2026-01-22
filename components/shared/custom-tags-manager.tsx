@@ -25,7 +25,7 @@ export function CustomTagsManager({
   tags,
   onUpdateTags,
   fontSize = 10,
-  fontSizeRatio = 0.6,
+  fontSizeRatio = 0.5,
   label = "Autre :",
   readOnly = false,
 }: CustomTagsManagerProps) {

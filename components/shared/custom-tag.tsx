@@ -44,7 +44,7 @@ export function CustomTag({
   defaultValue,
   placeholder,
   fontSize = 12,
-  fontSizeRatio = 0.6, // Unified ratio for tags
+  fontSizeRatio = 0.55, // Adjusted to prevent vertical truncation
   rounded = true,
   mode = "button",
   visualMode = "default",

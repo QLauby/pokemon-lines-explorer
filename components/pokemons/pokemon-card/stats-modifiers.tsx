@@ -1,8 +1,8 @@
 "use client"
 
+import { Counter } from "@/components/shared/counter";
 import { StatsModifiers } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { Counter } from "../shared/counter";
 
 interface StatsModifiersDisplayProps {
   modifiers: StatsModifiers;

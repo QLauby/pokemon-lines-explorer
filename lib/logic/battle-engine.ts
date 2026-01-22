@@ -77,6 +77,8 @@ export class BattleEngine {
           love: delta.love !== undefined ? delta.love : p.love,
           sleepCounter: delta.sleepCounter !== undefined ? delta.sleepCounter : p.sleepCounter,
           confusionCounter: delta.confusionCounter !== undefined ? delta.confusionCounter : p.confusionCounter,
+          showSleepCounter: delta.showSleepCounter !== undefined ? delta.showSleepCounter : p.showSleepCounter,
+          showConfusionCounter: delta.showConfusionCounter !== undefined ? delta.showConfusionCounter : p.showConfusionCounter,
         }))
 
       case "SWITCH": {
