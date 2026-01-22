@@ -62,18 +62,15 @@ export default function PokemonNuzlockeLines() {
             nodes={state.nodes}
             selectedNodeId={state.selectedNodeId}
             scrollX={state.scrollX}
-            actionDescription={state.actionDescription}
-            actionProbability={state.actionProbability}
             hpChanges={state.hpChanges}
             onSelectedNodeChange={setters.setSelectedNodeId}
             onScrollChange={actions.handleScroll}
             onResetBattle={actions.resetBattle}
-            onActionDescriptionChange={setters.setActionDescription}
-            onActionProbabilityChange={setters.setActionProbability}
             onHpChangesChange={setters.setHpChanges}
             onAddAction={actions.addAction}
             myTeam={state.myTeam}
             enemyTeam={state.enemyTeam}
+            activeStarters={state.activeStarters}
             currentSession={state.currentSession!}
           />
         )

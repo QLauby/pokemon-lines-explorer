@@ -17,12 +17,11 @@ export function usePokemonBattle() {
   // Forms State
   const [newMyPokemonName, setNewMyPokemonName] = useState("")
   const [newOpponentPokemonName, setNewOpponentPokemonName] = useState("")
-  const [actionDescription, setActionDescription] = useState("")
-  const [actionProbability, setActionProbability] = useState("")
+
   
   // Changes for the next action (Delta Builder)
   const [pendingDeltas, setPendingDeltas] = useState<BattleDelta[]>([])
-  const [hpChangesInputs, setHpChangesInputs] = useState<{ pokemonId: string; hpChange: number }[]>([])
+  const [hpChangesInputs, setHpChangesInputs] = useState<{ pokemonId: string; value: number; isHealing: boolean }[]>([])
 
   const [editingPokemonId, setEditingPokemonId] = useState<string | null>(null)
   const [editingPokemonName, setEditingPokemonName] = useState("")
@@ -47,9 +46,40 @@ export function usePokemonBattle() {
     [sessions, currentSessionId]
   )
 
+  // Auto-select node on initial load or session change
+  useEffect(() => {
+     if (!currentSession || currentSession.nodes.length === 0) return;
+
+     // Check if the current selectedNodeId is valid for this session
+     const isIdValid = currentSession.nodes.some(n => n.id === selectedNodeId);
+
+     if (!selectedNodeId || !isIdValid) {
+         // Priority 1: Restore last selection from session
+         if (currentSession.lastSelectedNodeId && currentSession.nodes.some(n => n.id === currentSession.lastSelectedNodeId)) {
+             setSelectedNodeId(currentSession.lastSelectedNodeId);
+         } 
+         // Priority 2: Pick the last node (root or latest action)
+         else {
+             const lastNode = currentSession.nodes[currentSession.nodes.length - 1];
+             setSelectedNodeId(lastNode.id);
+         }
+     }
+  }, [currentSessionId, currentSession?.nodes.length]) // Only trigger on session switch or node count change
+
+  // Persist selectedNodeId when it changes manually
+  useEffect(() => {
+      if (currentSession && selectedNodeId) {
+          // Only save if different from what's in the session to avoid cycles
+          if (currentSession.lastSelectedNodeId !== selectedNodeId) {
+              // Verify it's a node of this session before saving
+              if (currentSession.nodes.some(n => n.id === selectedNodeId)) {
+                  saveSession({ ...currentSession, lastSelectedNodeId: selectedNodeId })
+              }
+          }
+      }
+  }, [selectedNodeId]) // Only depend on the ID changing
+
   // Computed State for the Current View
-  // If we are in 'teams' view, we show the Initial State
-  // If we are in 'combat' view and have a selected node, we show the Computed State
   const currentState: BattleState = useMemo(() => {
     if (!currentSession) {
       return {
@@ -331,7 +361,7 @@ export function usePokemonBattle() {
   }
 
   const addAction = () => {
-    if (!actionDescription || !actionProbability || !selectedNodeId || !currentSession) return
+    if (!selectedNodeId || !currentSession) return
     
     const parentNode = currentSession.nodes.find(n => n.id === selectedNodeId)
     if (!parentNode) return
@@ -341,13 +371,16 @@ export function usePokemonBattle() {
     
     // HP Deltas
     hpChangesInputs.forEach(input => {
-        deltas.push({
-            type: "HP_RELATIVE", // The UI currently provides "hpChange" which is relative (+10, -10)
-            targetId: input.pokemonId,
-            amount: input.hpChange
-        })
+        if (input.value !== 0 && input.pokemonId) {
+             const finalAmount = input.value * (input.isHealing ? 1 : -1)
+             deltas.push({
+                type: "HP_RELATIVE",
+                targetId: input.pokemonId,
+                amount: finalAmount
+            })
+        }
     })
-    
+
     const nodeId = Date.now().toString()
     
     // Logic for Position (simplified from original)
@@ -371,9 +404,9 @@ export function usePokemonBattle() {
 
     const newNode: TreeNode = {
         id: nodeId,
-        description: actionDescription,
-        probability: Number.parseFloat(actionProbability),
-        cumulativeProbability: parentNode.cumulativeProbability * (Number.parseFloat(actionProbability) / 100),
+        description: "", 
+        probability: 100,
+        cumulativeProbability: parentNode.cumulativeProbability, // 100% probability implies same cumulative
         deltas: deltas,
         children: [],
         parentId: selectedNodeId,
@@ -399,14 +432,12 @@ export function usePokemonBattle() {
     
     // Cleanup
     setSelectedNodeId(nodeId)
-    setActionDescription("")
-    setActionProbability("")
     setHpChangesInputs([])
   }
 
   const resetBattle = () => {
       if (currentSession) {
-          saveSession({ ...currentSession, nodes: [] }) // Wipe tree
+          saveSession({ ...currentSession, nodes: [], lastSelectedNodeId: undefined })
           setSelectedNodeId("")
           setCurrentView("teams")
       }
@@ -451,8 +482,6 @@ export function usePokemonBattle() {
         scrollX,
         newMyPokemonName,
         newOpponentPokemonName,
-        actionDescription,
-        actionProbability,
         hpChanges: hpChangesInputs,
         editingPokemonId,
         editingPokemonName,
@@ -467,8 +496,6 @@ export function usePokemonBattle() {
         setBattleType,
         setNewMyPokemonName,
         setNewOpponentPokemonName,
-        setActionDescription,
-        setActionProbability,
         setHpChanges: setHpChangesInputs,
         setSelectedNodeId,
     },

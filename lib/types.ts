@@ -103,6 +103,7 @@ export interface CombatSession {
     battlefieldState: BattlefieldState
   }
   nodes: TreeNode[]
+  lastSelectedNodeId?: string
 }
 
 // Helper to define what a computed state looks like (same as before but explicit)

@@ -5,7 +5,7 @@ import { Plus, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
-import { pokemonTypeColors } from "@/lib/colors"
+import { TypeLiseret } from "@/components/shared/type-liseret"
 import { Attack, Pokemon } from "@/lib/types"
 
 import { Counter } from "@/components/shared/counter"
@@ -152,10 +152,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
                     <div className="flex items-center gap-1">
                       <div className="flex-1 mr-1 h-5 flex items-center min-w-0">
                         {attack.type && (
-                          <div 
-                            className="w-[3px] h-full mr-1 rounded-full shrink-0" 
-                            style={{ backgroundColor: pokemonTypeColors[attack.type] }}
-                          />
+                          <TypeLiseret types={[attack.type]} className="w-[3px] h-full mr-1" />
                         )}
                         <EditableText
                           value={attack.name}

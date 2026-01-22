@@ -10,20 +10,17 @@ interface CombatViewProps {
   nodes: Map<string, TreeNode>
   selectedNodeId: string
   scrollX: number
-  actionDescription: string
-  actionProbability: string
-  hpChanges: { pokemonId: string; hpChange: number }[]
+  hpChanges: { pokemonId: string; value: number; isHealing: boolean }[]
   onSelectedNodeChange: (nodeId: string) => void
   onScrollChange: (direction: "left" | "right") => void
   onResetBattle: () => void
-  onActionDescriptionChange: (desc: string) => void
-  onActionProbabilityChange: (prob: string) => void
-  onHpChangesChange: (changes: { pokemonId: string; hpChange: number }[]) => void
+  onHpChangesChange: (changes: { pokemonId: string; value: number; isHealing: boolean }[]) => void
   onAddAction: () => void
   onUpdateNode?: (nodeId: string, updates: Partial<TreeNode>) => void
   onDeleteNode?: (nodeId: string) => void
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
+  activeStarters: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   currentSession: CombatSession
 }
 
@@ -31,18 +28,15 @@ export function CombatView({
   nodes,
   selectedNodeId,
   scrollX,
-  actionDescription,
-  actionProbability,
   hpChanges,
   onSelectedNodeChange,
   onScrollChange,
   onResetBattle,
-  onActionDescriptionChange,
-  onActionProbabilityChange,
   onHpChangesChange,
   onAddAction,
   myTeam,
   enemyTeam,
+  activeStarters,
   currentSession,
 }: CombatViewProps) {
   
@@ -88,19 +82,24 @@ export function CombatView({
 
           {/* RIGHT COLUMN: ACTIONS - Grows with content, scrolls with page */}
           <div className="border rounded-xl bg-white shadow-md p-8 ring-1 ring-black/5">
-              <h2 className="text-2xl font-bold mb-8 border-b pb-6">Action Form</h2>
+              <h2 className="text-2xl font-bold mb-8 border-b pb-6">
+                Next turn : turn {(selectedNode?.turn || 0) + 1}
+              </h2>
               <div>
                  <ActionForm 
                     selectedNodeId={selectedNodeId}
                     nodes={nodes}
-                    actionDescription={actionDescription}
-                    actionProbability={actionProbability}
                     hpChanges={hpChanges}
-                    onActionDescriptionChange={onActionDescriptionChange}
-                    onActionProbabilityChange={onActionProbabilityChange}
                     onHpChangesChange={onHpChangesChange}
                     onAddAction={onAddAction} 
-                    getAllPokemon={() => [...myTeam, ...enemyTeam]}
+                    activePokemon={[
+                      ...(activeStarters?.myTeam || [])
+                        .filter((idx): idx is number => idx !== null)
+                        .map(idx => ({ pokemon: myTeam[idx], isAlly: true })),
+                      ...(activeStarters?.opponentTeam || [])
+                        .filter((idx): idx is number => idx !== null)
+                        .map(idx => ({ pokemon: enemyTeam[idx], isAlly: false }))
+                    ]}
                  />
               </div>
           </div>

@@ -2,6 +2,7 @@
 import { StarBadgeIcon } from "@/assets/badges/star-badge"
 import MegaColored from "@/assets/logos/mega/mega-colored.svg"
 import { CircularButton } from "@/components/shared/circular-button"
+import { TypeLiseret } from "@/components/shared/type-liseret"
 import { pokemonTypeColors } from "@/lib/colors"
 import { POKEMON_LOGOS } from "@/lib/logos"
 import { Pokemon } from "@/lib/types"
@@ -26,16 +27,7 @@ export function PokemonCardDisplayHeader({ pokemon }: PokemonCardDisplayHeaderPr
     return (
         <div className="flex items-center justify-between gap-1 h-3.5">
              <div className="flex items-center gap-1 min-w-0 h-full">
-                {types.length > 0 && (
-                  <div 
-                    className="w-1 h-full rounded-full shrink-0" 
-                    style={{ 
-                      background: types.length === 1 
-                        ? pokemonTypeColors[types[0]] 
-                        : `linear-gradient(180deg, ${pokemonTypeColors[types[0]]} 50%, ${pokemonTypeColors[types[1]]} 50%)`
-                    }}
-                  />
-                )}
+                <TypeLiseret types={pokemon.types} className="w-1 h-full" />
                 <span className="font-bold text-[11px] truncate h-full flex items-center" title={pokemon.name}>
                    {pokemon.name}
                 </span>

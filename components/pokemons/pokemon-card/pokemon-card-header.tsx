@@ -3,6 +3,7 @@ import MegaColored from "@/assets/logos/mega/mega-colored.svg";
 import { CircularButton } from "@/components/shared/circular-button";
 import { Counter } from "@/components/shared/counter";
 import { EditableText } from "@/components/shared/editable-text";
+import { TypeLiseret } from "@/components/shared/type-liseret";
 import { Button } from "@/components/ui/button";
 import { PokemonType, pokemonTypeColors } from "@/lib/colors";
 import { POKEMON_LOGOS } from "@/lib/logos";
@@ -121,17 +122,7 @@ export function PokemonCardHeader({
 
         <div className="flex justify-between items-center text-sm py-0.5">
           <div className="flex-1 mr-2 h-6 flex items-center min-w-0">
-            {types.length > 0 && (
-              <div 
-                className="w-1 h-full mr-1.5 rounded-full shrink-0" 
-                style={{ 
-                  background: types.length === 1 
-                    ? pokemonTypeColors[types[0]] 
-                    : `linear-gradient(135deg, ${pokemonTypeColors[types[0]]} 50%, ${pokemonTypeColors[types[1]]} 50%)`
-                }}
-                title={types.join(' / ')}
-              />
-            )}
+            <TypeLiseret types={pokemon.types} className="w-1 h-full mr-1.5" />
             <EditableText
               value={pokemon.name || defaultName}
               placeholder={defaultName}
