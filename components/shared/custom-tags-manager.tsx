@@ -10,7 +10,9 @@ interface CustomTagsManagerProps {
   tags: string[]
   onUpdateTags: (newTags: string[]) => void
   fontSize?: string | number
+  fontSizeRatio?: number
   label?: string | null
+  readOnly?: boolean
 }
 
 interface TagAnimationState {
@@ -23,27 +25,39 @@ export function CustomTagsManager({
   tags,
   onUpdateTags,
   fontSize = 10,
+  fontSizeRatio = 0.6,
   label = "Autre :",
+  readOnly = false,
 }: CustomTagsManagerProps) {
   const [animatedTags, setAnimatedTags] = useState<TagAnimationState[]>([])
 
   useEffect(() => {
-    const newAnimatedTags = tags.map((tag) => {
-      const existingTag = animatedTags.find((at) => at.tag === tag)
-      if (existingTag) {
-        return existingTag
-      }
-      return { tag, isEntering: true, isExiting: false }
+    setAnimatedTags((prev) => {
+      // Create a map of current animated tags by their name part to try to preserve them
+      const prevMap = new Map<string, TagAnimationState>()
+      prev.forEach(at => {
+        const name = at.tag.split(":")[0]
+        prevMap.set(name, at)
+      })
+
+      return tags.map((tag, idx) => {
+        const name = tag.split(":")[0]
+        const existing = prevMap.get(name)
+        
+        if (existing) {
+          // Update the full tag string but keep the animation state
+          return { ...existing, tag }
+        }
+        return { tag, isEntering: true, isExiting: false }
+      })
     })
 
-    setAnimatedTags(newAnimatedTags)
-
-    const newTags = newAnimatedTags.filter((at) => at.isEntering)
-    if (newTags.length > 0) {
-      setTimeout(() => {
-        setAnimatedTags((prev) => prev.map((at) => (at.isEntering ? { ...at, isEntering: false } : at)))
-      }, 10)
-    }
+    // Clear entering flag after a short delay
+    const timer = setTimeout(() => {
+      setAnimatedTags((prev) => prev.map((at) => (at.isEntering ? { ...at, isEntering: false } : at)))
+    }, 100)
+    
+    return () => clearTimeout(timer)
   }, [tags])
 
   const handleAddTag = () => {
@@ -76,9 +90,11 @@ export function CustomTagsManager({
           const tagIndex = tags.findIndex((tag) => tag === animatedTag.tag)
           if (tagIndex === -1) return null
 
+          const tagNamePart = animatedTag.tag.split(":")[0]
+
           return (
             <div
-              key={`${animatedTag.tag}-${index}`}
+              key={`${tagNamePart}-${index}`}
               className={`transition-all duration-300 ease-in-out ${
                 animatedTag.isEntering
                   ? "opacity-0 -translate-x-2 scale-95"
@@ -92,23 +108,28 @@ export function CustomTagsManager({
                 onUpdate={(newTag) => handleUpdateTag(tagIndex, newTag)}
                 onDelete={() => handleDeleteTag(tagIndex)}
                 fontSize={fontSize}
+                fontSizeRatio={fontSizeRatio}
                 defaultValue={`Tag ${tagIndex + 1}`}
                 placeholder={`Tag ${tagIndex + 1}`}
+                readOnly={readOnly}
               />
             </div>
           )
         })}
-        <CircularButton
-          isActive={false}
-          onClick={handleAddTag}
-          icon={Plus}
-          activeColor=""
-          inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
-          title="Ajouter un tag"
-          diameter={Math.round((typeof fontSize === "number" ? fontSize : Number.parseFloat(fontSize as string) || 12) / 0.4 * 0.8)}
-          iconRatio={0.7} // Ratio par défaut comme demandé
-          variant="filled"
-        />
+        {!readOnly && (
+          <CircularButton
+            isActive={false}
+            onClick={handleAddTag}
+            icon={Plus}
+            activeColor=""
+            inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
+            title="Ajouter un tag"
+            diameter={Math.round((typeof fontSize === "number" ? fontSize : Number.parseFloat(fontSize as string) || 12) / 0.6 * 0.8)}
+            iconRatio={0.7} // Ratio par défaut comme demandé
+            variant="filled"
+            readOnly={readOnly}
+          />
+        )}
       </div>
     </div>
   )

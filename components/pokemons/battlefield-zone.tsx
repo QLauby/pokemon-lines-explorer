@@ -28,7 +28,7 @@ export function BattlefieldZone({
       {/* Main Terrain Container */}
       <div className="border-2 border-gray-300 rounded-lg p-4 bg-white">
         <div className="mb-3">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Terrain</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Battlefield</h3>
           <CustomTagsManager
             tags={battlefieldTags}
             onUpdateTags={onUpdateBattlefieldTags}

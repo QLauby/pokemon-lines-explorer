@@ -3,7 +3,6 @@
 import { RotateCcw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TreeNode } from "@/lib/types"
 
 interface BattleTreeProps {
@@ -31,9 +30,9 @@ export function BattleTree({
   const maxY = Math.max(...Array.from(nodes.values()).map((n) => n.y)) + 100
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Arbre des Possibilités</CardTitle>
+    <div className="flex flex-col h-full">
+      <div className="flex flex-row items-center justify-between p-4 border-b shrink-0">
+        <h3 className="text-lg font-bold">Arbre des Possibilités</h3>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => onScrollChange("left")} className="cursor-pointer">
             ←
@@ -46,11 +45,10 @@ export function BattleTree({
             Recommencer
           </Button>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="flex-1 min-h-0 p-4">
         <div
-          className="relative border rounded bg-gray-50 overflow-y-auto overflow-x-hidden"
-          style={{ height: "400px", width: "100%", maxWidth: "100%" }}
+          className="relative border rounded bg-gray-50 overflow-y-auto overflow-x-hidden h-full w-full"
         >
           <div
             className="relative transition-transform duration-200"
@@ -141,7 +139,7 @@ export function BattleTree({
             })}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

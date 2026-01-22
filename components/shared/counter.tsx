@@ -37,6 +37,7 @@ interface CounterProps {
   lightTextColor?: string
   transitionDuration?: string
   doubleClickStep?: number
+  readOnly?: boolean
 }
 
 export function Counter(props: CounterProps) {
@@ -54,6 +55,7 @@ export function Counter(props: CounterProps) {
     fontSizeRatio = 0.6,
     transitionDuration = "0.3s",
     doubleClickStep = 5,
+    readOnly = false,
     ...editableTextProps
   } = props
 
@@ -160,77 +162,80 @@ export function Counter(props: CounterProps) {
         textAlign="center"
         visualMode="border"
         transitionDuration={transitionDuration}
+        readOnly={readOnly}
       />
 
-      <div
-        style={{
-          ...overlayStyle,
-          border: isHovered ? `1px solid rgba(158, 177, 189, ${buttonOpacity})` : "none",
-        }}
-      >
-        <button
-          onClick={() => handleButtonClick("up")}
-          disabled={effectiveMax !== undefined && (Number.parseInt(value) || 0) >= effectiveMax}
+      {!readOnly && (
+        <div
           style={{
-            ...arrowButtonStyle,
-            borderTopLeftRadius: `${borderRadiusPx}px`,
-            borderTopRightRadius: `${borderRadiusPx}px`,
-            borderBottomLeftRadius: "0px",
-            borderBottomRightRadius: "0px",
-            boxShadow: "none",
-          }}
-          onMouseEnter={(e) => {
-            Object.assign(e.currentTarget.style, arrowButtonHoverStyle)
-          }}
-          onMouseLeave={(e) => {
-            Object.assign(e.currentTarget.style, {
-              backgroundColor: `rgba(213, 221, 226, ${buttonOpacity})`,
-              borderColor: `rgba(158, 177, 189, ${buttonOpacity})`,
-              color: `rgba(88, 112, 128, ${Math.min(1, buttonOpacity + 0.3)})`,
-            })
+            ...overlayStyle,
+            border: isHovered ? `1px solid rgba(158, 177, 189, ${buttonOpacity})` : "none",
           }}
         >
-          <ChevronUp
+          <button
+            onClick={() => handleButtonClick("up")}
+            disabled={effectiveMax !== undefined && (Number.parseInt(value) || 0) >= effectiveMax}
             style={{
-              width: `${arrowSize}px`,
-              height: `${arrowSize}px`,
-              display: "block",
-              margin: "auto",
+              ...arrowButtonStyle,
+              borderTopLeftRadius: `${borderRadiusPx}px`,
+              borderTopRightRadius: `${borderRadiusPx}px`,
+              borderBottomLeftRadius: "0px",
+              borderBottomRightRadius: "0px",
+              boxShadow: "none",
             }}
-          />
-        </button>
-        <button
-          onClick={() => handleButtonClick("down")}
-          disabled={min !== undefined && (Number.parseInt(value) || 0) <= min}
-          style={{
-            ...arrowButtonStyle,
-            borderTopLeftRadius: "0px",
-            borderTopRightRadius: "0px",
-            borderBottomLeftRadius: `${borderRadiusPx}px`,
-            borderBottomRightRadius: `${borderRadiusPx}px`,
-            boxShadow: "none",
-          }}
-          onMouseEnter={(e) => {
-            Object.assign(e.currentTarget.style, arrowButtonHoverStyle)
-          }}
-          onMouseLeave={(e) => {
-            Object.assign(e.currentTarget.style, {
-              backgroundColor: `rgba(213, 221, 226, ${buttonOpacity})`,
-              borderColor: `rgba(158, 177, 189, ${buttonOpacity})`,
-              color: `rgba(88, 112, 128, ${Math.min(1, buttonOpacity + 0.3)})`,
-            })
-          }}
-        >
-          <ChevronDown
+            onMouseEnter={(e) => {
+              Object.assign(e.currentTarget.style, arrowButtonHoverStyle)
+            }}
+            onMouseLeave={(e) => {
+              Object.assign(e.currentTarget.style, {
+                backgroundColor: `rgba(213, 221, 226, ${buttonOpacity})`,
+                borderColor: `rgba(158, 177, 189, ${buttonOpacity})`,
+                color: `rgba(88, 112, 128, ${Math.min(1, buttonOpacity + 0.3)})`,
+              })
+            }}
+          >
+            <ChevronUp
+              style={{
+                width: `${arrowSize}px`,
+                height: `${arrowSize}px`,
+                display: "block",
+                margin: "auto",
+              }}
+            />
+          </button>
+          <button
+            onClick={() => handleButtonClick("down")}
+            disabled={min !== undefined && (Number.parseInt(value) || 0) <= min}
             style={{
-              width: `${arrowSize}px`,
-              height: `${arrowSize}px`,
-              display: "block",
-              margin: "auto",
+              ...arrowButtonStyle,
+              borderTopLeftRadius: "0px",
+              borderTopRightRadius: "0px",
+              borderBottomLeftRadius: `${borderRadiusPx}px`,
+              borderBottomRightRadius: `${borderRadiusPx}px`,
+              boxShadow: "none",
             }}
-          />
-        </button>
-      </div>
+            onMouseEnter={(e) => {
+              Object.assign(e.currentTarget.style, arrowButtonHoverStyle)
+            }}
+            onMouseLeave={(e) => {
+              Object.assign(e.currentTarget.style, {
+                backgroundColor: `rgba(213, 221, 226, ${buttonOpacity})`,
+                borderColor: `rgba(158, 177, 189, ${buttonOpacity})`,
+                color: `rgba(88, 112, 128, ${Math.min(1, buttonOpacity + 0.3)})`,
+              })
+            }}
+          >
+            <ChevronDown
+              style={{
+                width: `${arrowSize}px`,
+                height: `${arrowSize}px`,
+                display: "block",
+                margin: "auto",
+              }}
+            />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -428,6 +428,7 @@ export function usePokemonBattle() {
         activeStarters,
         getSlotForPokemon,
         battlefieldState,
+        currentSession,
     },
     setters: {
         setCurrentView,

@@ -36,7 +36,7 @@ export function AppHeader({
                 : "text-muted-foreground border-transparent hover:text-foreground"
             }`}
           >
-            Équipes
+            Teams Preview
           </button>
           <button
             onClick={() => onViewChange("combat")}
@@ -49,7 +49,7 @@ export function AppHeader({
                   : "text-muted-foreground/50 border-transparent cursor-not-allowed"
             }`}
           >
-            Combat
+            Battle View
           </button>
         </div>
       </div>

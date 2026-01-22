@@ -12,6 +12,7 @@ interface CircularButtonProps {
   iconRatio?: number
   size?: number
   scale?: number
+  readOnly?: boolean
 }
 
 export const CircularButton = ({
@@ -26,6 +27,7 @@ export const CircularButton = ({
   iconRatio = 0.6,
   size = 12,
   scale = 1,
+  readOnly = false,
 }: CircularButtonProps) => {
   // 1. We respect the requested diameter exactly to avoid "oval" distortions.
   let finalDiameter = Math.round(diameter || size * scale * 2)
@@ -98,10 +100,10 @@ export const CircularButton = ({
   if (isHexColor) {
     return (
       <button
-        onClick={onClick}
-        className={`rounded-full transition-colors cursor-pointer border-none outline-none overflow-hidden ${
-          isActive ? "text-white" : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-        }`}
+        onClick={readOnly ? undefined : onClick}
+        className={`rounded-full transition-colors border-none outline-none overflow-hidden ${
+          !readOnly && "cursor-pointer"
+        } ${isActive ? "text-white" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}
         style={{
           ...commonStyles,
           backgroundColor: isActive ? activeColor : undefined,
@@ -115,10 +117,10 @@ export const CircularButton = ({
 
   return (
     <button
-      onClick={onClick}
-      className={`rounded-full transition-colors cursor-pointer border-none outline-none overflow-hidden ${
-        isActive ? getActiveStyles() : getInactiveStyles()
-      }`}
+      onClick={readOnly ? undefined : onClick}
+      className={`rounded-full transition-colors border-none outline-none overflow-hidden ${
+        !readOnly && "cursor-pointer"
+      } ${isActive ? getActiveStyles() : getInactiveStyles()}`}
       style={commonStyles}
       title={title}
     >

@@ -4,7 +4,6 @@ import { Plus, Trash2 } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -50,17 +49,17 @@ export function ActionForm({
   }
 
   return (
-    <Card className="mt-4">
-      <CardHeader>
-        <CardTitle>Ajouter une Branche</CardTitle>
-        {nodes.get(selectedNodeId) && (
-          <Badge variant="outline">
-            Depuis: {nodes.get(selectedNodeId)!.description} (
-            {nodes.get(selectedNodeId)!.cumulativeProbability.toFixed(1)}%)
-          </Badge>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-6">
+      {nodes.get(selectedNodeId) && (
+        <div className="flex items-center gap-2 mb-4">
+           <span className="text-sm text-gray-500">Depuis :</span>
+           <Badge variant="secondary" className="font-medium px-3 py-1">
+             {nodes.get(selectedNodeId)!.description} ({nodes.get(selectedNodeId)!.cumulativeProbability.toFixed(1)}%)
+           </Badge>
+        </div>
+      )}
+      
+      <div className="space-y-6">
         <div>
           <Label htmlFor="action-desc">Description de l'action</Label>
           <Textarea
@@ -139,7 +138,7 @@ export function ActionForm({
         <Button onClick={onAddAction} className="w-full cursor-pointer">
           Ajouter la Branche
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

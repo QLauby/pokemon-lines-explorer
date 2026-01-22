@@ -25,16 +25,18 @@ interface StatusSelectorProps {
       confusionCounter?: number
     },
   ) => void
+  readOnly?: boolean
 }
 
 
-export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorProps) {
+export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false }: StatusSelectorProps) {
   const [showSleepCounter, setShowSleepCounter] = useState(false)
   const [isCounterMounting, setIsCounterMounting] = useState(false)
   const [showConfusionCounter, setShowConfusionCounter] = useState(false)
   const [isConfusionCounterMounting, setIsConfusionCounterMounting] = useState(false)
 
   const handleExclusiveStatusClick = (statusType: PokemonStatus) => {
+    if (readOnly) return;
     let newStatus: PokemonStatus = null
 
     if (statusType === "poison" || statusType === "badly-poison") {
@@ -61,6 +63,7 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
   }
 
   const handleIndependentStatusClick = (statusType: "confusion" | "love") => {
+    if (readOnly) return;
     const newValue = !pokemon[statusType]
     if (statusType === "confusion" && !newValue) {
       setShowConfusionCounter(false)
@@ -156,6 +159,7 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate }: StatusSelectorPr
                   title={title}
                   variant="filled"
                   diameter={buttonDiameter}
+                  readOnly={readOnly}
                 />
 
                 {isActive && (

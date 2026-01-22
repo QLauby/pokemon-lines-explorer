@@ -45,6 +45,7 @@ interface EditableTextProps {
   darkTextColor?: string
   lightTextColor?: string
   transitionDuration?: string
+  readOnly?: boolean
 }
 
 const DEFAULT_TEXT_IF_VOID = "Click to edit ..."
@@ -105,6 +106,7 @@ export function EditableText({
   darkTextColor = DEFAULT_DARK_TEXT_COLOR,
   lightTextColor = DEFAULT_LIGHT_TEXT_COLOR,
   transitionDuration = DEFAULT_TRANSITION_DURATION,
+  readOnly = false,
 }: EditableTextProps) {
   // 1. Hook State
   const [isEditing, setIsEditing] = useState(false)
@@ -146,9 +148,10 @@ export function EditableText({
 
   const verticalSpacePx = Math.max(0, numericHeightPx - numericFontSizePx)
   const verticalPaddingPx = Math.max(0, Math.floor(verticalSpacePx / 2))
-  const baseHorizontalPaddingPx = Math.max(Math.round(verticalPaddingPx * 1.3), 1)
+  // Proportional horizontal padding based on vertical padding
+  const baseHorizontalPaddingPx = Math.max(Math.round(verticalPaddingPx * 1.3), 2)
   const horizontalPaddingPx = rounded
-    ? Math.max(baseHorizontalPaddingPx + Math.round(numericHeightPx * 0.15), 1)
+    ? Math.max(baseHorizontalPaddingPx + Math.round(numericHeightPx * 0.15), 2)
     : baseHorizontalPaddingPx
 
   const borderRadiusPx = rounded ? Math.round(numericHeightPx / 2) : Math.round(numericHeightPx * 0.125)
@@ -169,9 +172,7 @@ export function EditableText({
     width: currentWidth,
   }
 
-  const alignmentStyle: React.CSSProperties = autoWidth
-    ? { textAlign: isEditing && editingValue === "" ? ("left" as const) : ("center" as const) }
-    : { textAlign: textAlign }
+  const alignmentStyle: React.CSSProperties = { textAlign: textAlign }
 
   const shouldAnimate =
     isTransitioning || (hasRendered && (autoWidth || (!autoWidth && editWidth !== undefined && editWidth !== width)))
@@ -223,7 +224,7 @@ export function EditableText({
     measurer.textContent = textToMeasure
     const textWidth = Math.ceil(measurer.getBoundingClientRect().width)
     const finalPaddingPx = horizontalPaddingPx
-    const SAFETY_OFFSET_PX = 4 // Increased safety for subpixel rendering
+    const SAFETY_OFFSET_PX = 4 // Consistent safety offset
     const computedWidth = textWidth + Math.ceil(finalPaddingPx * 2) + SAFETY_OFFSET_PX
     const calculatedWidth = Math.max(Math.ceil(computedWidth), 1)
 
@@ -250,7 +251,9 @@ export function EditableText({
     isInitialMount,
     hasRendered,
     isInDelayedTransition,
-    displayText,
+    displayClassName,
+    fontSize,
+    numericFontSizePx,
     fontWeight,
     mode,
     style,
@@ -369,6 +372,11 @@ export function EditableText({
     }
   }
 
+  const handleStartEditing = () => {
+    if (readOnly) return
+    startEditing()
+  }
+
   const finishEditing = () => {
     const current = editingValue
     let final: string
@@ -445,11 +453,11 @@ export function EditableText({
   const displayStyles = getDisplayStyles()
   const editingStyles = getEditingStyles()
   const currentDisplayStyles = {
-    backgroundColor: isHovered
+    backgroundColor: (isHovered && !readOnly)
       ? displayStyles.hover?.backgroundColor || displayStyles.backgroundColor
       : displayStyles.backgroundColor,
-    color: isHovered ? displayStyles.hover?.color || displayStyles.color : displayStyles.color,
-    border: isHovered ? displayStyles.hover?.border || displayStyles.border : displayStyles.border,
+    color: (isHovered && !readOnly) ? displayStyles.hover?.color || displayStyles.color : displayStyles.color,
+    border: (isHovered && !readOnly) ? displayStyles.hover?.border || displayStyles.border : displayStyles.border,
   }
 
   return (
@@ -457,8 +465,10 @@ export function EditableText({
       ref={displayRef}
       className={cn(
         "inline-flex items-center overflow-hidden box-border",
-        !isEditing && "cursor-pointer",
-        autoWidth && "justify-center",
+        !isEditing && !readOnly && "cursor-pointer",
+        autoWidth && textAlign === "center" && "justify-center",
+        autoWidth && textAlign === "left" && "justify-start",
+        autoWidth && textAlign === "right" && "justify-end",
         !autoWidth && textAlign === "center" && "justify-center",
         !autoWidth && textAlign === "right" && "justify-end",
         !autoWidth && textAlign === "left" && "justify-start",
@@ -479,13 +489,13 @@ export function EditableText({
         position: "relative",
         ...transitionStyle,
       }}
-      onClick={!isEditing ? startEditing : undefined}
+      onClick={!isEditing ? handleStartEditing : undefined}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      role={!isEditing ? "button" : undefined}
-      tabIndex={!isEditing ? 0 : undefined}
+      role={!isEditing && !readOnly ? "button" : undefined}
+      tabIndex={!isEditing && !readOnly ? 0 : undefined}
       onKeyDown={(e) => {
-        if (!isEditing && (e.key === "Enter" || e.key === " ")) startEditing()
+        if (!isEditing && !readOnly && (e.key === "Enter" || e.key === " ")) startEditing()
       }}
     >
       {isEditing ? (
@@ -519,8 +529,12 @@ export function EditableText({
         <span
           className={cn(
             isPlaceholderLook && "text-gray-400 italic",
-            "block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
+            "flex items-center w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap leading-none",
+            textAlign === "center" && "justify-center",
+            textAlign === "left" && "justify-start",
+            textAlign === "right" && "justify-end",
           )}
+          style={{ height: "100%" }}
           title={displayText}
         >
           {displayText}

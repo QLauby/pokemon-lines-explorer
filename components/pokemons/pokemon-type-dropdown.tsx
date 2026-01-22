@@ -41,6 +41,7 @@ interface PokemonTypeDropdownProps {
   buttonClassName?: string
   variant?: "circle" | "tera"
   size?: number
+  readOnly?: boolean
 }
 
 const BadgeContainer = ({
@@ -79,7 +80,7 @@ const BadgeContainer = ({
   )
 }
 
-export function PokemonTypeDropdown({ selectedType, onSelect, includeNull, className, buttonClassName, variant = "circle", size = 20 }: PokemonTypeDropdownProps) {
+export function PokemonTypeDropdown({ selectedType, onSelect, includeNull, className, buttonClassName, variant = "circle", size = 20, readOnly = false }: PokemonTypeDropdownProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
@@ -99,9 +100,11 @@ export function PokemonTypeDropdown({ selectedType, onSelect, includeNull, class
   return (
     <div className={cn("relative inline-block text-left", className)} ref={dropdownRef}>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => { if (!readOnly) setIsOpen(!isOpen) }}
         className={cn(
-          "flex items-center gap-2 rounded-md border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors bg-white min-w-[32px] justify-center",
+          "flex items-center gap-2 rounded-md border border-gray-200 shadow-sm transition-colors bg-white min-w-[32px] justify-center",
+          !readOnly && "hover:bg-gray-50",
+          readOnly && "cursor-default opacity-90",
           buttonClassName || "p-1"
         )}
         type="button"

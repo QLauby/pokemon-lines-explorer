@@ -15,9 +15,10 @@ interface AttackManagerProps {
   pokemon: Pokemon
   onUpdate: (updatedPokemon: Pokemon) => void
   isMyTeam: boolean
+  readOnly?: boolean
 }
 
-export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProps) {
+export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }: AttackManagerProps) {
   const [showAttacks, setShowAttacks] = useState(false)
 
   const getDefaultAttackName = (index: number, isMyTeam: boolean) => {
@@ -29,6 +30,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
   }
 
   const addAttack = () => {
+    if (readOnly) return
     if (pokemon.attacks.length >= 4) return
 
     const newAttack: Attack = {
@@ -162,6 +164,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
                             fontSize={12}
                           />
                         </div>
+                        {!readOnly && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -170,6 +173,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
                         >
                           <Trash2 style={{ width: "12px", height: "12px" }} />
                         </Button>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1 text-xs">
@@ -215,6 +219,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
                             includeNull 
                             buttonClassName="h-4 px-0.5 gap-0.5 rounded-full min-w-[24px]"
                             size={16}
+                            readOnly={readOnly}
                           />
                         </div>
                       </div>
@@ -224,7 +229,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam }: AttackManagerProp
               </div>
             )}
 
-            {pokemon.attacks.length < 4 && (
+            {!readOnly && pokemon.attacks.length < 4 && (
               <Button
                 variant="outline"
                 size="sm"

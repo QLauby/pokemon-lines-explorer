@@ -84,6 +84,8 @@ interface PokemonCardProps {
   onFlagClick: (index: number, isMyTeam: boolean) => void
   getSlotForPokemon: (index: number, isMyTeam: boolean) => number | null
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
+  readOnly?: boolean
+  defaultCollapsed?: boolean
 }
 
 export function PokemonCard({
@@ -107,8 +109,10 @@ export function PokemonCard({
   onFlagClick,
   getSlotForPokemon,
   getDefaultPokemonName,
+  readOnly = false,
+  defaultCollapsed = true,
 }: PokemonCardProps) {
-  const [isCollapsed, setIsCollapsed] = useState(true)
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed)
 
   const handleUpdateCustomTags = (newTags: string[]) => {
     const updatedPokemon: Pokemon = { ...pokemon, customTags: newTags }
@@ -148,11 +152,14 @@ export function PokemonCard({
     const info = getStatusInfo(pokemon.status)
     if (info) activeStatusInfos.push(info)
   }
-  if (pokemon.confusion) {
+  // Volatile statuses are removed when withdrawn (compact mode in battle)
+  const showVolatile = !readOnly || !isCollapsed
+  
+  if (showVolatile && pokemon.confusion) {
     const info = getStatusInfo("confusion")
     if (info) activeStatusInfos.push(info)
   }
-  if (pokemon.love) {
+  if (showVolatile && pokemon.love) {
     const info = getStatusInfo("love")
     if (info) activeStatusInfos.push(info)
   }
@@ -242,6 +249,7 @@ export function PokemonCard({
             variant="filled"
             diameter={15}
             iconRatio={0.8}
+            readOnly={false} // Always interactable for folding/unfolding
           />
         </div>
         {/* Row 1: Name, Status selector (battle), Trash */}
@@ -268,6 +276,7 @@ export function PokemonCard({
               fontSize={14.4}
               fontSizeRatio={0.6}
               className="font-semibold"
+              readOnly={readOnly}
             />
           </div>
           <div className="flex items-center gap-1">
@@ -292,6 +301,7 @@ export function PokemonCard({
                     variant="filled"
                     diameter={20}
                     iconRatio={0.7}
+                    readOnly={readOnly}
                   />
                 ))}
               </div>
@@ -299,8 +309,12 @@ export function PokemonCard({
 
             {teraType && (
               <div
-               className="cursor-pointer transition-transform hover:scale-110 active:scale-95"
-               onClick={() => onToggleTerastallized(pokemon.id, isMyTeam)}
+               className={cn(
+                 "transition-transform",
+                 !readOnly && "cursor-pointer hover:scale-110 active:scale-95",
+                 readOnly && "cursor-default"
+               )}
+               onClick={() => !readOnly && onToggleTerastallized(pokemon.id, isMyTeam)}
                title={pokemon.isTerastallized ? "Teracristallisation active" : "Activer la Teracristallisation"}
               >
                 <div className="relative w-6 h-6 flex items-center justify-center">
@@ -335,6 +349,7 @@ export function PokemonCard({
                 variant="outlined"
                 diameter={24}
                 iconRatio={0.8}
+                readOnly={readOnly}
               />
             )}
 
@@ -348,6 +363,7 @@ export function PokemonCard({
                 variant="outlined"
                 diameter={Math.round(24 * 1)}
                 iconRatio={0.7}
+                readOnly={readOnly}
               />
               {isStarter && (
                 <div className={cn(
@@ -358,13 +374,15 @@ export function PokemonCard({
                 </div>
               )}
             </div>
+            {!readOnly && (
             <Button variant="ghost" size="sm" onClick={() => onRemove(pokemon.id, isMyTeam)} className="cursor-pointer h-8 w-8 p-0 ml-1">
               <Trash2 className="h-4 w-4" />
             </Button>
+            )}
           </div>
         </div>
 
-        {!isCollapsed && (
+         {!isCollapsed && !readOnly && (
           <div className="flex items-center gap-1 flex-wrap min-h-[32px] py-1">
                <span className="text-xs text-gray-600 mr-1">Types :</span>
                <PokemonTypeDropdown 
@@ -409,6 +427,7 @@ export function PokemonCard({
                         width="100%"
                         fontSize={12}
                         fontSizeRatio={0.6}
+                        readOnly={readOnly}
                      />
                  </div>
              </div>
@@ -425,6 +444,7 @@ export function PokemonCard({
                         variant="outlined"
                         diameter={Math.round(24 * 0.9)}
                         iconRatio={pokemon.heldItem && pokemon.heldItemName === "Mega Stone" ? 0.7 : 0.6}
+                        readOnly={readOnly}
                     />
                 </div>
                 {pokemon.heldItem && (
@@ -437,21 +457,22 @@ export function PokemonCard({
                             autoWidth={false}
                             width="100%"
                             fontSize={12}
-                        fontSizeRatio={0.6}
-                         />
+                            fontSizeRatio={0.6}
+                            readOnly={readOnly}
+                          />
                      </div>
                 )}
             </div>
         </div>
 
-        {!isCollapsed && (
+        {!isCollapsed && !readOnly && (
           <div className="py-1">
             <StatusSelector pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateStatus} />
           </div>
         )}
         {!isCollapsed && (
           <div className="py-1">
-            <CustomTagsManager tags={pokemon.customTags || []} onUpdateTags={handleUpdateCustomTags} fontSize={10} />
+            <CustomTagsManager tags={pokemon.customTags || []} onUpdateTags={handleUpdateCustomTags} fontSize={10} readOnly={readOnly} />
           </div>
         )}
         
@@ -464,6 +485,7 @@ export function PokemonCard({
             <StatsModifiersDisplay 
                 modifiers={pokemon.statsModifiers || { att: 0, def: 0, spa: 0, spd: 0, spe: 0, acc: 0, ev: 0, crit: 0 }}
                 onUpdate={handleUpdateStatsModifiers}
+                readOnly={readOnly}
             />
           </div>
         )}
@@ -473,6 +495,7 @@ export function PokemonCard({
               pokemon={pokemon}
               onUpdate={(updatedPokemon) => onUpdatePokemon(updatedPokemon, isMyTeam)}
               isMyTeam={isMyTeam}
+              readOnly={readOnly}
             />
           </div>
         )}

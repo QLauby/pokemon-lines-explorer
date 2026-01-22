@@ -7,6 +7,7 @@ import { Counter } from "../shared/counter";
 interface StatsModifiersDisplayProps {
   modifiers: StatsModifiers;
   onUpdate: (updates: Partial<StatsModifiers>) => void;
+  readOnly?: boolean;
 }
 
 const MODIFIER_CONFIG = [
@@ -20,7 +21,7 @@ const MODIFIER_CONFIG = [
   { label: "Crit", key: "crit", min: 0, max: 4 },
 ] as const;
 
-export function StatsModifiersDisplay({ modifiers, onUpdate }: StatsModifiersDisplayProps) {
+export function StatsModifiersDisplay({ modifiers, onUpdate, readOnly = false }: StatsModifiersDisplayProps) {
   const getModifierColor = (value: number, key: string) => {
     if (value === 0) return "text-gray-400";
     if (key === "crit") return "text-orange-500 font-bold";
@@ -56,6 +57,7 @@ export function StatsModifiersDisplay({ modifiers, onUpdate }: StatsModifiersDis
                 "transition-all duration-300",
                 getModifierColor(value, config.key)
               )}
+              readOnly={readOnly}
             />
           </div>
         );

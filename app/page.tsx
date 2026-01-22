@@ -69,9 +69,9 @@ export default function PokemonNuzlockeLines() {
             onActionProbabilityChange={setters.setActionProbability}
             onHpChangesChange={setters.setHpChanges}
             onAddAction={actions.addAction}
-            getAllPokemon={actions.getAllPokemon}
             myTeam={state.myTeam}
             enemyTeam={state.enemyTeam}
+            currentSession={state.currentSession!}
           />
         )
       )}
