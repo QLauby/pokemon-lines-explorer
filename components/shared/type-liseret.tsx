@@ -1,5 +1,5 @@
 import { PokemonType, pokemonTypeColors } from "@/lib/colors"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/cn"
 
 interface TypeLiseretProps {
   types: (PokemonType | null | undefined)[] | undefined | null

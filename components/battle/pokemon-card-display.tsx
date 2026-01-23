@@ -2,7 +2,7 @@
 "use client"
 
 import { Pokemon } from "@/lib/types"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/cn"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
 import { CircularButton } from "../shared/circular-button"

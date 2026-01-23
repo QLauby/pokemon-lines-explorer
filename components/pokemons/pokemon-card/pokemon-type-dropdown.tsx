@@ -5,7 +5,7 @@ import * as React from "react"
 
 import { StarBadgeIcon } from "@/assets/badges/star-badge"
 import { PokemonType, pokemonTypeColors } from "@/lib/colors"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/cn"
 import Image from "next/image"
 
 import bug from "@/assets/logos/pokemon-types/bug.svg"

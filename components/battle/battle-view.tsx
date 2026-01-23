@@ -1,6 +1,12 @@
 "use client"
 
+import { getCyclicColor } from "@/lib/colors"
+import { TREE_BASE_COLOR } from "@/lib/constants/color-constants"
 import type { CombatSession, Pokemon, TreeNode } from "@/lib/types"
+
+export function getTreeBranchColor(branchIndex: number): string {
+  return getCyclicColor(TREE_BASE_COLOR, 10, "shortList", branchIndex + 1)
+}
 
 import { ActionForm } from "./action-form"
 import { BattleTree } from "./battle-tree"
@@ -16,8 +22,8 @@ interface CombatViewProps {
   onResetBattle: () => void
   onHpChangesChange: (changes: { pokemonId: string; value: number; isHealing: boolean }[]) => void
   onAddAction: () => void
-  onUpdateNode?: (nodeId: string, updates: Partial<TreeNode>) => void
-  onDeleteNode?: (nodeId: string) => void
+  onUpdateNode: (nodeId: string, updates: Partial<TreeNode>) => void
+  onDeleteNode: (nodeId: string) => void
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
   activeStarters: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
@@ -34,6 +40,8 @@ export function CombatView({
   onResetBattle,
   onHpChangesChange,
   onAddAction,
+  onUpdateNode,
+  onDeleteNode,
   myTeam,
   enemyTeam,
   activeStarters,
@@ -44,6 +52,7 @@ export function CombatView({
   const selectedNode = nodes.get(selectedNodeId) || Array.from(nodes.values())[0]
   
   const { battlefieldState } = currentSession.initialState
+  const branchColor = selectedNode ? getTreeBranchColor(selectedNode.branchIndex) : "inherit"
   
   const handleTreeScroll = (direction: "left" | "right") => {
       onScrollChange(direction)
@@ -83,7 +92,7 @@ export function CombatView({
           {/* RIGHT COLUMN: ACTIONS - Grows with content, scrolls with page */}
           <div className="border rounded-xl bg-white shadow-md p-8 ring-1 ring-black/5">
               <h2 className="text-2xl font-bold mb-8 border-b pb-6">
-                Next turn : turn {(selectedNode?.turn || 0) + 1}
+                <span style={{ color: branchColor }}>Turn {(selectedNode?.turn || 0)}</span>
               </h2>
               <div>
                  <ActionForm 
@@ -91,7 +100,9 @@ export function CombatView({
                     nodes={nodes}
                     hpChanges={hpChanges}
                     onHpChangesChange={onHpChangesChange}
-                    onAddAction={onAddAction} 
+                    onAddAction={onAddAction}
+                    onUpdateNode={onUpdateNode}
+                    onDeleteNode={onDeleteNode}
                     activePokemon={[
                       ...(activeStarters?.myTeam || [])
                         .filter((idx): idx is number => idx !== null)

@@ -3,7 +3,9 @@
 import { RotateCcw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { darkenColor, lightenColor } from "@/lib/colors"
 import { TreeNode } from "@/lib/types"
+import { getTreeBranchColor } from "./battle-view"
 
 interface BattleTreeProps {
   nodes: Map<string, TreeNode>
@@ -23,8 +25,6 @@ export function BattleTree({
   onResetBattle,
 }: BattleTreeProps) {
   if (nodes.size === 0) return null
-
-  const branchColors = ["#666666", "#FFD700", "#9932CC", "#FF6347", "#32CD32", "#1E90FF"]
 
   const maxX = Math.max(...Array.from(nodes.values()).map((n) => n.x)) + 100
   const maxY = Math.max(...Array.from(nodes.values()).map((n) => n.y)) + 100
@@ -64,7 +64,7 @@ export function BattleTree({
                 const parent = nodes.get(node.parentId)
                 if (!parent) return null
 
-                const color = branchColors[node.branchIndex % branchColors.length]
+                const color = getTreeBranchColor(node.branchIndex)
 
                 if (node.branchIndex === 0) {
                   return (
@@ -98,7 +98,10 @@ export function BattleTree({
 
             {Array.from(nodes.values()).map((node) => {
               const isSelected = node.id === selectedNodeId
-              const color = branchColors[node.branchIndex % branchColors.length]
+              const branchColor = getTreeBranchColor(node.branchIndex)
+              
+              const activeBg = lightenColor(branchColor, 30)
+              const activeText = darkenColor(branchColor, 40)
 
               return (
                 <div
@@ -107,22 +110,26 @@ export function BattleTree({
                   style={{
                     left: `${node.x - 25}px`,
                     top: `${node.y - 25}px`,
-                  }}
+                    // @ts-ignore
+                    "--node-active-bg": activeBg,
+                    "--node-active-text": activeText,
+                    "--node-branch-color": branchColor,
+                  } as React.CSSProperties}
                 >
                   <Button
-                    variant={isSelected ? "default" : "outline"}
+                    variant="outline"
                     size="sm"
                     className={`
-                      w-10 h-10 rounded-full text-xs font-bold transition-all duration-200 cursor-pointer
-                      ${
-                        isSelected
-                          ? "bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-300 scale-110"
-                          : "bg-white hover:bg-gray-50"
+                      w-10 h-10 rounded-full text-xs font-extrabold transition-all duration-200 cursor-pointer
+                      flex items-center justify-center p-0
+                      border-[2.5px] border-[var(--node-branch-color)]
+                      ${isSelected 
+                        ? "bg-[var(--node-active-bg)] text-[var(--node-active-text)] scale-110 shadow-lg" 
+                        : "bg-white text-[var(--node-branch-color)] hover:bg-[var(--node-active-bg)] hover:text-[var(--node-active-text)]"
                       }
                     `}
                     style={{
-                      borderColor: isSelected ? "#1d4ed8" : color,
-                      borderWidth: "2px",
+                      boxShadow: isSelected ? `0 0 12px ${branchColor}44` : "none",
                     }}
                     onClick={() => onSelectedNodeChange(node.id)}
                   >
@@ -130,7 +137,7 @@ export function BattleTree({
                   </Button>
 
                   {node.id !== "root" && (
-                    <div className="absolute text-xs font-semibold text-center w-10 mt-1" style={{ color }}>
+                    <div className="absolute text-[10px] font-bold text-center w-10 mt-1" style={{ color: branchColor }}>
                       {node.probability}%
                     </div>
                   )}

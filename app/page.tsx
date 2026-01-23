@@ -68,6 +68,8 @@ export default function PokemonNuzlockeLines() {
             onResetBattle={actions.resetBattle}
             onHpChangesChange={setters.setHpChanges}
             onAddAction={actions.addAction}
+            onUpdateNode={actions.updateNode}
+            onDeleteNode={actions.deleteNode}
             myTeam={state.myTeam}
             enemyTeam={state.enemyTeam}
             activeStarters={state.activeStarters}

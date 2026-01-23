@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { Minus, Plus } from "lucide-react"
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/cn"
 import { CircularButton } from "./circular-button"
 import { Counter } from "./counter"
 import { EditableText } from "./editable-text"

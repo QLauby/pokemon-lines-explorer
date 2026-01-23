@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PokemonType, pokemonTypeColors } from "@/lib/colors";
 import { POKEMON_LOGOS } from "@/lib/logos";
 import { Pokemon } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 import { ChevronDown, ChevronUp, Minus, Plus, Swords, Trash2 } from "lucide-react";
 import Image from "next/image";
 

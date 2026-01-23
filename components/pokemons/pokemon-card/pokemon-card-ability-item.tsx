@@ -1,7 +1,7 @@
 import { CircularButton } from "@/components/shared/circular-button";
 import { EditableText } from "@/components/shared/editable-text";
 import { Pokemon } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 import { ShoppingBag } from "lucide-react";
 import { MegaColoredIcon } from "./pokemon-card-header";
 

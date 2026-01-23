@@ -1,6 +1,7 @@
 import { BattleDelta, BattleState, Pokemon, TreeNode } from "@/lib/types"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { BattleEngine } from "../logic/battle-engine"
+import { showSuccessToast } from "../utils/toasts/toast-handler"
 import { useBattleStorage } from "./use-battle-storage"
 
 const VERTICAL_SPACING = 45
@@ -433,6 +434,86 @@ export function usePokemonBattle() {
     // Cleanup
     setSelectedNodeId(nodeId)
     setHpChangesInputs([])
+
+    // Success Toast
+    const isNewBranch = childIndex > 0
+    showSuccessToast(
+        `Tour ${newTurn} créé`,
+        isNewBranch ? "Une nouvelle branche a été créée." : undefined
+    )
+  }
+
+  const updateNode = (nodeId: string, updates: Partial<TreeNode>) => {
+    if (!currentSession) return
+
+    const updatedNodes = currentSession.nodes.map(node => 
+        node.id === nodeId ? { ...node, ...updates } : node
+    )
+    
+    saveSession({ ...currentSession, nodes: updatedNodes })
+  }
+
+  const deleteNode = (nodeId: string) => {
+    if (!currentSession) return
+
+    // 1. Find all descendants
+    const nodesMap = new Map(currentSession.nodes.map(n => [n.id, n]))
+    const nodesToDelete = new Set<string>()
+    
+    // Recursive helper
+    const markDescendants = (id: string) => {
+        nodesToDelete.add(id)
+        const node = nodesMap.get(id)
+        if (node && node.children) {
+            node.children.forEach(childId => markDescendants(childId))
+        }
+    }
+    
+    // Start marking from the target node
+    if (nodesMap.has(nodeId)) {
+        markDescendants(nodeId)
+    }
+
+    // 2. Filter out deleted nodes
+    const remainingNodes = currentSession.nodes.filter(n => !nodesToDelete.has(n.id))
+
+    // 3. Remove reference from parent
+    const targetNode = nodesMap.get(nodeId)
+    let finalNodes = remainingNodes
+    if (targetNode && targetNode.parentId) {
+        finalNodes = remainingNodes.map(n => {
+            if (n.id === targetNode.parentId) {
+                return {
+                    ...n,
+                    children: n.children.filter(childId => childId !== nodeId)
+                }
+            }
+            return n
+        })
+    }
+    
+    // 4. Update Selection (Select Parent or Root)
+    // If the deleted node was selected (or one of its children), we must move selection
+    // But usually the user deletes FROM the current selection, so we move to parent
+    let nextSelectedId = selectedNodeId
+    if (nodesToDelete.has(selectedNodeId)) {
+        nextSelectedId = targetNode?.parentId || "root"
+    }
+
+    // 5. Recalculate Layout (Since branches might have shifted/removed)
+    // For now, simple removal is okay, layout recalculation might be needed if holes appear
+    // but our simple layout strategy usually appends. Re-running layout logic is safer.
+    const reLayoutedNodes = recalculateTreeLayout(finalNodes)
+
+    // Save
+    saveSession({ 
+        ...currentSession, 
+        nodes: reLayoutedNodes,
+        lastSelectedNodeId: nextSelectedId 
+    })
+    setSelectedNodeId(nextSelectedId)
+    
+    showSuccessToast("Tours supprimés", `${nodesToDelete.size} tours ont été supprimés.`)
   }
 
   const resetBattle = () => {
@@ -510,6 +591,8 @@ export function usePokemonBattle() {
         cancelEditing,
         initializeBattle,
         addAction,
+        updateNode,
+        deleteNode,
         getAllPokemon,
         handleScroll,
         resetBattle,

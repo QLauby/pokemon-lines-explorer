@@ -1,7 +1,7 @@
 "use client"
 
 import { BattlefieldState, Pokemon, TreeNode } from "@/lib/types"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils/cn"
 import { CustomTagsManager } from "../shared/custom-tags-manager"
 import { PokemonCardDisplay } from "./pokemon-card-display"
 

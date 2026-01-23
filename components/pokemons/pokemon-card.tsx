@@ -1,6 +1,6 @@
 "use client"
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 import { useState } from "react";
 
 import { CustomTagsManager } from "@/components/shared/custom-tags-manager";
