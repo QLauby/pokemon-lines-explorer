@@ -61,10 +61,8 @@ export default function PokemonNuzlockeLines() {
           <CombatView
             nodes={state.nodes}
             selectedNodeId={state.selectedNodeId}
-            scrollX={state.scrollX}
             hpChanges={state.hpChanges}
             onSelectedNodeChange={setters.setSelectedNodeId}
-            onScrollChange={actions.handleScroll}
             onResetBattle={actions.resetBattle}
             onHpChangesChange={setters.setHpChanges}
             onAddAction={actions.addAction}

@@ -15,10 +15,8 @@ import { CurrentState } from "./current-state"
 interface CombatViewProps {
   nodes: Map<string, TreeNode>
   selectedNodeId: string
-  scrollX: number
   hpChanges: { pokemonId: string; value: number; isHealing: boolean }[]
   onSelectedNodeChange: (nodeId: string) => void
-  onScrollChange: (direction: "left" | "right") => void
   onResetBattle: () => void
   onHpChangesChange: (changes: { pokemonId: string; value: number; isHealing: boolean }[]) => void
   onAddAction: () => void
@@ -33,10 +31,8 @@ interface CombatViewProps {
 export function CombatView({
   nodes,
   selectedNodeId,
-  scrollX,
   hpChanges,
   onSelectedNodeChange,
-  onScrollChange,
   onResetBattle,
   onHpChangesChange,
   onAddAction,
@@ -54,10 +50,6 @@ export function CombatView({
   const { battlefieldState } = currentSession.initialState
   const branchColor = selectedNode ? getTreeBranchColor(selectedNode.branchIndex) : "inherit"
   
-  const handleTreeScroll = (direction: "left" | "right") => {
-      onScrollChange(direction)
-  }
-
   return (
     <div className="w-full p-2 bg-gray-50/50 min-h-screen">
        {/* Main Grid: Left (Tree + Battle) | Right (Actions) */}
@@ -66,13 +58,11 @@ export function CombatView({
           {/* LEFT COLUMN: VISUALIZATION */}
           <div className="flex flex-col gap-4 min-w-0 w-full">
               {/* Top: Tree - Constrain height so the visualization stays stable */}
-              <div className="h-[225px] border rounded-xl bg-white shadow-md overflow-hidden ring-1 ring-black/5">
+              <div className="h-[340px] border rounded-xl bg-white shadow-md overflow-hidden ring-1 ring-black/5">
                   <BattleTree
                     nodes={nodes}
                     selectedNodeId={selectedNodeId}
                     onSelectedNodeChange={onSelectedNodeChange}
-                    scrollX={scrollX}
-                    onScrollChange={handleTreeScroll}
                     onResetBattle={onResetBattle}
                   />
               </div>

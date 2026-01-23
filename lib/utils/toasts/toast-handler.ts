@@ -12,6 +12,7 @@ export function showErrorToast(error: unknown, fallbackTitle = "Une erreur est s
 
   toast({
     variant: "destructive",
+    className: "bg-red-50 border-red-200 text-red-900 shadow-sm",
     title: fallbackTitle,
     description: description,
     duration: 5000,

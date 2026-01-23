@@ -31,7 +31,8 @@ export function DeleteFromCurrentTurn({
     return list.sort((a, b) => a.turn - b.turn)
   }
   
-  const affectedNodes = getSubtree(selectedNodeId)
+  const allAffectedNodes = getSubtree(selectedNodeId)
+  const affectedNodes = allAffectedNodes.filter(n => n.turn !== 0)
   const mainNode = nodes.get(selectedNodeId)
 
   if (!mainNode) return <div>No turn selected</div>
@@ -41,8 +42,11 @@ export function DeleteFromCurrentTurn({
       <div className="bg-red-50 border border-red-100 rounded-lg p-4 text-sm text-red-800">
         <p className="font-semibold mb-1">Attention Required</p>
         <p>
-          Deleting this turn will also remove <strong>{affectedNodes.length - 1}</strong> subsequent turns that branch from it.
-          This action cannot be undone.
+          {mainNode.turn === 0 
+            ? `Deleting from root will remove all ${affectedNodes.length} turns in this session. The initial state (Turn 0) will be preserved.`
+            : `Deleting this turn will also remove ${Math.max(0, affectedNodes.length - 1)} subsequent turns that branch from it.`
+          }
+          {" "}This action cannot be undone.
         </p>
       </div>
       
@@ -92,9 +96,9 @@ export function DeleteFromCurrentTurn({
 
       <div className="pt-2">
         <Button 
-            variant="destructive" 
-            className="w-full"
+            className="w-full bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-200 border disabled:opacity-50"
             onClick={() => setIsDialogOpen(true)}
+            disabled={affectedNodes.length === 0}
         >
             Delete {affectedNodes.length} Turns
         </Button>
@@ -108,7 +112,12 @@ export function DeleteFromCurrentTurn({
             setIsDialogOpen(false)
         }}
         title="Confirm Deletion"
-        description={`Are you sure you want to delete turn ${mainNode.turn} and all ${affectedNodes.length - 1} following turns? This will permanently remove them from the battle tree.`}
+        description={mainNode.turn === 0 
+            ? `Voulez-vous vraiment supprimer TOUS les tours (${affectedNodes.length}) de cette session ? Le tour 0 sera conservé mais vidé de son contenu.`
+            : affectedNodes.length > 1 
+                ? `Are you sure you want to delete turn ${mainNode.turn} and all ${affectedNodes.length - 1} following turns?`
+                : `Are you sure you want to delete turn ${mainNode.turn}?`
+        }
       />
     </div>
   )

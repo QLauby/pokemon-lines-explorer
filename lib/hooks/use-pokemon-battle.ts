@@ -1,6 +1,7 @@
 import { BattleDelta, BattleState, Pokemon, TreeNode } from "@/lib/types"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { BattleEngine } from "../logic/battle-engine"
+import { recalculateTreeLayout } from "../logic/tree-layout"
 import { showSuccessToast } from "../utils/toasts/toast-handler"
 import { useBattleStorage } from "./use-battle-storage"
 
@@ -13,7 +14,6 @@ export function usePokemonBattle() {
   const [currentView, setCurrentView] = useState<"teams" | "combat">("teams")
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string>("")
-  const [scrollX, setScrollX] = useState(0)
 
   // Forms State
   const [newMyPokemonName, setNewMyPokemonName] = useState("")
@@ -329,8 +329,8 @@ export function usePokemonBattle() {
             createdAt: Date.now(),
             turn: 0,
             branchIndex: 0,
-            x: 45,
-            y: 45
+            x: 32,
+            y: 32
         }
         saveSession({ ...currentSession, nodes: [rootNode] })
         setSelectedNodeId("root")
@@ -341,25 +341,8 @@ export function usePokemonBattle() {
   }
 
   // Helper to re-calculate Tree Layout (x, y)
-  // This needs to be adapted to work with the flattened array
-  const recalculateTreeLayout = (nodes: TreeNode[]): TreeNode[] => {
-
-      const nodesMap = new Map(nodes.map(n => [n.id, n]));
-       
-      const branchMap = new Map<number, number>();
-      const uniqueBranches = nodes.filter(n => n.branchIndex !== 0);
-      const uniqueBranchIndices = Array.from(new Set(uniqueBranches.map(n => n.branchIndex)));
-      
-      // Sort branches logic here if needed...
-      uniqueBranchIndices.forEach((idx, i) => branchMap.set(idx, i + 1));
-
-      // Update Y positions
-      const updated = nodes.map(node => {
-          const yPos = node.branchIndex === 0 ? 45 : 45 + (branchMap.get(node.branchIndex) || 0) * VERTICAL_SPACING;
-          return { ...node, y: yPos };
-      });
-      return updated;
-  }
+  // Replaced with external logic
+  const performLayout = (nodes: TreeNode[]) => recalculateTreeLayout(nodes)
 
   const addAction = () => {
     if (!selectedNodeId || !currentSession) return
@@ -386,8 +369,8 @@ export function usePokemonBattle() {
     
     // Logic for Position (simplified from original)
     const newTurn = parentNode.turn + 1
-    const HORIZONTAL_SPACING = 70
-    const x = 45 + newTurn * HORIZONTAL_SPACING
+    const HORIZONTAL_SPACING = 50
+    const x = 32 + newTurn * HORIZONTAL_SPACING
     
     // Branch logic
     const childIndex = parentNode.children.length
@@ -426,7 +409,7 @@ export function usePokemonBattle() {
     newNodesList.push(newNode)
     
     // Recalculate Layout
-    newNodesList = recalculateTreeLayout(newNodesList)
+    newNodesList = performLayout(newNodesList)
     
     // Save
     saveSession({ ...currentSession, nodes: newNodesList })
@@ -456,31 +439,38 @@ export function usePokemonBattle() {
   const deleteNode = (nodeId: string) => {
     if (!currentSession) return
 
-    // 1. Find all descendants
     const nodesMap = new Map(currentSession.nodes.map(n => [n.id, n]))
+    const targetNode = nodesMap.get(nodeId)
+    if (!targetNode) return
+
     const nodesToDelete = new Set<string>()
     
-    // Recursive helper
+    // Recursive helper to mark descendants
     const markDescendants = (id: string) => {
-        nodesToDelete.add(id)
         const node = nodesMap.get(id)
-        if (node && node.children) {
+        if (!node) return
+        
+        // Add to delete list UNLESS it's turn 0 (Root)
+        if (node.turn !== 0) {
+            nodesToDelete.add(id)
+        }
+        
+        if (node.children) {
             node.children.forEach(childId => markDescendants(childId))
         }
     }
     
-    // Start marking from the target node
-    if (nodesMap.has(nodeId)) {
-        markDescendants(nodeId)
-    }
+    // Start marking
+    markDescendants(nodeId)
+
+    if (nodesToDelete.size === 0) return
 
     // 2. Filter out deleted nodes
     const remainingNodes = currentSession.nodes.filter(n => !nodesToDelete.has(n.id))
 
-    // 3. Remove reference from parent
-    const targetNode = nodesMap.get(nodeId)
+    // 3. Remove reference from parent OR clear root children
     let finalNodes = remainingNodes
-    if (targetNode && targetNode.parentId) {
+    if (targetNode.parentId) {
         finalNodes = remainingNodes.map(n => {
             if (n.id === targetNode.parentId) {
                 return {
@@ -490,19 +480,23 @@ export function usePokemonBattle() {
             }
             return n
         })
+    } else if (targetNode.turn === 0) {
+        // We targeted root: clear its children but keep the node
+        finalNodes = remainingNodes.map(n => 
+            n.id === targetNode.id ? { ...n, children: [] } : n
+        )
     }
     
     // 4. Update Selection (Select Parent or Root)
-    // If the deleted node was selected (or one of its children), we must move selection
-    // But usually the user deletes FROM the current selection, so we move to parent
     let nextSelectedId = selectedNodeId
     if (nodesToDelete.has(selectedNodeId)) {
-        nextSelectedId = targetNode?.parentId || "root"
+        nextSelectedId = targetNode.parentId || "root"
+    } else if (targetNode.turn === 0) {
+        // If we "cleared" from root, keep root selected
+        nextSelectedId = targetNode.id
     }
 
     // 5. Recalculate Layout (Since branches might have shifted/removed)
-    // For now, simple removal is okay, layout recalculation might be needed if holes appear
-    // but our simple layout strategy usually appends. Re-running layout logic is safer.
     const reLayoutedNodes = recalculateTreeLayout(finalNodes)
 
     // Save
@@ -525,12 +519,6 @@ export function usePokemonBattle() {
   }
   
   const resetBattleIfNeeded = () => {
-  }
-
-  // --- View Helpers ---
-  const handleScroll = (direction: "left" | "right") => {
-    const scrollAmount = 70
-    setScrollX(prev => direction === "left" ? Math.max(0, prev - scrollAmount) : prev + scrollAmount)
   }
 
   const getAllPokemon = () => [...myTeam, ...enemyTeam]
@@ -560,7 +548,6 @@ export function usePokemonBattle() {
         nodes: new Map((currentSession?.nodes || []).map(n => [n.id, n])), // BattleView expects Map
         selectedNodeId,
         battleStarted: (currentSession?.nodes.length || 0) > 0,
-        scrollX,
         newMyPokemonName,
         newOpponentPokemonName,
         hpChanges: hpChangesInputs,
@@ -594,7 +581,6 @@ export function usePokemonBattle() {
         updateNode,
         deleteNode,
         getAllPokemon,
-        handleScroll,
         resetBattle,
         resetBattleIfNeeded,
         getTeamCounterDisplay,
