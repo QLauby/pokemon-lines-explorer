@@ -1,21 +1,24 @@
 import DeletionDialog from "@/components/shared/deletion-dialog"
 import { Button } from "@/components/ui/button"
+import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
 import { TreeNode } from "@/lib/types"
-import { useState } from "react"
-import { getTreeBranchColor } from "../battle-view"
+import { useEffect, useState } from "react"
 
 interface DeleteFromCurrentTurnProps {
   selectedNodeId: string
   nodes: Map<string, TreeNode>
   onDeleteNode: (nodeId: string) => void
+  onHighlightNodes: (ids: string[]) => void
 }
 
 export function DeleteFromCurrentTurn({
   selectedNodeId,
   nodes,
   onDeleteNode,
+  onHighlightNodes,
 }: DeleteFromCurrentTurnProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const { isCorrupted } = useCorruptionHandler()
   
   // Calculate affected nodes (subtree)
   const getSubtree = (nodeId: string): TreeNode[] => {
@@ -35,6 +38,14 @@ export function DeleteFromCurrentTurn({
   const affectedNodes = allAffectedNodes.filter(n => n.turn !== 0)
   const mainNode = nodes.get(selectedNodeId)
 
+  // Highlight effect
+  useEffect(() => {
+    if (mainNode) {
+        onHighlightNodes(affectedNodes.map(n => n.id))
+    }
+    return () => onHighlightNodes([])
+  }, [selectedNodeId, nodes, onHighlightNodes]) // Re-run when selection or tree changes
+
   if (!mainNode) return <div>No turn selected</div>
 
   return (
@@ -48,57 +59,23 @@ export function DeleteFromCurrentTurn({
           }
           {" "}This action cannot be undone.
         </p>
+        <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-red-600/80">
+            See highlighted turns in the tree
+        </p>
       </div>
       
-      <div className="border rounded-md overflow-hidden bg-white">
-        <div className="bg-gray-50 px-4 py-2 border-b text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Turns to be deleted
-        </div>
-        <div className="max-h-[300px] overflow-y-auto">
-            {Object.entries(
-                affectedNodes.reduce((acc, node) => {
-                    const branch = node.branchIndex
-                    if (!acc[branch]) acc[branch] = []
-                    acc[branch].push(node)
-                    return acc
-                }, {} as Record<number, TreeNode[]>)
-            ).sort(([a], [b]) => Number(a) - Number(b)).map(([branchIndex, branchNodes]) => {
-                const branchColor = getTreeBranchColor(Number(branchIndex))
-                return (
-                    <div key={branchIndex} className="border-b last:border-b-0">
-                         <div 
-                            className="bg-gray-50/50 px-4 py-1.5 text-xs font-bold uppercase tracking-wider flex items-center gap-2"
-                            style={{ color: branchColor, backgroundColor: `${branchColor}10` }}
-                         >
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: branchColor }} />
-                            Branch {branchIndex}
-                         </div>
-                         <div className="divide-y">
-                            {branchNodes.map(node => (
-                                <div key={node.id} className="px-4 py-3 text-sm flex items-center justify-between hover:bg-gray-50">
-                                    <div className="flex items-center gap-3">
-                                        <div 
-                                            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0"
-                                            style={{ backgroundColor: branchColor }}
-                                        >
-                                            {node.turn}
-                                        </div>
-                                        <span className="font-medium text-gray-700">Turn {node.turn}</span>
-                                    </div>
-                                </div>
-                            ))}
-                         </div>
-                    </div>
-                )
-            })}
-        </div>
-      </div>
+      {/* Removed textual list as requested */}
 
       <div className="pt-2">
+        {isCorrupted && (
+          <p className="text-sm text-red-600 mb-2 font-medium">
+             Cannot delete turns while collision is detected. Please resolve corruption first.
+          </p>
+        )}
         <Button 
             className="w-full bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-200 border disabled:opacity-50"
             onClick={() => setIsDialogOpen(true)}
-            disabled={affectedNodes.length === 0}
+            disabled={affectedNodes.length === 0 || isCorrupted}
         >
             Delete {affectedNodes.length} Turns
         </Button>

@@ -13,6 +13,9 @@ interface TurnsResolverProps {
   onUpdateNode: (nodeId: string, updates: Partial<TreeNode>) => void
   onDeleteNode: (nodeId: string) => void
   activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
+  onHighlightNodes: (ids: string[]) => void
+  onPreviewChange?: (data: TurnData | null) => void
+  previewBranchIndex?: number | null
 }
 
 type Tab = "update" | "delete" | "next"
@@ -24,6 +27,9 @@ export function TurnsResolver({
   activePokemon,
   onUpdateNode,
   onDeleteNode,
+  onHighlightNodes,
+  onPreviewChange,
+  previewBranchIndex,
 }: TurnsResolverProps) {
   const [activeTab, setActiveTab] = useState<Tab>("next")
   const selectedNode = nodes.get(selectedNodeId)
@@ -33,8 +39,12 @@ export function TurnsResolver({
   const currentBranchColor = selectedNode ? getTreeBranchColor(selectedNode.branchIndex) : "inherit"
   
   // Next branch color calculation
+  // Priority: 1. Explicit preview index (from layout engine), 2. Local estimation
   let nextBranchIndex = selectedNode?.branchIndex || 0
-  if (selectedNode && selectedNode.children.length > 0) {
+  
+  if (previewBranchIndex !== undefined && previewBranchIndex !== null) {
+      nextBranchIndex = previewBranchIndex
+  } else if (selectedNode && selectedNode.children.length > 0) {
     const usedBranches = new Set(Array.from(nodes.values()).map(n => n.branchIndex))
     let newBranch = 1
     while (usedBranches.has(newBranch)) newBranch++
@@ -88,6 +98,7 @@ export function TurnsResolver({
               selectedNodeId={selectedNodeId}
               nodes={nodes}
               onDeleteNode={onDeleteNode}
+              onHighlightNodes={onHighlightNodes}
             />
          )}
          {activeTab === "next" && (
@@ -96,6 +107,7 @@ export function TurnsResolver({
                 nodes={nodes}
                 onAddAction={onAddAction}
                 activePokemon={activePokemon}
+                onChange={onPreviewChange}
             />
          )}
       </div>

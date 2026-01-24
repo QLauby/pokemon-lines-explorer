@@ -15,6 +15,8 @@ interface TurnEditorProps {
   activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
   onSave: (data: TurnData) => void
   saveLabel: string
+  readOnly?: boolean
+  onChange?: (data: TurnData) => void
 }
 
 export function TurnEditor({
@@ -22,9 +24,21 @@ export function TurnEditor({
   activePokemon,
   onSave,
   saveLabel,
+  readOnly = false,
+  onChange,
 }: TurnEditorProps) {
   const [actions, setActions] = useState<TurnAction[]>([])
   const [endOfTurnDeltas, setEndOfTurnDeltas] = useState<BattleDelta[]>([])
+
+  // Notify parent of changes
+  useEffect(() => {
+    if (onChange) {
+        onChange({
+            actions,
+            endOfTurnDeltas
+        })
+    }
+  }, [actions, endOfTurnDeltas, onChange])
 
   // Initialize actions based on active pokemon or initial data
   useEffect(() => {
@@ -49,6 +63,7 @@ export function TurnEditor({
   }, [initialTurnData, activePokemon])
 
   const moveAction = (index: number, direction: "up" | "down") => {
+    if (readOnly) return
     if (direction === "up" && index === 0) return
     if (direction === "down" && index === actions.length - 1) return
 
@@ -61,6 +76,7 @@ export function TurnEditor({
   }
 
   const updateActionType = (index: number, type: TurnActionType) => {
+    if (readOnly) return
     const newActions = [...actions]
     newActions[index] = { ...newActions[index], type }
     setActions(newActions)
@@ -74,6 +90,7 @@ export function TurnEditor({
 
   // HP Changes Logic for Actions
   const addHpChangeToAction = (actionIndex: number) => {
+    if (readOnly) return
     const newActions = [...actions]
     const action = newActions[actionIndex]
     // Default to actor if possible, or empty
@@ -91,6 +108,7 @@ export function TurnEditor({
     field: "pokemonId" | "value" | "isHealing",
     value: string | number | boolean
   ) => {
+    if (readOnly) return
     const newActions = [...actions]
     const action = newActions[actionIndex]
     const hpChange = { ...action.hpChanges[hpIndex] }
@@ -108,6 +126,7 @@ export function TurnEditor({
   }
 
   const removeActionHpChange = (actionIndex: number, hpIndex: number) => {
+    if (readOnly) return
     const newActions = [...actions]
     newActions[actionIndex].hpChanges = newActions[actionIndex].hpChanges.filter(
       (_, i) => i !== hpIndex
@@ -117,6 +136,7 @@ export function TurnEditor({
 
   // End of Turn Logic
   const addEndOfTurnDelta = () => {
+    if (readOnly) return
     setEndOfTurnDeltas([
       ...endOfTurnDeltas,
       { type: "HP_RELATIVE", targetId: "", amount: 0 },
@@ -128,6 +148,7 @@ export function TurnEditor({
     field: "pokemonId" | "value" | "isHealing",
     value: string | number | boolean
   ) => {
+    if (readOnly) return
     const newDeltas = [...endOfTurnDeltas]
     const delta = { ...newDeltas[index] }
 
@@ -144,6 +165,7 @@ export function TurnEditor({
   }
 
   const removeEndOfTurnDelta = (index: number) => {
+    if (readOnly) return
     setEndOfTurnDeltas(endOfTurnDeltas.filter((_, i) => i !== index))
   }
 
@@ -162,7 +184,7 @@ export function TurnEditor({
   const getActionColor = (isAlly: boolean) => (isAlly ? "bg-blue-50 border-blue-200" : "bg-red-50 border-red-200")
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${readOnly ? 'opacity-80 pointer-events-none' : ''}`}>
       <div className="space-y-2">
         {actions.map((action, index) => (
           <PokemonAction
@@ -172,12 +194,13 @@ export function TurnEditor({
             totalActions={actions.length}
             actor={activePokemon.find((p) => p.pokemon.id === action.actorId)}
             activePokemon={activePokemon}
-            onMove={(direction: "up" | "down") => moveAction(index, direction)}
-            onToggleCollapse={() => toggleActionCollapse(index)}
-            onUpdateType={(type: TurnActionType) => updateActionType(index, type)}
-            onAddHpChange={() => addHpChangeToAction(index)}
-            onUpdateHpChange={(hpIndex: number, field: "pokemonId" | "value" | "isHealing", value: string | number | boolean) => updateActionHpChange(index, hpIndex, field, value)}
-            onRemoveHpChange={(hpIndex: number) => removeActionHpChange(index, hpIndex)}
+            // Even if we use global pointer-events-none, explicit disabling is good practice
+            onMove={(direction) => !readOnly && moveAction(index, direction)}
+            onToggleCollapse={() => toggleActionCollapse(index)} // Collapse works even in read-only? No wait, pointer-events-none blocks it
+            onUpdateType={(type) => !readOnly && updateActionType(index, type)}
+            onAddHpChange={() => !readOnly && addHpChangeToAction(index)}
+            onUpdateHpChange={(hpIndex, field, value) => !readOnly && updateActionHpChange(index, hpIndex, field, value)}
+            onRemoveHpChange={(hpIndex) => !readOnly && removeActionHpChange(index, hpIndex)}
           />
         ))}
       </div>
@@ -185,10 +208,12 @@ export function TurnEditor({
       <div className="border-t pt-4">
           <div className="flex items-center justify-between mb-4">
             <Label className="text-base font-semibold">End of Turn Effects</Label>
-             <Button variant="outline" size="sm" onClick={addEndOfTurnDelta}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Effect
-             </Button>
+             {!readOnly && (
+               <Button variant="outline" size="sm" onClick={addEndOfTurnDelta}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Effect
+               </Button>
+             )}
           </div>
           
           <div className="space-y-2">
@@ -201,8 +226,8 @@ export function TurnEditor({
                         value={Math.abs(delta.amount)}
                         isHealing={delta.amount > 0}
                         activePokemon={activePokemon}
-                        onUpdate={(field, value) => updateEndOfTurnDelta(index, field, value)}
-                        onRemove={() => removeEndOfTurnDelta(index)}
+                        onUpdate={(field, value) => !readOnly && updateEndOfTurnDelta(index, field, value)}
+                        onRemove={() => !readOnly && removeEndOfTurnDelta(index)}
                     />
                  )
              })}
@@ -214,7 +239,7 @@ export function TurnEditor({
           </div>
       </div>
 
-      <Button onClick={handleSave} className="w-full h-12 text-lg font-bold shadow-md">
+      <Button onClick={handleSave} className="w-full h-12 text-lg font-bold shadow-md" disabled={readOnly}>
         {saveLabel}
       </Button>
     </div>

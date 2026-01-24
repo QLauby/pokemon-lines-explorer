@@ -115,6 +115,7 @@ export function usePokemonBattle() {
         updatePlayerSideTags: teamManager.updatePlayerSideTags,
         updateOpponentSideTags: teamManager.updateOpponentSideTags,
         togglePokemonExpansion: teamManager.togglePokemonExpansion,
+        overwriteSession: saveSession
     }
   }
 }

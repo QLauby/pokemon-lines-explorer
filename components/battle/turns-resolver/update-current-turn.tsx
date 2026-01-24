@@ -12,6 +12,8 @@ interface UpdateCurrentTurnProps {
   onUpdateNode: (nodeId: string, updates: Partial<TreeNode>) => void
 }
 
+import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
+
 export function UpdateCurrentTurn({
   selectedNodeId,
   nodes,
@@ -19,6 +21,7 @@ export function UpdateCurrentTurn({
   onUpdateNode,
 }: UpdateCurrentTurnProps) {
   const selectedNode = nodes.get(selectedNodeId)
+  const { isCorrupted } = useCorruptionHandler()
   
   const handleSave = (turnData: TurnData) => {
     if (!selectedNode) return
@@ -34,7 +37,8 @@ export function UpdateCurrentTurn({
       initialTurnData={selectedNode.turnData}
       activePokemon={activePokemon}
       onSave={handleSave}
-      saveLabel="Update turn"
+      saveLabel={isCorrupted ? "Locked due to corruption" : "Update turn"}
+      readOnly={isCorrupted}
     />
   )
 }

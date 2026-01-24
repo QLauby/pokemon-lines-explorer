@@ -7,6 +7,7 @@ interface AppHeaderProps {
   onViewChange: (view: "teams" | "combat") => void
   onBattleTypeChange: (type: "simple" | "double") => void
   onResetBattle: () => void
+  navigationDisabled?: boolean
 }
 
 export function AppHeader({
@@ -16,6 +17,7 @@ export function AppHeader({
   onViewChange,
   onBattleTypeChange,
   onResetBattle,
+  navigationDisabled = false,
 }: AppHeaderProps) {
   return (
     <>
@@ -29,22 +31,25 @@ export function AppHeader({
       <div className="border-b border-border mb-6">
         <div className="flex gap-6 pb-1">
           <button
-            onClick={() => onViewChange("teams")}
-            className={`text-sm font-medium pb-1 border-b-2 transition-colors cursor-pointer ${
+            onClick={() => !navigationDisabled && onViewChange("teams")}
+            disabled={navigationDisabled}
+            className={`text-sm font-medium pb-1 border-b-2 transition-colors ${
               currentView === "teams"
-                ? "text-foreground border-foreground"
-                : "text-muted-foreground border-transparent hover:text-foreground"
+                ? "text-foreground border-foreground cursor-pointer"
+                : navigationDisabled 
+                    ? "text-muted-foreground/50 border-transparent cursor-not-allowed" 
+                    : "text-muted-foreground border-transparent hover:text-foreground cursor-pointer"
             }`}
           >
             Teams Preview
           </button>
           <button
-            onClick={() => onViewChange("combat")}
-            disabled={!battleStarted}
+            onClick={() => !navigationDisabled && onViewChange("combat")}
+            disabled={!battleStarted || navigationDisabled}
             className={`text-sm font-medium pb-1 border-b-2 transition-colors ${
               currentView === "combat"
                 ? "text-foreground border-foreground cursor-pointer"
-                : battleStarted
+                : (battleStarted && !navigationDisabled)
                   ? "text-muted-foreground border-transparent hover:text-foreground cursor-pointer"
                   : "text-muted-foreground/50 border-transparent cursor-not-allowed"
             }`}

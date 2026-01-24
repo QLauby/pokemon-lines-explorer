@@ -3,6 +3,7 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { darkenColor, lightenColor } from "@/lib/colors"
+import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
 import { TreeNode } from "@/lib/types"
 import { getTreeBranchColor } from "./battle-view"
 
@@ -11,6 +12,8 @@ interface BattleTreeProps {
   selectedNodeId: string
   onSelectedNodeChange: (nodeId: string) => void
   onResetBattle: () => void
+  highlightedNodeIds?: string[]
+  previewNodeId?: string | null
 }
 
 export function BattleTree({
@@ -18,11 +21,15 @@ export function BattleTree({
   selectedNodeId,
   onSelectedNodeChange,
   onResetBattle,
+  highlightedNodeIds = [],
+  previewNodeId = null,
 }: BattleTreeProps) {
   const [zoom, setZoom] = useState(1)
+  const { corruptedNodeIds, isCorrupted } = useCorruptionHandler()
 
   if (nodes.size === 0) return null
 
+  // ... (zoom logic retained)
   const maxX = Math.max(...Array.from(nodes.values()).map((n) => n.x)) + 100
   const maxY = Math.max(...Array.from(nodes.values()).map((n) => n.y)) + 100
 
@@ -57,7 +64,7 @@ export function BattleTree({
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={onResetBattle} className="cursor-pointer h-8">
+          <Button variant="outline" size="sm" onClick={onResetBattle} className="cursor-pointer h-8" disabled={isCorrupted}>
             <RotateCcw className="h-4 w-4 mr-2" />
             Recommencer
           </Button>
@@ -89,7 +96,9 @@ export function BattleTree({
                     const parent = nodes.get(node.parentId)
                     if (!parent) return null
 
-                    const color = getTreeBranchColor(node.branchIndex)
+                    const isNodeCorrupted = corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id)
+                    const isPreview = node.id === previewNodeId
+                    const color = isNodeCorrupted ? "#ef4444" : getTreeBranchColor(node.branchIndex)
 
                     if (node.branchIndex === 0) {
                         return (
@@ -101,6 +110,7 @@ export function BattleTree({
                                 y2={node.y}
                                 stroke={color}
                                 strokeWidth="2.5"
+                                strokeDasharray={isPreview ? "6 4" : "none"}
                             />
                         )
                     } else {
@@ -115,7 +125,14 @@ export function BattleTree({
                         const pathData = `M ${parent.x} ${parent.y} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${node.x} ${node.y}`
 
                         return (
-                            <path key={`${parent.id}-${node.id}`} d={pathData} stroke={color} strokeWidth="2.5" fill="none" />
+                            <path 
+                                key={`${parent.id}-${node.id}`} 
+                                d={pathData} 
+                                stroke={color} 
+                                strokeWidth="2.5" 
+                                fill="none"
+                                strokeDasharray={isPreview ? "6 4" : "none"} 
+                            />
                         )
                     }
                 })}
@@ -144,7 +161,9 @@ export function BattleTree({
                         labelY = 0.125 * parent.y + 0.375 * controlY1 + 0.375 * controlY2 + 0.125 * node.y
                     }
 
-                    const branchColor = getTreeBranchColor(node.branchIndex)
+                    const isNodeCorrupted = corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id)
+                    const isPreview = node.id === previewNodeId
+                    const branchColor = isNodeCorrupted ? "#ef4444" : getTreeBranchColor(node.branchIndex)
 
                     return (
                         <div 
@@ -167,10 +186,12 @@ export function BattleTree({
 
                 {Array.from(nodes.values()).map((node) => {
                 const isSelected = node.id === selectedNodeId
-                const branchColor = getTreeBranchColor(node.branchIndex)
+                const isNodeCorrupted = corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id)
+                const isPreview = node.id === previewNodeId
+                const branchColor = isNodeCorrupted ? "#ef4444" : getTreeBranchColor(node.branchIndex)
                 
-                const activeBg = lightenColor(branchColor, 30)
-                const activeText = darkenColor(branchColor, 40)
+                const activeBg = isNodeCorrupted ? "#fee2e2" : lightenColor(branchColor, 30) // Red-100 if corrupted
+                const activeText = isNodeCorrupted ? "#b91c1c" : darkenColor(branchColor, 40) // Red-700 if corrupted
 
                 return (
                     <div
