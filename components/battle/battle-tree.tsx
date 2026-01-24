@@ -149,14 +149,14 @@ export function BattleTree({
                     return (
                         <div 
                             key={`prob-${node.id}`}
-                            className="absolute flex items-center justify-center bg-gray-50 rounded-[4px] font-bold text-[8px] pointer-events-none tabular-nums"
+                            className="absolute flex items-center justify-center bg-gray-50 rounded-[2px] font-bold text-[7px] leading-none pointer-events-none tabular-nums"
                             style={{
                                 left: `${labelX}px`,
                                 top: `${labelY}px`,
                                 transform: "translate(-50%, -50%)",
                                 color: branchColor,
-                                minWidth: "22px",
-                                height: "12px",
+                                minWidth: "18px",
+                                height: "10px",
                                 padding: "0 2px"
                             }}
                         >
@@ -177,9 +177,8 @@ export function BattleTree({
                     key={node.id}
                     className="absolute"
                     style={{
-                        left: `${node.x - 16}px`,
-                        top: `${node.y - 16}px`,
-                        // @ts-ignore
+                        left: `${node.x - 12}px`,
+                        top: `${node.y - 12}px`,
                         "--node-active-bg": activeBg,
                         "--node-active-text": activeText,
                         "--node-branch-color": branchColor,
@@ -189,7 +188,7 @@ export function BattleTree({
                         variant="outline"
                         size="sm"
                         className={`
-                        w-8 h-8 rounded-full text-xs font-extrabold transition-all duration-200 cursor-pointer
+                        w-6 h-6 rounded-full text-[10px] font-extrabold transition-all duration-200 cursor-pointer
                         flex items-center justify-center p-0
                         border-[2px] border-[var(--node-branch-color)]
                         ${isSelected 

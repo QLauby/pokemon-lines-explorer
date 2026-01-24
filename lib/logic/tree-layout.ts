@@ -1,7 +1,7 @@
 import { TreeNode } from "@/lib/types"
 
-const VERTICAL_SPACING = 32
-const HORIZONTAL_SPACING = 50
+const VERTICAL_SPACING = 48
+const HORIZONTAL_SPACING = 80
 const START_X = 32
 
 /**

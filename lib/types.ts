@@ -57,7 +57,7 @@ export interface TreeNode {
   id: string
   description: string
   probability: number
-  deltas: BattleDelta[]
+  turnData: TurnData
   parentId?: string
   children: string[]
   turn: number
@@ -70,26 +70,25 @@ export interface TreeNode {
 
 // Delta Definitions
 export type BattleDelta =
-  | { type: "HP_ABSOLUTE"; targetId: string; value: number }
   | { type: "HP_RELATIVE"; targetId: string; amount: number }
-  | {
-      type: "STATUS_CHANGE"
-      targetId: string
-      status?: PokemonStatus
-      confusion?: boolean
-      love?: boolean
-      sleepCounter?: number
-      confusionCounter?: number
-      showSleepCounter?: boolean
-      showConfusionCounter?: boolean
-    }
-  | { type: "SWITCH"; team: "my" | "opponent"; slotIndex: number; newPokemonId: string | null }
-  | { type: "TAG_UPDATE"; targetId: string | "field" | "player_side" | "opponent_side"; tags: string[] }
-  | { type: "ITEM_UPDATE"; targetId: string; heldItem: boolean; heldItemName?: string }
-  | { type: "STAT_MODIFIER"; targetId: string; stat: keyof StatsModifiers; value: number }
-  | { type: "TERA_UPDATE"; targetId: string; isTerastallized: boolean }
-  | { type: "MEGA_UPDATE"; targetId: string; isMega: boolean }
-  | { type: "MOVE_PP_UPDATE"; targetId: string; moveId: string; currentPP: number }
+
+export type TurnActionType = "attack" | "switch" | "item"
+
+export interface TurnAction {
+  id: string
+  // The actor is determined by the slot, but due to reordering, we need to know WHO is acting.
+  actorId: string 
+  type: TurnActionType
+  // For switch and attacks, we need to know who is targeted
+  targetId?: string
+  hpChanges: BattleDelta[]
+  isCollapsed?: boolean // UI state persistence if needed, or handled locally
+}
+
+export interface TurnData {
+  actions: TurnAction[]
+  endOfTurnDeltas: BattleDelta[]
+}
 
 // Full Combat Session
 export interface CombatSession {

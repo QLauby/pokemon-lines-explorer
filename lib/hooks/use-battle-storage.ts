@@ -24,8 +24,6 @@ export function useBattleStorage() {
   }, [])
 
   // Save to local storage whenever sessions change
-  // Note: For performance with large trees, we might want to debounce this or manual save.
-  // But for now, let's keep it simple.
   const saveToStorage = (newSessions: CombatSession[]) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newSessions))

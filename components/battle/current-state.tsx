@@ -77,18 +77,22 @@ export function CurrentState({
                 />
              </div>
 
-             {/* Active Pokemon Cards */}
-             <div className={cn("grid gap-2 items-start", battleType === "double" ? "grid-cols-2" : "grid-cols-1")}>
+             {/* Active Pokemon cards */}
+             <div className={cn(
+                "grid gap-2 items-start", 
+                battleType === "double" ? "grid-cols-2" : "grid-cols-1 justify-items-center"
+             )}>
                 {myActive.map((pokemon) => (
                     <PokemonCardDisplay 
                         key={`active-${pokemon.id}`}
                         pokemon={pokemon}
                         mode="deployed"
                         isMyTeam={true}
+                        className={cn(battleType === "simple" && "w-[calc(50%-4px)]")}
                     />
                 ))}
                 {myActive.length === 0 && (
-                    <div className="h-16 rounded-lg border border-dashed border-gray-100 flex items-center justify-center text-gray-400 text-[9px] uppercase font-bold bg-gray-50/50">
+                    <div className="w-full h-16 rounded-lg border border-dashed border-gray-100 flex items-center justify-center text-gray-400 text-[9px] uppercase font-bold bg-gray-50/50">
                         None active
                     </div>
                 )}
@@ -116,17 +120,21 @@ export function CurrentState({
              </div>
 
              {/* Active Enemy Pokemon Cards */}
-             <div className={cn("grid gap-2 items-start", battleType === "double" ? "grid-cols-2" : "grid-cols-1")}>
+             <div className={cn(
+                "grid gap-2 items-start", 
+                battleType === "double" ? "grid-cols-2" : "grid-cols-1 justify-items-center"
+             )}>
                 {enemyActive.map((pokemon) => (
                     <PokemonCardDisplay 
                         key={`active-enemy-${pokemon.id}`}
                         pokemon={pokemon}
                         mode="deployed"
                         isMyTeam={false}
+                        className={cn(battleType === "simple" && "w-[calc(50%-4px)]")}
                     />
                 ))}
                 {enemyActive.length === 0 && (
-                    <div className="h-16 rounded-lg border border-dashed border-gray-100 flex items-center justify-center text-gray-400 text-[9px] uppercase font-bold bg-gray-50/50">
+                    <div className="w-full h-16 rounded-lg border border-dashed border-gray-100 flex items-center justify-center text-gray-400 text-[9px] uppercase font-bold bg-gray-50/50">
                         None active
                     </div>
                 )}

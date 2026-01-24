@@ -8,18 +8,16 @@ export function getTreeBranchColor(branchIndex: number): string {
   return getCyclicColor(TREE_BASE_COLOR, 10, "shortList", branchIndex + 1)
 }
 
-import { ActionForm } from "./action-form"
 import { BattleTree } from "./battle-tree"
 import { CurrentState } from "./current-state"
+import { TurnsResolver } from "./turns-resolver"
 
 interface CombatViewProps {
   nodes: Map<string, TreeNode>
   selectedNodeId: string
-  hpChanges: { pokemonId: string; value: number; isHealing: boolean }[]
   onSelectedNodeChange: (nodeId: string) => void
   onResetBattle: () => void
-  onHpChangesChange: (changes: { pokemonId: string; value: number; isHealing: boolean }[]) => void
-  onAddAction: () => void
+  onAddAction: (data: import("@/lib/types").TurnData) => void
   onUpdateNode: (nodeId: string, updates: Partial<TreeNode>) => void
   onDeleteNode: (nodeId: string) => void
   myTeam: Pokemon[]
@@ -31,10 +29,8 @@ interface CombatViewProps {
 export function CombatView({
   nodes,
   selectedNodeId,
-  hpChanges,
   onSelectedNodeChange,
   onResetBattle,
-  onHpChangesChange,
   onAddAction,
   onUpdateNode,
   onDeleteNode,
@@ -85,11 +81,9 @@ export function CombatView({
                 <span style={{ color: branchColor }}>Turn {(selectedNode?.turn || 0)}</span>
               </h2>
               <div>
-                 <ActionForm 
+                 <TurnsResolver 
                     selectedNodeId={selectedNodeId}
                     nodes={nodes}
-                    hpChanges={hpChanges}
-                    onHpChangesChange={onHpChangesChange}
                     onAddAction={onAddAction}
                     onUpdateNode={onUpdateNode}
                     onDeleteNode={onDeleteNode}

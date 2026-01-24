@@ -1,17 +1,15 @@
-import { Pokemon, TreeNode } from "@/lib/types"
+import { Pokemon, TreeNode, TurnData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
-import { DeleteFromCurrentTurn } from "./action-form/delete-from-current-turn"
-import { SetNextTurn } from "./action-form/set-next-turn"
-import { UpdateCurrentTurn } from "./action-form/update-current-turn"
 import { getTreeBranchColor } from "./battle-view"
+import { DeleteFromCurrentTurn } from "./turns-resolver/delete-from-current-turn"
+import { SetNextTurn } from "./turns-resolver/set-next-turn"
+import { UpdateCurrentTurn } from "./turns-resolver/update-current-turn"
 
-interface ActionFormProps {
+interface TurnsResolverProps {
   selectedNodeId: string
   nodes: Map<string, TreeNode>
-  hpChanges: { pokemonId: string; value: number; isHealing: boolean }[]
-  onHpChangesChange: (changes: { pokemonId: string; value: number; isHealing: boolean }[]) => void
-  onAddAction: () => void
+  onAddAction: (data: TurnData) => void
   onUpdateNode: (nodeId: string, updates: Partial<TreeNode>) => void
   onDeleteNode: (nodeId: string) => void
   activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
@@ -19,16 +17,14 @@ interface ActionFormProps {
 
 type Tab = "update" | "delete" | "next"
 
-export function ActionForm({
+export function TurnsResolver({
   selectedNodeId,
   nodes,
-  hpChanges,
-  onHpChangesChange,
   onAddAction,
   activePokemon,
   onUpdateNode,
   onDeleteNode,
-}: ActionFormProps) {
+}: TurnsResolverProps) {
   const [activeTab, setActiveTab] = useState<Tab>("next")
   const selectedNode = nodes.get(selectedNodeId)
   const currentTurn = selectedNode?.turn || 0
@@ -98,8 +94,6 @@ export function ActionForm({
             <SetNextTurn 
                 selectedNodeId={selectedNodeId}
                 nodes={nodes}
-                hpChanges={hpChanges}
-                onHpChangesChange={onHpChangesChange}
                 onAddAction={onAddAction}
                 activePokemon={activePokemon}
             />
