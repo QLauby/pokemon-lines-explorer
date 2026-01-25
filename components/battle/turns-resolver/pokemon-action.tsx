@@ -1,12 +1,13 @@
 "use client"
 
-import { ChevronDown, ChevronRight, ChevronUp, Package, Plus, Repeat, Swords } from "lucide-react"
+import { ChevronDown, ChevronRight, ChevronUp, Package, Repeat, Swords } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Pokemon, TurnAction, TurnActionType } from "@/lib/types"
+import { Pokemon, SlotReference, TurnAction, TurnActionType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-import { HpChangeRow } from "./hp-change-row"
+import { ConsequencesList } from "./consequences-list"
+import { SwitchConsequences } from "./switch-consequences"
 
 interface PokemonActionProps {
   action: TurnAction
@@ -22,6 +23,7 @@ interface PokemonActionProps {
   onAddHpChange: () => void
   onUpdateHpChange: (deltaIndex: number, field: "slot" | "value" | "isHealing", value: any) => void
   onRemoveHpChange: (deltaIndex: number) => void
+  onMoveHpChange: (fromIndex: number, toIndex: number) => void
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
 }
@@ -40,6 +42,7 @@ export function PokemonAction({
   onAddHpChange,
   onUpdateHpChange,
   onRemoveHpChange,
+  onMoveHpChange,
   myTeam,
   enemyTeam,
 }: PokemonActionProps) {
@@ -51,10 +54,10 @@ export function PokemonAction({
     item: <Package className="h-3.5 w-3.5" />
   }
   
-  const allActiveTargets = activePokemon.map(ap => {
+  const allActiveTargets = activePokemon.map((ap: { pokemon: Pokemon; isAlly: boolean }) => {
       const side = ap.isAlly ? "my" : "opponent"
       const team = ap.isAlly ? myTeam : enemyTeam
-      const slotIndex = team.findIndex(p => p.id === ap.pokemon.id)
+      const slotIndex = team.findIndex((p: Pokemon) => p.id === ap.pokemon.id)
       return {
           value: JSON.stringify({ side, slotIndex }),
           side,
@@ -68,7 +71,7 @@ export function PokemonAction({
   })
 
   // For Switch: Bench slots
-  const teamMembers = (isAlly ? myTeam : enemyTeam).map((p, idx) => ({
+  const teamMembers = (isAlly ? myTeam : enemyTeam).map((p: Pokemon, idx: number) => ({
     value: JSON.stringify({ side: isAlly ? "my" : "opponent", slotIndex: idx }),
     slotIndex: idx,
     label: p.name,
@@ -84,6 +87,62 @@ export function PokemonAction({
           return team[action.actor.slotIndex]?.name.toUpperCase() || "UNKNOWN"
       }
       return "UNKNOWN"
+  }
+
+  const getSortedOptions = () => {
+      const opts: { label: string; value: SlotReference; isAlly: boolean }[] = []
+      
+      // 1. Determine Primary Reference
+      let refSide: "my" | "opponent"
+      let refSlotIndex: number
+      
+      if (action.target) {
+          refSide = action.target.side
+          refSlotIndex = action.target.slotIndex
+      } else {
+          refSide = action.actor.side
+          refSlotIndex = action.actor.slotIndex
+      }
+
+      const refTeam = refSide === "my" ? myTeam : enemyTeam
+      const refPokemon = refTeam[refSlotIndex]
+
+      // A. The Reference
+      if (refPokemon) {
+          opts.push({
+              label: refPokemon.name,
+              value: { side: refSide, slotIndex: refSlotIndex },
+              isAlly: refSide === "my"
+          })
+      }
+
+      // B. Partners (Same Side)
+      activePokemon
+          .filter(p => (p.isAlly ? "my" : "opponent") === refSide && p.pokemon.id !== refPokemon?.id)
+          .forEach(ap => {
+              const team = ap.isAlly ? myTeam : enemyTeam
+              const idx = team.findIndex(p => p.id === ap.pokemon.id)
+              opts.push({
+                  label: ap.pokemon.name,
+                  value: { side: ap.isAlly ? "my" : "opponent", slotIndex: idx },
+                  isAlly: ap.isAlly
+              })
+          })
+
+      // C. Opposing Side
+      activePokemon
+          .filter(p => (p.isAlly ? "my" : "opponent") !== refSide)
+          .forEach(ap => {
+              const team = ap.isAlly ? myTeam : enemyTeam
+              const idx = team.findIndex(p => p.id === ap.pokemon.id)
+              opts.push({
+                  label: ap.pokemon.name,
+                  value: { side: ap.isAlly ? "my" : "opponent", slotIndex: idx },
+                  isAlly: ap.isAlly
+              })
+          })
+      
+      return opts
   }
 
   return (
@@ -218,39 +277,28 @@ export function PokemonAction({
       {/* Expanded Content */}
       {!action.isCollapsed && (
         <div className="border-t border-dashed px-3 py-2 pb-3 bg-white/40">
-           <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">Consequences</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-5 px-1.5 text-[10px] hover:bg-background/80"
-                onClick={onAddHpChange}
-              >
-                <Plus className="h-2.5 w-2.5 mr-1" /> Add
-              </Button>
-           </div>
-
-            <div className="space-y-1.5">
-                {action.deltas.length === 0 ? (
-                    <div className="text-[11px] text-muted-foreground italic pl-1">No effects</div>
-                ) : (
-                    action.deltas.map((delta, deltaIndex) => {
-                        if (delta.type !== "HP_RELATIVE") return null // Only show HP rows for now
-                        return (
-                          <HpChangeRow
-                              key={deltaIndex}
-                              target={delta.target}
-                              value={Math.abs(delta.amount)}
-                              isHealing={delta.amount > 0}
-                              activePokemon={activePokemon}
-                              onUpdate={(field, value) => onUpdateHpChange(deltaIndex, field, value)}
-                              onRemove={() => onRemoveHpChange(deltaIndex)}
-                              autoFocus={deltaIndex === action.deltas.length - 1}
-                          />
-                        )
-                    })
-                )}
-            </div>
+           {action.type === "switch" ? (
+             <SwitchConsequences
+               action={action}
+               activePokemon={activePokemon}
+               onAddEntryHpChange={onAddHpChange}
+               onUpdateHpChange={onUpdateHpChange}
+               onRemoveHpChange={onRemoveHpChange}
+               onMoveHpChange={onMoveHpChange}
+               myTeam={myTeam}
+               enemyTeam={enemyTeam}
+             />
+           ) : (
+             <>
+                <ConsequencesList 
+                    deltas={action.deltas}
+                    options={getSortedOptions()}
+                    onAdd={onAddHpChange}
+                    onUpdate={(idx, field, val) => onUpdateHpChange(idx, field, val)}
+                    onRemove={onRemoveHpChange}
+                />
+             </>
+           )}
         </div>
       )}
     </div>

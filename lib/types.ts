@@ -70,7 +70,7 @@ export interface TreeNode {
 
 export interface SlotReference {
   side: "my" | "opponent"
-  slotIndex: number // 0-based index in the team array
+  slotIndex: number
 }
 
 // Delta Definitions
@@ -117,7 +117,6 @@ export interface CombatSession {
   lastSelectedNodeId?: string
 }
 
-// Helper to define what a computed state looks like (same as before but explicit)
 export interface BattleState {
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]

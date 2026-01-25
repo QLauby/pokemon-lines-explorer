@@ -1,13 +1,11 @@
 "use client"
 
-import { Plus } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { BattleDelta, Pokemon, TurnAction, TurnActionType, TurnData } from "@/lib/types"
 
-import { HpChangeRow } from "./hp-change-row"
+import { ConsequencesList } from "./consequences-list"
 import { PokemonAction } from "./pokemon-action"
 
 interface TurnEditorProps {
@@ -140,14 +138,14 @@ export function TurnEditor({
     const newActions = [...actions]
     const action = newActions[actionIndex]
     
-    let defaultTarget = { sub: "target" as const, ...action.target } // Placeholder logic needs refinement
-    
-    let targetSlotSelector = action.target 
+    // Default smart targeting: Priority to Target, Fallback to Actor
+    let targetSlotSelector: { side: "my" | "opponent"; slotIndex: number } = action.target 
                            ? action.target 
-                           : { side: action.actor.side === "my" ? "opponent" : "my", slotIndex: 0 } as const
+                           : action.actor;
 
     if (action.deltas.filter(d => d.type === "HP_RELATIVE").length >= 1) {
-        targetSlotSelector = action.actor
+         // If we have multiple, stick to actor logic or repetition
+         targetSlotSelector = action.target || action.actor
     }
 
     action.deltas = [
@@ -170,7 +168,20 @@ export function TurnEditor({
     const delta = { ...action.deltas[deltaIndex] } as BattleDelta
     if (delta.type !== "HP_RELATIVE") return // Safety
 
-    if (field === "slot") delta.target = value
+    if (field === "slot") {
+        if (typeof value === "string") {
+            // It's an ID from HpChangeRow's new selection logic
+            const found = activePokemon.find(ap => ap.pokemon.id === value);
+            if (found) {
+                const sideList = activePokemon.filter(p => p.isAlly === found.isAlly);
+                const slotIndex = sideList.findIndex(p => p.pokemon.id === value);
+                delta.target = { side: found.isAlly ? "my" : "opponent", slotIndex };
+            }
+        } else {
+            delta.target = value
+        }
+    }
+
     if (field === "value" || field === "isHealing") {
         const currentAmount = Math.abs(delta.amount)
         const isHealing = field === "isHealing" ? (value as boolean) : delta.amount > 0
@@ -188,6 +199,21 @@ export function TurnEditor({
     newActions[actionIndex].deltas = newActions[actionIndex].deltas.filter(
       (_, i) => i !== deltaIndex
     )
+    setActions(newActions)
+  }
+
+  const moveActionDelta = (actionIndex: number, fromIndex: number, toIndex: number) => {
+    if (readOnly) return
+    const newActions = [...actions]
+    const action = newActions[actionIndex]
+    const deltas = [...action.deltas]
+    
+    if (toIndex < 0 || toIndex >= deltas.length) return
+    
+    const [moved] = deltas.splice(fromIndex, 1)
+    deltas.splice(toIndex, 0, moved)
+    
+    action.deltas = deltas
     setActions(newActions)
   }
 
@@ -211,7 +237,19 @@ export function TurnEditor({
     
     if (delta.type !== "HP_RELATIVE") return
 
-    if (field === "slot") delta.target = value
+    if (field === "slot") {
+        if (typeof value === "string") {
+            const found = activePokemon.find(ap => ap.pokemon.id === value);
+            if (found) {
+                const sideList = activePokemon.filter(p => p.isAlly === found.isAlly);
+                const slotIndex = sideList.findIndex(p => p.pokemon.id === value);
+                delta.target = { side: found.isAlly ? "my" : "opponent", slotIndex };
+            }
+        } else {
+            delta.target = value
+        }
+    }
+
     if (field === "value" || field === "isHealing") {
         const currentAmount = Math.abs(delta.amount)
         const isHealing = field === "isHealing" ? (value as boolean) : delta.amount > 0
@@ -235,6 +273,97 @@ export function TurnEditor({
     })
   }
 
+  // Calculate the sequence of board states
+  const computedStates = useMemo(() => {
+    const states: { 
+        activePokemon: { pokemon: Pokemon; isAlly: boolean }[], 
+        myTeam: Pokemon[], 
+        enemyTeam: Pokemon[] 
+    }[] = []
+    
+    // Start with the initial state
+    let currentActive = [...activePokemon]
+    let currentMyTeam = [...myTeam]
+    let currentEnemyTeam = [...enemyTeam]
+    
+    // State 0: Before any action
+    states.push({
+        activePokemon: [...currentActive],
+        myTeam: [...currentMyTeam],
+        enemyTeam: [...currentEnemyTeam]
+    })
+    
+    actions.forEach((action: TurnAction) => {
+      // 1. If this action is a switch, update the team order AND active pokemon
+      if (action.type === "switch" && action.target) {
+        const isAlly = action.actor.side === "my"
+        const team = isAlly ? currentMyTeam : currentEnemyTeam
+        
+        // The actor is at slotIndex
+        const fromIndex = action.actor.slotIndex
+        const toIndex = action.target.slotIndex
+
+        // Validate indices
+        if (team[fromIndex] && team[toIndex]) {
+             // Swap in the team array (Physics of the game: Slot 0 swaps with Slot X)
+             const temp = team[fromIndex]
+             team[fromIndex] = team[toIndex]
+             team[toIndex] = temp
+
+             // Update Active Pokemon List to reflect this swap
+             // We find the entry that WAS representing the 'from' slot
+             const activeIndex = currentActive.findIndex(p => {
+                 const pSide = p.isAlly ? "my" : "opponent"
+                 // Important: We match based on the ID of the pokemon that WAS there
+                 return pSide === action.actor.side && p.pokemon.id === temp.id
+             })
+
+             if (activeIndex !== -1) {
+                 // Replace it with the new pokemon (who is now at team[fromIndex])
+                 currentActive[activeIndex] = { 
+                     pokemon: team[fromIndex], // This is the new pokemon
+                     isAlly 
+                 }
+             }
+        }
+      }
+      
+      // 2. Apply HP Deltas
+      action.deltas.forEach(delta => {
+        if (delta.type === "HP_RELATIVE") {
+            const isAlly = delta.target.side === "my"
+            const team = isAlly ? currentMyTeam : currentEnemyTeam
+            const targetPokemon = team[delta.target.slotIndex]
+            
+            if (targetPokemon) {
+                // Update in Team Array
+                const newHp = Math.min(100, Math.max(0, targetPokemon.hpPercent + delta.amount))
+                const newPokemon = { ...targetPokemon, hpPercent: newHp }
+                team[delta.target.slotIndex] = newPokemon
+
+                // Also update in Active Pokemon list if present
+                const activeIndex = currentActive.findIndex(p => p.pokemon.id === targetPokemon.id)
+                if (activeIndex !== -1) {
+                    currentActive[activeIndex] = {
+                        pokemon: newPokemon,
+                        isAlly
+                    }
+                }
+            }
+        }
+      })
+      
+      // 3. Push this new state to the array
+      states.push({
+          activePokemon: [...currentActive],
+          myTeam: [...currentMyTeam],
+          enemyTeam: [...currentEnemyTeam]
+      })
+    })
+    
+    return states
+  }, [actions, activePokemon, myTeam, enemyTeam])
+
   return (
     <div className={`space-y-6 ${readOnly ? 'opacity-80 pointer-events-none' : ''}`}>
       <div className="space-y-2">
@@ -245,13 +374,14 @@ export function TurnEditor({
             index={index}
             totalActions={actions.length}
             actor={
-                 // Fallback resolution logic:
-                 activePokemon.find(ap => {
-                     const apSide = ap.isAlly ? "my" : "opponent"
-                     return false // Placeholder
+                 // Use the state BEFORE this action (computedStates[index]) to identify the actor
+                 computedStates[index].activePokemon.find((ap: { pokemon: Pokemon; isAlly: boolean }) => {
+                     const team = ap.isAlly ? computedStates[index].myTeam : computedStates[index].enemyTeam
+                     const slotIndex = team.findIndex((p: Pokemon) => p.id === ap.pokemon.id)
+                     return (ap.isAlly ? "my" : "opponent") === action.actor.side && slotIndex === action.actor.slotIndex
                  })
             }
-            activePokemon={activePokemon}
+            activePokemon={computedStates[index].activePokemon} // Pass dynamic state context
             onMove={(direction) => !readOnly && moveAction(index, direction)}
             onToggleCollapse={() => toggleActionCollapse(index)} 
             onUpdateType={(type) => !readOnly && updateActionType(index, type)}
@@ -260,45 +390,40 @@ export function TurnEditor({
             onAddHpChange={() => !readOnly && addDeltaToAction(index)}
             onUpdateHpChange={(deltaIndex, field, value) => !readOnly && updateActionHpChange(index, deltaIndex, field, value)}
             onRemoveHpChange={(deltaIndex) => !readOnly && removeActionDelta(index, deltaIndex)}
-            myTeam={myTeam}
-            enemyTeam={enemyTeam}
+            onMoveHpChange={(from, to) => !readOnly && moveActionDelta(index, from, to)}
+            myTeam={computedStates[index].myTeam}   // PASS DYNAMIC TEAM
+            enemyTeam={computedStates[index].enemyTeam} // PASS DYNAMIC TEAM
           />
         ))}
       </div>
 
       <div className="border-t pt-4">
-          <div className="flex items-center justify-between mb-4">
-            <Label className="text-base font-semibold">End of Turn Effects</Label>
-             {!readOnly && (
-               <Button variant="outline" size="sm" onClick={addEndOfTurnDelta}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Effect
-               </Button>
-             )}
-          </div>
-          
-          <div className="space-y-2">
-             {endOfTurnDeltas.map((delta, index) => {
-                 if (delta.type !== "HP_RELATIVE") return null
-                 return (
-                    <HpChangeRow
-                        key={index}
-                        target={delta.target}
-                        value={Math.abs(delta.amount)}
-                        isHealing={delta.amount > 0}
-                        activePokemon={activePokemon}
-                        onUpdate={(field, value) => !readOnly && updateEndOfTurnDelta(index, field, value)}
-                        onRemove={() => !readOnly && removeEndOfTurnDelta(index)}
-                        autoFocus={index === endOfTurnDeltas.length - 1}
-                    />
-                 )
-             })}
-              {endOfTurnDeltas.length === 0 && (
-                  <div className="text-center text-gray-500 py-4 border border-dashed rounded-lg bg-gray-50/50">
-                      No end of turn effects
-                  </div>
-              )}
-          </div>
+          <ConsequencesList 
+              title="End of Turn Effects"
+              deltas={endOfTurnDeltas}
+              options={[
+                  ...computedStates[computedStates.length - 1].activePokemon.filter((p: { isAlly: boolean }) => p.isAlly).map((ap: { pokemon: Pokemon; isAlly: boolean }) => {
+                      const idx = computedStates[computedStates.length - 1].myTeam.findIndex(p => p.id === ap.pokemon.id)
+                      return {
+                        label: ap.pokemon.name,
+                        value: { side: "my" as const, slotIndex: idx },
+                        isAlly: true
+                      }
+                  }),
+                  ...computedStates[computedStates.length - 1].activePokemon.filter((p: { isAlly: boolean }) => !p.isAlly).map((ap: { pokemon: Pokemon; isAlly: boolean }) => {
+                      const idx = computedStates[computedStates.length - 1].enemyTeam.findIndex(p => p.id === ap.pokemon.id)
+                      return {
+                        label: ap.pokemon.name,
+                        value: { side: "opponent" as const, slotIndex: idx },
+                        isAlly: false
+                      }
+                  })
+              ]}
+              onAdd={addEndOfTurnDelta}
+              onUpdate={!readOnly ? ((index: number, field: "slot" | "value" | "isHealing", value: any) => updateEndOfTurnDelta(index, field, value)) : () => {}}
+              onRemove={!readOnly ? ((index: number) => removeEndOfTurnDelta(index)) : () => {}}
+              addButtonLabel="Add Effect"
+          />
       </div>
 
       <Button onClick={handleSave} className="w-full h-12 text-lg font-bold shadow-md" disabled={readOnly}>
