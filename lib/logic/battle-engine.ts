@@ -1,4 +1,4 @@
-import { BattleDelta, BattleState, Pokemon, StatsModifiers, TreeNode } from "../types"
+import { BattleDelta, BattleState, SlotReference, StatsModifiers, TreeNode } from "../types"
 
 export class BattleEngine {
   static computeState(initialState: BattleState, nodes: Map<string, TreeNode>, targetNodeId: string): BattleState {
@@ -26,80 +26,118 @@ export class BattleEngine {
       if (node.turnData) {
         // 1. Process Ordered Actions
         for (const action of node.turnData.actions) {
-            // Processing the Action main effect (Switch)
-            if (action.type === "switch" && action.targetId) {
-                currentState = this.applySwitch(currentState, action.actorId, action.targetId)
-            }
             
-            // Processing consequences (HP Changes)
-            for (const delta of action.hpChanges) {
+            // --- Legacy Support Start ---
+            const effectiveDeltas: BattleDelta[] = [...(action.deltas || [])]
+
+            // Legacy Switch Handling
+            if (action.type === "switch" && action.targetId && action.actorId && effectiveDeltas.length === 0) {
+                 const from = this.findSlotForId(currentState, action.actorId)
+                 const to = this.findSlotForId(currentState, action.targetId)
+                 if (from && to) {
+                     effectiveDeltas.push({
+                         type: "SWITCH",
+                         side: from.side,
+                         fromSlot: from.slotIndex,
+                         toSlot: to.slotIndex
+                     })
+                 }
+            }
+
+            // Legacy HP Changes Handling
+            if (action.hpChanges && action.hpChanges.length > 0) {
+                 for (const legacyDelta of action.hpChanges) {
+                     const targetSlot = this.findSlotForId(currentState, legacyDelta.targetId)
+                     if (targetSlot) {
+                         effectiveDeltas.push({
+                             type: "HP_RELATIVE",
+                             target: targetSlot,
+                             amount: legacyDelta.amount
+                         })
+                     }
+                 }
+            }
+            // --- Legacy Support End ---
+
+            for (const delta of effectiveDeltas) {
                 currentState = this.applyDelta(currentState, delta)
             }
         }
         
         // 2. Process End of Turn
-        for (const delta of node.turnData.endOfTurnDeltas) {
-             currentState = this.applyDelta(currentState, delta)
+        // Handle potential missing endOfTurnDeltas or legacy structure if needed
+        const eotDeltas = node.turnData.endOfTurnDeltas || []
+        for (const delta of eotDeltas) {
+             // Check if it's a legacy delta (targetId instead of target)
+             if ('targetId' in delta && typeof delta.targetId === 'string') {
+                  const targetSlot = this.findSlotForId(currentState, delta.targetId as string)
+                  if (targetSlot) {
+                      const amount = (delta as any).amount || 0
+                      currentState = this.applyDelta(currentState, {
+                          type: "HP_RELATIVE",
+                          target: targetSlot,
+                          amount: amount
+                      })
+                  }
+             } else {
+                 currentState = this.applyDelta(currentState, delta)
+             }
         }
       }
     }
 
     return currentState
   }
-
-  static applySwitch(state: BattleState, oldPokemonId: string, newPokemonId: string): BattleState {
-      return state
+  
+  // Helper for Legacy Migrations
+  private static findSlotForId(state: BattleState, id: string): SlotReference | null {
+      const myIndex = state.myTeam.findIndex(p => p.id === id)
+      if (myIndex !== -1) return { side: "my", slotIndex: myIndex }
+      
+      const oppIndex = state.enemyTeam.findIndex(p => p.id === id)
+      if (oppIndex !== -1) return { side: "opponent", slotIndex: oppIndex }
+      
+      return null
   }
 
   static applyDelta(state: BattleState, delta: BattleDelta): BattleState {
-    // Helper to find pokemon in either team
-    const findPokemon = (id: string): { pokemon: Pokemon; isMyTeam: boolean; index: number } | null => {
-      const myIndex = state.myTeam.findIndex((p) => p.id === id)
-      if (myIndex !== -1) return { pokemon: state.myTeam[myIndex], isMyTeam: true, index: myIndex }
-
-      const enemyIndex = state.enemyTeam.findIndex((p) => p.id === id)
-      if (enemyIndex !== -1) return { pokemon: state.enemyTeam[enemyIndex], isMyTeam: false, index: enemyIndex }
-
-      return null
-    }
-
-    // Helper to update specific pokemon
-    const updatePokemon = (id: string, updateFn: (p: Pokemon) => Pokemon): BattleState => {
-      const found = findPokemon(id)
-      if (!found) return state
-
-      const newPokemon = updateFn(found.pokemon)
-      
-      if (found.isMyTeam) {
-        const newTeam = [...state.myTeam]
-        newTeam[found.index] = newPokemon
-        return { ...state, myTeam: newTeam }
-      } else {
-        const newTeam = [...state.enemyTeam]
-        newTeam[found.index] = newPokemon
-        return { ...state, enemyTeam: newTeam }
-      }
-    }
+    const newState = { ...state, myTeam: [...state.myTeam], enemyTeam: [...state.enemyTeam] }
 
     switch (delta.type) {
-      case "HP_RELATIVE":
-        return updatePokemon(delta.targetId, (p) => ({
-          ...p,
-          hpPercent: p.hpPercent + delta.amount
-        }))
+      case "HP_RELATIVE": {
+        const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
+        const targetPokemon = team[delta.target.slotIndex]
+        
+        if (targetPokemon) {
+             const newPokemon = { 
+                 ...targetPokemon, 
+                 hpPercent: Math.max(0, Math.min(100, targetPokemon.hpPercent + delta.amount)) 
+             }
+             team[delta.target.slotIndex] = newPokemon
+        }
+        return newState
+      }
+      
+      case "SWITCH": {
+        const team = delta.side === "my" ? newState.myTeam : newState.enemyTeam
+        
+        // Ensure indices are valid
+        if (team[delta.fromSlot] && team[delta.toSlot]) {
+             // Perform the swap
+             const temp = team[delta.fromSlot]
+             team[delta.fromSlot] = team[delta.toSlot]
+             team[delta.toSlot] = temp
+        }
+        return newState
+      }
+
+      default:
+        return state
     }
-    
-    // Fallback for safety or if I missed something, but current type only has HP_RELATIVE
-    return state
   }
 
   static validateTree(initialState: BattleState, nodes: Map<string, TreeNode>): string[] {
-    // Validation logic needs update too, but for now just return empty or simple check
     return []
-  }
-
-  private static findPokemonInState(state: BattleState, id: string): boolean {
-      return state.myTeam.some(p => p.id === id) || state.enemyTeam.some(p => p.id === id)
   }
 
   static getStatsModifiersDefault(): StatsModifiers {

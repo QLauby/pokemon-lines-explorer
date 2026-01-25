@@ -107,7 +107,7 @@ export function TeamsView({
             }}
             className="rounded-md text-base"
           >
-            Combat simple
+            Single battle
           </Button>
           <Button
             variant={battleType === "double" ? "default" : "ghost"}
@@ -118,7 +118,7 @@ export function TeamsView({
             }}
             className="rounded-md text-base"
           >
-            Combat double
+            Double battle
           </Button>
         </div>
       </div>

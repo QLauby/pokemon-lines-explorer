@@ -17,6 +17,8 @@ interface TurnEditorProps {
   saveLabel: string
   readOnly?: boolean
   onChange?: (data: TurnData) => void
+  myTeam: Pokemon[]
+  enemyTeam: Pokemon[]
 }
 
 export function TurnEditor({
@@ -26,6 +28,8 @@ export function TurnEditor({
   saveLabel,
   readOnly = false,
   onChange,
+  myTeam,
+  enemyTeam,
 }: TurnEditorProps) {
   const [actions, setActions] = useState<TurnAction[]>([])
   const [endOfTurnDeltas, setEndOfTurnDeltas] = useState<BattleDelta[]>([])
@@ -46,21 +50,28 @@ export function TurnEditor({
       setActions(initialTurnData.actions)
       setEndOfTurnDeltas(initialTurnData.endOfTurnDeltas)
     } else {
-      // Create default actions for each active pokemon
-      const defaultActions: TurnAction[] = activePokemon.map((ap) => ({
-        id: crypto.randomUUID(),
-        actorId: ap.pokemon.id,
-        type: "attack",
-        hpChanges: [],
-        isCollapsed: false,
-      }))
-      setActions(defaultActions)
-      // If we had initial data but empty actions (rare), preserve EOT
+      // Create initial actions based on SLOTS for each active pokemon
+      const resolvedActions: TurnAction[] = activePokemon.map(ap => {
+          const side: "my" | "opponent" = ap.isAlly ? "my" : "opponent"
+          const team = ap.isAlly ? myTeam : enemyTeam
+          const slotIndex = team.findIndex(p => p.id === ap.pokemon.id)
+          
+          return {
+              id: crypto.randomUUID(),
+              actor: { side, slotIndex },
+              type: "attack",
+              deltas: [],
+              isCollapsed: true
+          }
+      })
+
+      setActions(resolvedActions)
+      
       if (initialTurnData) {
         setEndOfTurnDeltas(initialTurnData.endOfTurnDeltas)
       }
     }
-  }, [initialTurnData, activePokemon])
+  }, [initialTurnData, activePokemon, myTeam, enemyTeam])
 
   const moveAction = (index: number, direction: "up" | "down") => {
     if (readOnly) return
@@ -78,7 +89,42 @@ export function TurnEditor({
   const updateActionType = (index: number, type: TurnActionType) => {
     if (readOnly) return
     const newActions = [...actions]
+    
     newActions[index] = { ...newActions[index], type }
+    
+    setActions(newActions)
+  }
+
+  const updateActionTarget = (index: number, target: { side: "my" | "opponent", slotIndex: number }) => {
+    if (readOnly) return
+    const newActions = [...actions]
+    const action = newActions[index]
+    
+    action.target = target
+    
+    if (action.type === "switch") {
+        const otherDeltas = action.deltas.filter(d => d.type !== "SWITCH")
+        
+        const newDelta: BattleDelta = {
+            type: "SWITCH",
+            side: action.actor.side,
+            fromSlot: action.actor.slotIndex,
+            toSlot: target.slotIndex
+        }
+        
+        action.deltas = [...otherDeltas, newDelta]
+    }
+    
+    setActions(newActions)
+  }
+
+  const updateActionMetadata = (index: number, metadata: { itemName?: string; attackName?: string }) => {
+    if (readOnly) return
+    const newActions = [...actions]
+    newActions[index] = { 
+        ...newActions[index], 
+        metadata: { ...newActions[index].metadata, ...metadata } 
+    }
     setActions(newActions)
   }
 
@@ -88,48 +134,59 @@ export function TurnEditor({
     setActions(newActions)
   }
 
-  // HP Changes Logic for Actions
-  const addHpChangeToAction = (actionIndex: number) => {
+  // Delta Logic for Actions
+  const addDeltaToAction = (actionIndex: number) => {
     if (readOnly) return
     const newActions = [...actions]
     const action = newActions[actionIndex]
-    // Default to actor if possible, or empty
-    const defaultTarget = action.actorId
-    action.hpChanges = [
-      ...action.hpChanges,
-      { type: "HP_RELATIVE", targetId: defaultTarget, amount: 0 },
+    
+    let defaultTarget = { sub: "target" as const, ...action.target } // Placeholder logic needs refinement
+    
+    let targetSlotSelector = action.target 
+                           ? action.target 
+                           : { side: action.actor.side === "my" ? "opponent" : "my", slotIndex: 0 } as const
+
+    if (action.deltas.filter(d => d.type === "HP_RELATIVE").length >= 1) {
+        targetSlotSelector = action.actor
+    }
+
+    action.deltas = [
+      ...action.deltas,
+      { type: "HP_RELATIVE", target: targetSlotSelector, amount: 0 },
     ]
     setActions(newActions)
   }
 
   const updateActionHpChange = (
     actionIndex: number,
-    hpIndex: number,
-    field: "pokemonId" | "value" | "isHealing",
-    value: string | number | boolean
+    deltaIndex: number,
+    field: "slot" | "value" | "isHealing",
+    value: any
   ) => {
     if (readOnly) return
     const newActions = [...actions]
     const action = newActions[actionIndex]
-    const hpChange = { ...action.hpChanges[hpIndex] }
+    
+    const delta = { ...action.deltas[deltaIndex] } as BattleDelta
+    if (delta.type !== "HP_RELATIVE") return // Safety
 
-    if (field === "pokemonId") hpChange.targetId = value as string
+    if (field === "slot") delta.target = value
     if (field === "value" || field === "isHealing") {
-        const currentAmount = Math.abs(hpChange.amount)
-        const isHealing = field === "isHealing" ? (value as boolean) : hpChange.amount > 0
+        const currentAmount = Math.abs(delta.amount)
+        const isHealing = field === "isHealing" ? (value as boolean) : delta.amount > 0
         const amountVal = field === "value" ? (value as number) : currentAmount
-        hpChange.amount = isHealing ? amountVal : -amountVal
+        delta.amount = isHealing ? amountVal : -amountVal
     }
 
-    action.hpChanges[hpIndex] = hpChange
+    action.deltas[deltaIndex] = delta
     setActions(newActions)
   }
 
-  const removeActionHpChange = (actionIndex: number, hpIndex: number) => {
+  const removeActionDelta = (actionIndex: number, deltaIndex: number) => {
     if (readOnly) return
     const newActions = [...actions]
-    newActions[actionIndex].hpChanges = newActions[actionIndex].hpChanges.filter(
-      (_, i) => i !== hpIndex
+    newActions[actionIndex].deltas = newActions[actionIndex].deltas.filter(
+      (_, i) => i !== deltaIndex
     )
     setActions(newActions)
   }
@@ -139,20 +196,22 @@ export function TurnEditor({
     if (readOnly) return
     setEndOfTurnDeltas([
       ...endOfTurnDeltas,
-      { type: "HP_RELATIVE", targetId: "", amount: 0 },
+      { type: "HP_RELATIVE", target: { side: "my", slotIndex: 0 }, amount: 0 },
     ])
   }
 
   const updateEndOfTurnDelta = (
     index: number,
-    field: "pokemonId" | "value" | "isHealing",
-    value: string | number | boolean
+    field: "slot" | "value" | "isHealing",
+    value: any
   ) => {
     if (readOnly) return
     const newDeltas = [...endOfTurnDeltas]
     const delta = { ...newDeltas[index] }
+    
+    if (delta.type !== "HP_RELATIVE") return
 
-    if (field === "pokemonId") delta.targetId = value as string
+    if (field === "slot") delta.target = value
     if (field === "value" || field === "isHealing") {
         const currentAmount = Math.abs(delta.amount)
         const isHealing = field === "isHealing" ? (value as boolean) : delta.amount > 0
@@ -176,13 +235,6 @@ export function TurnEditor({
     })
   }
 
-  const getPokemonName = (id: string) => {
-    const config = activePokemon.find((p) => p.pokemon.id === id)
-    return config ? config.pokemon.name : "Unknown"
-  }
-
-  const getActionColor = (isAlly: boolean) => (isAlly ? "bg-blue-50 border-blue-200" : "bg-red-50 border-red-200")
-
   return (
     <div className={`space-y-6 ${readOnly ? 'opacity-80 pointer-events-none' : ''}`}>
       <div className="space-y-2">
@@ -192,15 +244,24 @@ export function TurnEditor({
             action={action}
             index={index}
             totalActions={actions.length}
-            actor={activePokemon.find((p) => p.pokemon.id === action.actorId)}
+            actor={
+                 // Fallback resolution logic:
+                 activePokemon.find(ap => {
+                     const apSide = ap.isAlly ? "my" : "opponent"
+                     return false // Placeholder
+                 })
+            }
             activePokemon={activePokemon}
-            // Even if we use global pointer-events-none, explicit disabling is good practice
             onMove={(direction) => !readOnly && moveAction(index, direction)}
-            onToggleCollapse={() => toggleActionCollapse(index)} // Collapse works even in read-only? No wait, pointer-events-none blocks it
+            onToggleCollapse={() => toggleActionCollapse(index)} 
             onUpdateType={(type) => !readOnly && updateActionType(index, type)}
-            onAddHpChange={() => !readOnly && addHpChangeToAction(index)}
-            onUpdateHpChange={(hpIndex, field, value) => !readOnly && updateActionHpChange(index, hpIndex, field, value)}
-            onRemoveHpChange={(hpIndex) => !readOnly && removeActionHpChange(index, hpIndex)}
+            onUpdateTarget={(target) => !readOnly && updateActionTarget(index, target)}
+            onUpdateMetadata={(metadata) => !readOnly && updateActionMetadata(index, metadata)}
+            onAddHpChange={() => !readOnly && addDeltaToAction(index)}
+            onUpdateHpChange={(deltaIndex, field, value) => !readOnly && updateActionHpChange(index, deltaIndex, field, value)}
+            onRemoveHpChange={(deltaIndex) => !readOnly && removeActionDelta(index, deltaIndex)}
+            myTeam={myTeam}
+            enemyTeam={enemyTeam}
           />
         ))}
       </div>
@@ -222,12 +283,13 @@ export function TurnEditor({
                  return (
                     <HpChangeRow
                         key={index}
-                        pokemonId={delta.targetId}
+                        target={delta.target}
                         value={Math.abs(delta.amount)}
                         isHealing={delta.amount > 0}
                         activePokemon={activePokemon}
                         onUpdate={(field, value) => !readOnly && updateEndOfTurnDelta(index, field, value)}
                         onRemove={() => !readOnly && removeEndOfTurnDelta(index)}
+                        autoFocus={index === endOfTurnDeltas.length - 1}
                     />
                  )
              })}

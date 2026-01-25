@@ -9,7 +9,9 @@ interface SetNextTurnProps {
   nodes: Map<string, TreeNode>
   onAddAction: (data: TurnData) => void
   activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
-  onChange?: (data: TurnData | null) => void
+  onChange?: (update: { mode: "add" | "update"; turnData: TurnData | null }) => void
+  myTeam: Pokemon[]
+  enemyTeam: Pokemon[]
 }
 
 import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
@@ -20,13 +22,15 @@ export function SetNextTurn({
   activePokemon,
   onAddAction,
   onChange,
+  myTeam,
+  enemyTeam,
 }: SetNextTurnProps) {
   const { isCorrupted } = useCorruptionHandler()
 
   // Cleanup preview on unmount
   useEffect(() => {
     return () => {
-        if (onChange) onChange(null)
+        if (onChange) onChange({ mode: "add", turnData: null })
     }
   }, [onChange])
 
@@ -47,7 +51,9 @@ export function SetNextTurn({
       activePokemon={activePokemon}
       onSave={onAddAction}
       saveLabel="End turn"
-      onChange={onChange}
+      onChange={(turnData) => onChange?.({ mode: "add", turnData })}
+      myTeam={myTeam}
+      enemyTeam={enemyTeam}
     />
   )
 }

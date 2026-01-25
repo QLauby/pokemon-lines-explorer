@@ -68,21 +68,33 @@ export interface TreeNode {
   createdAt: number
 }
 
+export interface SlotReference {
+  side: "my" | "opponent"
+  slotIndex: number // 0-based index in the team array
+}
+
 // Delta Definitions
 export type BattleDelta =
-  | { type: "HP_RELATIVE"; targetId: string; amount: number }
+  | { type: "HP_RELATIVE"; target: SlotReference; amount: number }
+  | { type: "SWITCH"; side: "my" | "opponent"; fromSlot: number; toSlot: number }
 
 export type TurnActionType = "attack" | "switch" | "item"
 
 export interface TurnAction {
   id: string
-  // The actor is determined by the slot, but due to reordering, we need to know WHO is acting.
-  actorId: string 
+  actor: SlotReference
   type: TurnActionType
-  // For switch and attacks, we need to know who is targeted
+  target?: SlotReference 
+  deltas: BattleDelta[]
+  isCollapsed?: boolean 
+  metadata?: {
+    itemName?: string
+    attackName?: string
+  }
+  // Legacy fields for migration
+  actorId?: string
   targetId?: string
-  hpChanges: BattleDelta[]
-  isCollapsed?: boolean // UI state persistence if needed, or handled locally
+  hpChanges?: { type: string, targetId: string, amount: number }[]
 }
 
 export interface TurnData {

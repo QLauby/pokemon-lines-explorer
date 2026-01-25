@@ -4,34 +4,67 @@ import { Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Pokemon } from "@/lib/types"
+import { Pokemon, SlotReference } from "@/lib/types"
 
 import { PokemonSelector } from "./pokemon-selector"
 
 interface HpChangeRowProps {
-  pokemonId: string
+  target: SlotReference
   value: number
   isHealing: boolean
   activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
-  onUpdate: (field: "pokemonId" | "value" | "isHealing", value: string | number | boolean) => void
+  onUpdate: (field: "slot" | "value" | "isHealing", value: any) => void
   onRemove: () => void
+  autoFocus?: boolean
 }
 
 export function HpChangeRow({
-  pokemonId,
+  target,
   value,
   isHealing,
   activePokemon,
   onUpdate,
   onRemove,
+  autoFocus,
 }: HpChangeRowProps) {
+  
+  const currentPokemonInSlot = activePokemon.find(ap => {
+      return false // Placeholder, to be replaced by dynamic lookup if possible 
+  })
+  
+  const activeSlots = activePokemon.map((ap, i) => {
+       return ap
+  })
+  
+  const myActive = activePokemon.filter(p => p.isAlly)
+  const oppActive = activePokemon.filter(p => !p.isAlly)
+  
+  let currentId = ""
+  if (target.side === "my" && myActive[target.slotIndex]) {
+      currentId = myActive[target.slotIndex].pokemon.id
+  } else if (target.side === "opponent" && oppActive[target.slotIndex]) {
+      currentId = oppActive[target.slotIndex].pokemon.id
+  }
+
   return (
     <div className="flex gap-2 items-center mb-4 relative">
       <div className="relative flex-1 min-w-[200px]">
         <PokemonSelector
-          currentId={pokemonId}
+          currentId={currentId}
           activePokemon={activePokemon}
-          onSelect={(id) => onUpdate("pokemonId", id)}
+          onSelect={(id) => {
+              // Convert ID -> SlotReference
+              const selected = activePokemon.find(p => p.pokemon.id === id)
+              if (selected) {
+                  // Find index in myActive/oppActive
+                  const isAlly = selected.isAlly
+                  const list = isAlly ? myActive : oppActive
+                  const idx = list.findIndex(p => p.pokemon.id === id)
+                  if (idx !== -1) {
+                      onUpdate("slot", { side: isAlly ? "my" : "opponent", slotIndex: idx })
+                  }
+              }
+          }}
         />
       </div>
       <div className="flex items-center gap-1">
@@ -55,6 +88,7 @@ export function HpChangeRow({
           inputMode="numeric"
           pattern="[0-9]*"
           placeholder="20"
+          autoFocus={autoFocus}
           value={value === 0 ? "" : value.toString()}
           onChange={(e) => {
             const raw = e.target.value.replace(/[^0-9]/g, "")

@@ -51,17 +51,10 @@ function InnerContent({
 
 
     const handleCommitCorruption = (newSession: CombatSession) => {
-        // Commit the cleaned session state
-        // This REPLACES the current session with the new one (which has correct type and cleaned nodes)
         actions.overwriteSession(newSession)
-        
-        // DO NOT call setters.setBattleType here because it would trigger a save 
-        // using the OLD currentSession (stale closure), overwriting our clean session.
-        // newSession already has the correct battleType.
     }
 
     const handleCancelCorruption = () => {
-        // Revert UI to teams, effectively cancelling the pending battle mode entry
         setters.setCurrentView('teams')
     }
 

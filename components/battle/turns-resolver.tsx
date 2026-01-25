@@ -1,6 +1,6 @@
 import { Pokemon, TreeNode, TurnData } from "@/lib/types"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { getTreeBranchColor } from "./battle-view"
 import { DeleteFromCurrentTurn } from "./turns-resolver/delete-from-current-turn"
 import { SetNextTurn } from "./turns-resolver/set-next-turn"
@@ -14,8 +14,11 @@ interface TurnsResolverProps {
   onDeleteNode: (nodeId: string) => void
   activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
   onHighlightNodes: (ids: string[]) => void
-  onPreviewChange?: (data: TurnData | null) => void
+  onPreviewChange?: (update: { mode: "add" | "update"; turnData: TurnData | null }) => void
   previewBranchIndex?: number | null
+  myTeam: Pokemon[]
+  enemyTeam: Pokemon[]
+  parentActivePokemon?: { pokemon: Pokemon; isAlly: boolean }[]
 }
 
 type Tab = "update" | "delete" | "next"
@@ -24,22 +27,32 @@ export function TurnsResolver({
   selectedNodeId,
   nodes,
   onAddAction,
-  activePokemon,
+  activePokemon, 
   onUpdateNode,
   onDeleteNode,
   onHighlightNodes,
   onPreviewChange,
   previewBranchIndex,
+  myTeam,
+  enemyTeam,
+  parentActivePokemon,
 }: TurnsResolverProps) {
   const [activeTab, setActiveTab] = useState<Tab>("next")
   const selectedNode = nodes.get(selectedNodeId)
+
+  // Fallback to activePokemon if parent not provided (though it should be for update reliability)
+  const effectiveParentPokemon = parentActivePokemon || activePokemon
+
+  useEffect(() => {
+    // Clear preview when tab changes
+    if (onPreviewChange) onPreviewChange({ mode: "add", turnData: null })
+  }, [activeTab])
   const currentTurn = selectedNode?.turn || 0
   
   // Current branch color
   const currentBranchColor = selectedNode ? getTreeBranchColor(selectedNode.branchIndex) : "inherit"
   
   // Next branch color calculation
-  // Priority: 1. Explicit preview index (from layout engine), 2. Local estimation
   let nextBranchIndex = selectedNode?.branchIndex || 0
   
   if (previewBranchIndex !== undefined && previewBranchIndex !== null) {
@@ -86,12 +99,21 @@ export function TurnsResolver({
 
       <div className="border rounded-lg p-4 bg-white/50">
          {activeTab === "update" && (
-            <UpdateCurrentTurn 
-              selectedNodeId={selectedNodeId}
-              nodes={nodes}
-              activePokemon={activePokemon}
-              onUpdateNode={onUpdateNode}
-            />
+            currentTurn === 0 ? (
+              <div className="text-center py-8 text-muted-foreground italic">
+                The starting state (Turn 0) cannot be updated.
+              </div>
+            ) : (
+              <UpdateCurrentTurn 
+                selectedNodeId={selectedNodeId}
+                nodes={nodes}
+                activePokemon={effectiveParentPokemon}
+                onUpdateNode={onUpdateNode}
+                myTeam={myTeam}
+                enemyTeam={enemyTeam}
+                onChange={onPreviewChange}
+              />
+            )
          )}
          {activeTab === "delete" && (
             <DeleteFromCurrentTurn 
@@ -108,6 +130,8 @@ export function TurnsResolver({
                 onAddAction={onAddAction}
                 activePokemon={activePokemon}
                 onChange={onPreviewChange}
+                myTeam={myTeam}
+                enemyTeam={enemyTeam}
             />
          )}
       </div>

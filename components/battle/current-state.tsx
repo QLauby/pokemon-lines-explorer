@@ -9,6 +9,7 @@ interface CurrentStateProps {
   selectedNode: TreeNode
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
+  activeStarters?: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   battlefieldState?: BattlefieldState
   battleType?: "simple" | "double"
 }
@@ -17,14 +18,24 @@ export function CurrentState({
   selectedNode, 
   myTeam, 
   enemyTeam, 
+  activeStarters,
   battlefieldState, 
   battleType = "simple" 
 }: CurrentStateProps) {
   
   const activeCount = battleType === "double" ? 2 : 1
 
-  const myActive = myTeam.slice(0, activeCount)
-  const enemyActive = enemyTeam.slice(0, activeCount)
+  const myActive = (activeStarters?.myTeam || [0, 1])
+    .slice(0, activeCount)
+    .filter((idx): idx is number => idx !== null)
+    .map(idx => myTeam[idx])
+    .filter(Boolean)
+
+  const enemyActive = (activeStarters?.opponentTeam || [0, 1])
+    .slice(0, activeCount)
+    .filter((idx): idx is number => idx !== null)
+    .map(idx => enemyTeam[idx])
+    .filter(Boolean)
 
   const cleanForBench = (p: Pokemon): Pokemon => ({
     ...p,

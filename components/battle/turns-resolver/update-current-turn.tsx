@@ -1,8 +1,10 @@
 "use client"
 
+import { useEffect } from "react"
+
+import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
 import { Pokemon, TreeNode, TurnData } from "@/lib/types"
 import { showSuccessToast } from "@/lib/utils/toasts/toast-handler"
-
 import { TurnEditor } from "./turn-editor"
 
 interface UpdateCurrentTurnProps {
@@ -10,18 +12,30 @@ interface UpdateCurrentTurnProps {
   nodes: Map<string, TreeNode>
   activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
   onUpdateNode: (nodeId: string, updates: Partial<TreeNode>) => void
+  myTeam: Pokemon[]
+  enemyTeam: Pokemon[]
+  onChange?: (update: { mode: "add" | "update"; turnData: TurnData | null }) => void
 }
 
-import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
 
 export function UpdateCurrentTurn({
   selectedNodeId,
   nodes,
   activePokemon,
   onUpdateNode,
+  myTeam,
+  enemyTeam,
+  onChange,
 }: UpdateCurrentTurnProps) {
   const selectedNode = nodes.get(selectedNodeId)
   const { isCorrupted } = useCorruptionHandler()
+
+  // Cleanup preview on unmount
+  useEffect(() => {
+    return () => {
+        if (onChange) onChange({ mode: "update", turnData: null })
+    }
+  }, [onChange])
   
   const handleSave = (turnData: TurnData) => {
     if (!selectedNode) return
@@ -39,6 +53,9 @@ export function UpdateCurrentTurn({
       onSave={handleSave}
       saveLabel={isCorrupted ? "Locked due to corruption" : "Update turn"}
       readOnly={isCorrupted}
+      myTeam={myTeam}
+      enemyTeam={enemyTeam}
+      onChange={(turnData) => onChange?.({ mode: "update", turnData })}
     />
   )
 }

@@ -52,33 +52,37 @@ export function CombatView({
   onCancel,
 }: CombatViewProps) {
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([])
-  const [previewTurnData, setPreviewTurnData] = useState<TurnData | null>(null)
+  const [preview, setPreview] = useState<{ mode: "add" | "update"; turnData: TurnData | null }>({ mode: "add", turnData: null })
   
   // Find current node
   const selectedNode = nodes.get(selectedNodeId) || Array.from(nodes.values())[0]
 
   // Memoize active pokemon list to prevent TurnEditor state reset loop
   const activePokemonList = useMemo(() => {
+    const limit = currentSession.battleType === "double" ? 2 : 1
+    
     return [
       ...(activeStarters?.myTeam || [])
+        .slice(0, limit)
         .filter((idx): idx is number => idx !== null)
         .map(idx => ({ pokemon: myTeam[idx], isAlly: true })),
       ...(activeStarters?.opponentTeam || [])
+        .slice(0, limit)
         .filter((idx): idx is number => idx !== null)
         .map(idx => ({ pokemon: enemyTeam[idx], isAlly: false }))
     ]
-  }, [activeStarters, myTeam, enemyTeam])
-  
+  }, [activeStarters, myTeam, enemyTeam, currentSession.battleType])
+
   // -- PREVIEW LOGIC --
   let displayNodes = nodes
   let targetNodeId = selectedNodeId
 
-  if (previewTurnData && selectedNode) {
+  // Case 1: Preview adding a NEW node
+  if (preview.mode === "add" && preview.turnData && selectedNode) {
      const previewId = "preview-node"
      targetNodeId = previewId // Engine target
 
      // 1. Create a Mutable Copy of the nodes for layout calculation
-     // We need an array to pass to the layout function
      const nodesArray = Array.from(nodes.values())
      
      // 2. Create the preview node (initially with placeholder/dummy values)
@@ -87,20 +91,17 @@ export function CombatView({
          parentId: selectedNode.id,
          children: [],
          turn: selectedNode.turn + 1,
-         turnData: previewTurnData,
-         branchIndex: 0, // Will be calculated
+         turnData: preview.turnData,
+         branchIndex: 0, 
          probability: 0, 
          cumulativeProbability: 0,
          description: "Preview",
          createdAt: Date.now(),
-         x: 0, // Will be calculated
-         y: 0  // Will be calculated
+         x: 0, 
+         y: 0 
      }
      
      // 3. Add to the array
-     // Note: recalculateTreeLayout builds its own parent/child map from parentId, 
-     // so we don't strictly need to update parent.children manually *before* calling it,
-     // but the function returns a fresh set of nodes with updated coordinates/indices.
      const nodesWithPreview = [...nodesArray, previewNode]
      
      // 4. Run Layout
@@ -108,7 +109,38 @@ export function CombatView({
      
      // 5. Rebuild Map for Display (using the layouted nodes)
      displayNodes = new Map(layoutedNodes.map(n => [n.id, n]))
+  } 
+  // Case 2: Preview UPDATING the existing node
+  else if (preview.mode === "update" && preview.turnData && selectedNode) {
+      // We just replace the turnData in a copy of the nodes Map for the engine call
+      displayNodes = new Map(nodes)
+      const updatedNode = { ...selectedNode, turnData: preview.turnData }
+      displayNodes.set(selectedNodeId, updatedNode)
+      // targetNodeId remains selectedNodeId
   }
+
+  // Compute Parent Active Pokemon (for Update Mode)
+  const parentActivePokemonList = useMemo(() => {
+     if (!selectedNode || !selectedNode.parentId) return activePokemonList
+     
+     const parentState = BattleEngine.computeState(
+        currentSession.initialState,
+        nodes, // Use committed nodes for parent state lookup
+        selectedNode.parentId
+     )
+
+     const limit = currentSession.battleType === "double" ? 2 : 1
+     return [
+       ...(parentState.activeStarters?.myTeam || [])
+         .slice(0, limit)
+         .filter((idx): idx is number => idx !== null)
+         .map(idx => ({ pokemon: parentState.myTeam[idx], isAlly: true })),
+       ...(parentState.activeStarters?.opponentTeam || [])
+         .slice(0, limit)
+         .filter((idx): idx is number => idx !== null)
+         .map(idx => ({ pokemon: parentState.enemyTeam[idx], isAlly: false }))
+     ]
+  }, [selectedNode, nodes, currentSession.initialState, currentSession.battleType, activePokemonList])
 
   // Compute State (Live or Standard)
   const currentBattleState = BattleEngine.computeState(
@@ -149,12 +181,12 @@ export function CombatView({
                      selectedNode={displayNodes.get(targetNodeId) || selectedNode}
                      myTeam={currentBattleState.myTeam}
                      enemyTeam={currentBattleState.enemyTeam}
+                     activeStarters={currentBattleState.activeStarters}
                      battlefieldState={currentBattleState.battlefieldState}
                      battleType={currentSession.battleType}
                   />
               </div>
           </div>
-
 
           {/* RIGHT COLUMN: ACTIONS - Grows with content, scrolls with page */}
           <div className="border rounded-xl bg-white shadow-md p-8 ring-1 ring-black/5">
@@ -170,8 +202,11 @@ export function CombatView({
                     onDeleteNode={onDeleteNode}
                     activePokemon={activePokemonList}
                     onHighlightNodes={setHighlightedNodeIds}
-                    onPreviewChange={setPreviewTurnData}
+                    onPreviewChange={setPreview}
                     previewBranchIndex={targetNodeId === "preview-node" ? displayNodes.get("preview-node")?.branchIndex : undefined}
+                    myTeam={myTeam}
+                    enemyTeam={enemyTeam}
+                    parentActivePokemon={parentActivePokemonList}
                  />
               </div>
           </div>

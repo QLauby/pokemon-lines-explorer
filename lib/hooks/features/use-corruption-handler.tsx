@@ -38,9 +38,7 @@ export function CorruptionProvider({ session, children }: CorruptionProviderProp
 
   const isCorrupted = corruptedNodeIds.length > 0
 
-  // Sync pendingSession when the original session changes (e.g. loaded from disk or changed externally)
-  // But ONLY if we are not currently in a "corrupted/pending" state.
-  // This prevents resetting the pending changes when the user clicks a node (which updates session.lastSelectedNodeId).
+  // Sync pendingSession when the session changes (e.g. loaded from disk or changed externally)
   useEffect(() => {
     if (!isCorrupted) {
        setPendingSession(session)

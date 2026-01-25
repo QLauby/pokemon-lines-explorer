@@ -146,53 +146,43 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
 
    const handleFlagClick = (index: number, isMyTeam: boolean) => {
     const teamKey = isMyTeam ? "myTeam" : "opponentTeam"
-    const currentStarters = [...activeStarters[teamKey]]
+    const currentStarters = [...activeStarters[teamKey]] // Should be [0, 1] or similar
     const maxSlots = currentSession?.battleType === "simple" ? 1 : 2
     const team = isMyTeam ? myTeam : enemyTeam
-
-    let indexLeaving: number | null = null
+    
     const existingSlot = currentStarters.slice(0, maxSlots).indexOf(index)
+    const updates: Partial<BattleState> = {}
 
     if (existingSlot !== -1) {
-      indexLeaving = index
-      currentStarters[existingSlot] = null
     } else {
-      if (currentStarters[0] === null) {
-        currentStarters[0] = index
-      } else if (maxSlots > 1 && currentStarters[1] === null) {
-        currentStarters[1] = index
+      let targetIndex = -1
+      if (currentStarters[0] === null || (typeof currentStarters[0] === 'number' && currentStarters[0] !== 0)) {
+          targetIndex = 0
+      } else if (maxSlots > 1 && (currentStarters[1] === null || (typeof currentStarters[1] === 'number' && currentStarters[1] !== 1))) {
+          targetIndex = 1
       } else {
-         if (maxSlots === 1) {
-          indexLeaving = currentStarters[0]
-          currentStarters[0] = index
-         } else {
-          indexLeaving = currentStarters[1]
-          currentStarters[1] = index
-         }
+          targetIndex = maxSlots - 1
+      }
+
+      if (targetIndex !== -1) {
+          const newTeam = [...team]
+          const temp = newTeam[targetIndex]
+          newTeam[targetIndex] = newTeam[index]
+          newTeam[index] = temp
+          
+          if (isMyTeam) updates.myTeam = newTeam
+          else updates.enemyTeam = newTeam
+          
+          // Fixed activeStarters indices
+          const newStarters = [...currentStarters]
+          newStarters[targetIndex] = targetIndex
+          updates.activeStarters = { ...activeStarters, [teamKey]: newStarters }
       }
     }
-    
-    const updates: Partial<BattleState> = { activeStarters: { ...activeStarters, [teamKey]: currentStarters } }
 
-    if (indexLeaving !== null) {
-        const pokemonLeaving = team[indexLeaving]
-        if (pokemonLeaving) {
-             const cleaned = {
-                 ...pokemonLeaving,
-                 love: false,
-                 confusion: false,
-                 confusionCounter: 0,
-                 showConfusionCounter: false
-             }
-             const newTeam = [...team]
-             newTeam[indexLeaving] = cleaned
-             
-             if (isMyTeam) updates.myTeam = newTeam
-             else updates.enemyTeam = newTeam
-        }
+    if (Object.keys(updates).length > 0) {
+        updateInitialState(updates)
     }
-
-    updateInitialState(updates)
   }
 
   const updateBattlefieldTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, customTags: tags } })
