@@ -15,6 +15,7 @@ interface UpdateCurrentTurnProps {
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
   onChange?: (update: { mode: "add" | "update"; turnData: TurnData | null }) => void
+  battleType: "simple" | "double"
 }
 
 
@@ -26,6 +27,7 @@ export function UpdateCurrentTurn({
   myTeam,
   enemyTeam,
   onChange,
+  battleType,
 }: UpdateCurrentTurnProps) {
   const selectedNode = nodes.get(selectedNodeId)
   const { isCorrupted } = useCorruptionHandler()
@@ -56,6 +58,8 @@ export function UpdateCurrentTurn({
       myTeam={myTeam}
       enemyTeam={enemyTeam}
       onChange={(turnData) => onChange?.({ mode: "update", turnData })}
+      turnNumber={selectedNode.turn}
+      battleFormat={battleType}
     />
   )
 }

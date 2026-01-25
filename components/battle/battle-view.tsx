@@ -207,6 +207,7 @@ export function CombatView({
                     myTeam={myTeam}
                     enemyTeam={enemyTeam}
                     parentActivePokemon={parentActivePokemonList}
+                    battleType={currentSession.battleType}
                  />
               </div>
           </div>

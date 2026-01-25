@@ -1,10 +1,9 @@
 "use client"
 
-
 import { Pokemon, SlotReference, TurnAction } from "@/lib/types"
-import { ConsequencesList } from "./consequences-list"
+import { EffectsList } from "./effects-list"
 
-interface SwitchConsequencesProps {
+interface SwitchEffectsProps {
   action: TurnAction
   activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
   onAddEntryHpChange: () => void
@@ -15,7 +14,7 @@ interface SwitchConsequencesProps {
   enemyTeam: Pokemon[]
 }
 
-export function SwitchConsequences({
+export function SwitchEffects({
   action,
   activePokemon,
   onAddEntryHpChange,
@@ -24,7 +23,7 @@ export function SwitchConsequences({
   onMoveHpChange,
   myTeam,
   enemyTeam,
-}: SwitchConsequencesProps) {
+}: SwitchEffectsProps) {
   if (!action.target) {
     return (
       <div className="p-4 border border-dashed rounded-md bg-muted/30 text-center text-muted-foreground text-sm italic">
@@ -139,7 +138,7 @@ export function SwitchConsequences({
   }
 
   return (
-    <ConsequencesList 
+    <EffectsList 
         title="Entry Effects"
         deltas={action.deltas}
         options={options}

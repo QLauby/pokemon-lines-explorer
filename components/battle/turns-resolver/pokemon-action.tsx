@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Pokemon, SlotReference, TurnAction, TurnActionType } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-import { ConsequencesList } from "./consequences-list"
-import { SwitchConsequences } from "./switch-consequences"
+import { EffectsList } from "./effects-list"
+import { SwitchEffects } from "./switch-effects"
 
 interface PokemonActionProps {
   action: TurnAction
@@ -278,7 +278,7 @@ export function PokemonAction({
       {!action.isCollapsed && (
         <div className="border-t border-dashed px-3 py-2 pb-3 bg-white/40">
            {action.type === "switch" ? (
-             <SwitchConsequences
+             <SwitchEffects
                action={action}
                activePokemon={activePokemon}
                onAddEntryHpChange={onAddHpChange}
@@ -290,12 +290,14 @@ export function PokemonAction({
              />
            ) : (
              <>
-                <ConsequencesList 
+                <EffectsList 
+                    title="Effects"
                     deltas={action.deltas}
                     options={getSortedOptions()}
                     onAdd={onAddHpChange}
                     onUpdate={(idx, field, val) => onUpdateHpChange(idx, field, val)}
                     onRemove={onRemoveHpChange}
+                    addButtonLabel="Add Effect"
                 />
              </>
            )}

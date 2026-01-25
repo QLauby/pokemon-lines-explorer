@@ -12,6 +12,7 @@ interface SetNextTurnProps {
   onChange?: (update: { mode: "add" | "update"; turnData: TurnData | null }) => void
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
+  battleType: "simple" | "double"
 }
 
 import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
@@ -24,8 +25,14 @@ export function SetNextTurn({
   onChange,
   myTeam,
   enemyTeam,
+  nodes,
+  selectedNodeId,
+  battleType,
 }: SetNextTurnProps) {
   const { isCorrupted } = useCorruptionHandler()
+
+  const selectedNode = nodes.get(selectedNodeId)
+  const nextTurnNumber = (selectedNode?.turn || 0) + 1
 
   // Cleanup preview on unmount
   useEffect(() => {
@@ -54,6 +61,8 @@ export function SetNextTurn({
       onChange={(turnData) => onChange?.({ mode: "add", turnData })}
       myTeam={myTeam}
       enemyTeam={enemyTeam}
+      turnNumber={nextTurnNumber}
+      battleFormat={battleType}
     />
   )
 }

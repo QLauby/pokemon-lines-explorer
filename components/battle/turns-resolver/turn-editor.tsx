@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { BattleDelta, Pokemon, TurnAction, TurnActionType, TurnData } from "@/lib/types"
 
-import { ConsequencesList } from "./consequences-list"
+import { EffectsList } from "./effects-list"
+import { InitialDeploymentManager } from "./initial-deployment-manager"
 import { PokemonAction } from "./pokemon-action"
 
 interface TurnEditorProps {
@@ -17,6 +18,8 @@ interface TurnEditorProps {
   onChange?: (data: TurnData) => void
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
+  turnNumber: number
+  battleFormat?: "simple" | "double"
 }
 
 export function TurnEditor({
@@ -28,6 +31,8 @@ export function TurnEditor({
   onChange,
   myTeam,
   enemyTeam,
+  turnNumber,
+  battleFormat = "simple",
 }: TurnEditorProps) {
   const [actions, setActions] = useState<TurnAction[]>([])
   const [endOfTurnDeltas, setEndOfTurnDeltas] = useState<BattleDelta[]>([])
@@ -48,28 +53,72 @@ export function TurnEditor({
       setActions(initialTurnData.actions)
       setEndOfTurnDeltas(initialTurnData.endOfTurnDeltas)
     } else {
-      // Create initial actions based on SLOTS for each active pokemon
-      const resolvedActions: TurnAction[] = activePokemon.map(ap => {
-          const side: "my" | "opponent" = ap.isAlly ? "my" : "opponent"
-          const team = ap.isAlly ? myTeam : enemyTeam
-          const slotIndex = team.findIndex(p => p.id === ap.pokemon.id)
-          
-          return {
-              id: crypto.randomUUID(),
-              actor: { side, slotIndex },
-              type: "attack",
-              deltas: [],
-              isCollapsed: true
-          }
-      })
+      if (turnNumber === 1) {
+        // TURN 1: Initial Deployment (Self-Switch Actions) followed by Regular Actions
+        const activeSlots = battleFormat === "double" ? 2 : 1
+        const deploymentActions: TurnAction[] = []
 
-      setActions(resolvedActions)
+        // Order: My Slot 0, Opponent Slot 0, (then Slot 1 if Double)
+        for (let i = 0; i < activeSlots; i++) {
+            // My Side
+            deploymentActions.push({
+                id: crypto.randomUUID(),
+                type: "switch",
+                actor: { side: "my", slotIndex: i },
+                target: { side: "my", slotIndex: i }, // Self-Switch
+                deltas: [],
+                isCollapsed: true
+            })
+            // Opponent Side
+            deploymentActions.push({
+                id: crypto.randomUUID(),
+                type: "switch",
+                actor: { side: "opponent", slotIndex: i },
+                target: { side: "opponent", slotIndex: i }, // Self-Switch
+                deltas: [],
+                isCollapsed: true
+            })
+        }
+
+        // Regular Actions for Turn 1
+        const regularActions: TurnAction[] = activePokemon.map(ap => {
+            const side: "my" | "opponent" = ap.isAlly ? "my" : "opponent"
+            const team = ap.isAlly ? myTeam : enemyTeam
+            const slotIndex = team.findIndex(p => p.id === ap.pokemon.id)
+            
+            return {
+                id: crypto.randomUUID(),
+                actor: { side, slotIndex },
+                type: "attack",
+                deltas: [],
+                isCollapsed: true
+            }
+        })
+
+        setActions([...deploymentActions, ...regularActions])
+      } else {
+        // SUBSEQUENT TURNS: Default Attack Actions
+        const resolvedActions: TurnAction[] = activePokemon.map(ap => {
+            const side: "my" | "opponent" = ap.isAlly ? "my" : "opponent"
+            const team = ap.isAlly ? myTeam : enemyTeam
+            const slotIndex = team.findIndex(p => p.id === ap.pokemon.id)
+            
+            return {
+                id: crypto.randomUUID(),
+                actor: { side, slotIndex },
+                type: "attack",
+                deltas: [],
+                isCollapsed: true
+            }
+        })
+        setActions(resolvedActions)
+      }
       
       if (initialTurnData) {
         setEndOfTurnDeltas(initialTurnData.endOfTurnDeltas)
       }
     }
-  }, [initialTurnData, activePokemon, myTeam, enemyTeam])
+  }, [initialTurnData, activePokemon, myTeam, enemyTeam, turnNumber, battleFormat])
 
   const moveAction = (index: number, direction: "up" | "down") => {
     if (readOnly) return
@@ -311,7 +360,6 @@ export function TurnEditor({
              team[toIndex] = temp
 
              // Update Active Pokemon List to reflect this swap
-             // We find the entry that WAS representing the 'from' slot
              const activeIndex = currentActive.findIndex(p => {
                  const pSide = p.isAlly ? "my" : "opponent"
                  // Important: We match based on the ID of the pokemon that WAS there
@@ -364,41 +412,65 @@ export function TurnEditor({
     return states
   }, [actions, activePokemon, myTeam, enemyTeam])
 
+  const handleUpdateAction = (index: number, newAction: TurnAction) => {
+    if (readOnly) return
+    const newActions = [...actions]
+    newActions[index] = newAction
+    setActions(newActions)
+  }
+
   return (
     <div className={`space-y-6 ${readOnly ? 'opacity-80 pointer-events-none' : ''}`}>
-      <div className="space-y-2">
-        {actions.map((action, index) => (
-          <PokemonAction
-            key={action.id}
-            action={action}
-            index={index}
-            totalActions={actions.length}
-            actor={
-                 // Use the state BEFORE this action (computedStates[index]) to identify the actor
-                 computedStates[index].activePokemon.find((ap: { pokemon: Pokemon; isAlly: boolean }) => {
-                     const team = ap.isAlly ? computedStates[index].myTeam : computedStates[index].enemyTeam
-                     const slotIndex = team.findIndex((p: Pokemon) => p.id === ap.pokemon.id)
-                     return (ap.isAlly ? "my" : "opponent") === action.actor.side && slotIndex === action.actor.slotIndex
-                 })
-            }
-            activePokemon={computedStates[index].activePokemon} // Pass dynamic state context
-            onMove={(direction) => !readOnly && moveAction(index, direction)}
-            onToggleCollapse={() => toggleActionCollapse(index)} 
-            onUpdateType={(type) => !readOnly && updateActionType(index, type)}
-            onUpdateTarget={(target) => !readOnly && updateActionTarget(index, target)}
-            onUpdateMetadata={(metadata) => !readOnly && updateActionMetadata(index, metadata)}
-            onAddHpChange={() => !readOnly && addDeltaToAction(index)}
-            onUpdateHpChange={(deltaIndex, field, value) => !readOnly && updateActionHpChange(index, deltaIndex, field, value)}
-            onRemoveHpChange={(deltaIndex) => !readOnly && removeActionDelta(index, deltaIndex)}
-            onMoveHpChange={(from, to) => !readOnly && moveActionDelta(index, from, to)}
-            myTeam={computedStates[index].myTeam}   // PASS DYNAMIC TEAM
-            enemyTeam={computedStates[index].enemyTeam} // PASS DYNAMIC TEAM
+      <div className="space-y-4">
+        {turnNumber === 1 && (
+          <InitialDeploymentManager 
+            actions={actions.slice(0, (battleFormat === "double" ? 2 : 1) * 2)}
+            myTeam={myTeam}
+            enemyTeam={enemyTeam}
+            activeSlots={battleFormat === "double" ? 2 : 1}
+            onUpdateAction={(sliceIndex, newAction) => handleUpdateAction(sliceIndex, newAction)}
           />
-        ))}
+        )}
+
+        <div className="space-y-2">
+          {actions.map((action, index) => {
+            const isDeployment = turnNumber === 1 && index < (battleFormat === "double" ? 2 : 1) * 2
+            if (isDeployment) return null // Handled by InitialDeploymentManager
+
+            return (
+              <PokemonAction
+                key={action.id}
+                action={action}
+                index={index}
+                totalActions={actions.length}
+                actor={
+                    // Use the state BEFORE this action (computedStates[index]) to identify the actor
+                    computedStates[index].activePokemon.find((ap: { pokemon: Pokemon; isAlly: boolean }) => {
+                        const team = ap.isAlly ? computedStates[index].myTeam : computedStates[index].enemyTeam
+                        const slotIndex = team.findIndex((p: Pokemon) => p.id === ap.pokemon.id)
+                        return (ap.isAlly ? "my" : "opponent") === action.actor.side && slotIndex === action.actor.slotIndex
+                    })
+                }
+                activePokemon={computedStates[index].activePokemon} // Pass dynamic state context
+                onMove={(direction) => !readOnly && moveAction(index, direction)}
+                onToggleCollapse={() => toggleActionCollapse(index)} 
+                onUpdateType={(type) => !readOnly && updateActionType(index, type)}
+                onUpdateTarget={(target) => !readOnly && updateActionTarget(index, target)}
+                onUpdateMetadata={(metadata) => !readOnly && updateActionMetadata(index, metadata)}
+                onAddHpChange={() => !readOnly && addDeltaToAction(index)}
+                onUpdateHpChange={(deltaIndex, field, value) => !readOnly && updateActionHpChange(index, deltaIndex, field, value)}
+                onRemoveHpChange={(deltaIndex) => !readOnly && removeActionDelta(index, deltaIndex)}
+                onMoveHpChange={(from, to) => !readOnly && moveActionDelta(index, from, to)}
+                myTeam={computedStates[index].myTeam}   // PASS DYNAMIC TEAM
+                enemyTeam={computedStates[index].enemyTeam} // PASS DYNAMIC TEAM
+              />
+            )
+          })}
+        </div>
       </div>
 
       <div className="border-t pt-4">
-          <ConsequencesList 
+          <EffectsList 
               title="End of Turn Effects"
               deltas={endOfTurnDeltas}
               options={[

@@ -34,7 +34,7 @@ function AddActionButton({
 }
 
 
-interface ConsequencesListProps {
+interface EffectsListProps {
   title?: string
   deltas: BattleDelta[]
   options: { label: string; value: SlotReference; isAlly: boolean }[]
@@ -44,15 +44,15 @@ interface ConsequencesListProps {
   addButtonLabel?: string
 }
 
-export function ConsequencesList({
-  title = "Consequences",
+export function EffectsList({
+  title = "Effects",
   deltas,
   options,
   onAdd,
   onUpdate,
   onRemove,
   addButtonLabel = "Add"
-}: ConsequencesListProps) {
+}: EffectsListProps) {
   const hpDeltas = deltas
     .map((d: BattleDelta, i: number) => ({ delta: d, originalIndex: i }))
     .filter((item): item is { delta: Extract<BattleDelta, { type: "HP_RELATIVE" }>; originalIndex: number } => 
