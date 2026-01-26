@@ -1,7 +1,10 @@
 "use client"
 
-import { Pokemon, TreeNode, TurnData } from "@/types/types"
+import { AlertTriangle } from "lucide-react"
+import { useCallback, useEffect } from "react"
 
+import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
+import { Pokemon, TreeNode, TurnData } from "@/types/types"
 import { TurnEditor } from "./shared/turn-editor"
 
 interface SetNextTurnProps {
@@ -15,9 +18,6 @@ interface SetNextTurnProps {
   battleType: "simple" | "double"
 }
 
-import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
-import { AlertTriangle } from "lucide-react"
-import { useEffect } from "react"
 
 export function SetNextTurn({
   activePokemon,
@@ -53,12 +53,16 @@ export function SetNextTurn({
     )
   }
 
+  const handleTurnChange = useCallback((turnData: TurnData) => {
+      onChange?.({ mode: "add", turnData })
+  }, [onChange])
+
   return (
     <TurnEditor
       activePokemon={activePokemon}
       onSave={onAddAction}
       saveLabel="End turn"
-      onChange={(turnData) => onChange?.({ mode: "add", turnData })}
+      onChange={handleTurnChange}
       myTeam={myTeam}
       enemyTeam={enemyTeam}
       turnNumber={nextTurnNumber}

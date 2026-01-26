@@ -125,22 +125,22 @@ export function CombatView({
   const parentState = useMemo(() => {
      if (!selectedNode) return null
      
-     // 1. If we are at the root (Turn 0), the parent state is simply the absolute session initial state.
-     if (selectedNode.id === "root") {
+     // 1. If we are at the root (No parent), the parent state is simply the absolute session initial state.
+     if (!selectedNode.parentId || selectedNode.id === "root") {
          return JSON.parse(JSON.stringify(currentSession.initialState))
      }
 
      // 2. If we have a parent, we compute the state up to that parent.
-     if (selectedNode.parentId) {
+      if (selectedNode.parentId) {
          return BattleEngine.computeState(
             currentSession.initialState,
             nodes,
             selectedNode.parentId
          )
-     }
-     
-     return null
-  }, [selectedNode, nodes, currentSession.initialState])
+      }
+      
+      return null
+   }, [selectedNode, nodes, currentSession.initialState])
 
   const parentActivePokemonList = useMemo(() => {
      if (!parentState) return activePokemonList
@@ -172,6 +172,15 @@ export function CombatView({
   const displaySelectedNode = displayNodes.get(selectedNodeId) || selectedNode
   const branchColor = displaySelectedNode ? getTreeBranchColor(displaySelectedNode.branchIndex) : "inherit"
   
+  // Compute state at the selected node explicitly (for setting NEXT turn, we need the END state of CURRENT node)
+  const selectedNodeState = useMemo(() => {
+     return BattleEngine.computeState(
+        currentSession.initialState,
+        nodes, // Use pure nodes, not displayNodes to avoid preview recursion/contamination
+        selectedNodeId
+     )
+  }, [currentSession.initialState, nodes, selectedNodeId])
+
   return (
     <div className="w-full p-2 bg-gray-50/50 min-h-screen">
        {/* Main Grid: Left (Tree + Battle) | Right (Actions) */}
@@ -230,9 +239,9 @@ export function CombatView({
                     // For "Update": Pass the computed parent state teams
                     updateParentMyTeam={parentState?.myTeam || myTeam}
                     updateParentEnemyTeam={parentState?.enemyTeam || enemyTeam}
-                    // For "Next Turn": Pass the current computed state teams
-                    nextCurrentMyTeam={currentBattleState.myTeam}
-                    nextCurrentEnemyTeam={currentBattleState.enemyTeam}
+                    // For "Next Turn": Pass the clean end state of the selected node
+                    nextCurrentMyTeam={selectedNodeState.myTeam}
+                    nextCurrentEnemyTeam={selectedNodeState.enemyTeam}
                  />
               </div>
           </div>

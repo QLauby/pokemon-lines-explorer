@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useCallback, useEffect } from "react"
 
 import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
 import { showSuccessToast } from "@/lib/utils/toasts/toast-handler"
@@ -48,6 +48,10 @@ export function UpdateCurrentTurn({
     showSuccessToast(`Tour ${selectedNode.turn} mis à jour`)
   }
 
+  const handleTurnChange = useCallback((turnData: TurnData) => {
+      onChange?.({ mode: "update", turnData })
+  }, [onChange])
+
   if (!selectedNode) return <div>No turn selected</div>
 
   return (
@@ -60,7 +64,7 @@ export function UpdateCurrentTurn({
       readOnly={isCorrupted}
       myTeam={myTeam}
       enemyTeam={enemyTeam}
-      onChange={(turnData) => onChange?.({ mode: "update", turnData })}
+      onChange={handleTurnChange}
       turnNumber={selectedNode.turn}
       battleFormat={battleType}
     />

@@ -5,12 +5,11 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useTurnSimulation } from "@/lib/hooks/use-turn-simulation"
 import { BattleDelta, BattleState, Pokemon, TurnAction, TurnActionType, TurnData } from "@/types/types"
-import { AlertTriangle } from "lucide-react"
 
+import { useKoFusion } from "@/lib/hooks/use-ko-fusion"
 import { EffectsList } from "./effects-list"
 import { InitialDeploymentManager } from "./initial-deployment-manager"
 import { PokemonAction } from "./pokemon-action"
-import { SwitchActionAfterKo } from "./switch-action-after-ko"
 
 interface TurnEditorProps {
   initialTurnData?: TurnData
@@ -118,17 +117,52 @@ export function TurnEditor({
     }
   }, [initialTurnData, turnNumber, battleFormat /** Only run once or when context changes drastically, manual deps */])
 
+  // --- Automatic Forced Switch Management ---
+  useKoFusion({
+      actions,
+      setActions,
+      detectedKOs,
+      getStateAtAction,
+      readOnly
+  })
+
+  const canMoveActionUp = (index: number) => {
+      if (index === 0) return false
+      
+      const action = actions[index]
+
+      // Temporal Guard Check
+      if (action.type === "forced-switch") {
+          // Allow Defusion: If this is a fused action, we can move it up to revert it
+          if (action.metadata?.fusedFrom) return true
+          
+          const targetIndex = index - 1
+          const stateAtTarget = getStateAtAction(targetIndex)
+          const actorSide = action.actor.side
+          const actorSlot = action.actor.slotIndex
+          const team = actorSide === "my" ? stateAtTarget.myTeam : stateAtTarget.enemyTeam
+          const pokemon = team[actorSlot]
+          
+          if (pokemon && pokemon.hpPercent > 0) {
+              return false
+          }
+      }
+      return true
+  }
 
   const moveAction = (index: number, direction: "up" | "down") => {
     if (readOnly) return
-    if (direction === "up" && index === 0) return
+    if (direction === "up" && !canMoveActionUp(index)) return
     if (direction === "down" && index === actions.length - 1) return
 
     const newActions = [...actions]
     const targetIndex = direction === "up" ? index - 1 : index + 1
+    
+    // Perform Swap
     const temp = newActions[targetIndex]
     newActions[targetIndex] = newActions[index]
     newActions[index] = temp
+
     setActions(newActions)
   }
 
@@ -141,7 +175,7 @@ export function TurnEditor({
     setActions(newActions)
   }
 
-  const updateActionTarget = (index: number, target: { side: "my" | "opponent", slotIndex: number }) => {
+  const updateActionTarget = (index: number, target: { side: "my" | "opponent", slotIndex: number } | undefined) => {
     if (readOnly) return
     const newActions = [...actions]
     const action = newActions[index]
@@ -151,14 +185,17 @@ export function TurnEditor({
     if (action.type === "switch") {
         const otherDeltas = action.deltas.filter(d => d.type !== "SWITCH")
         
-        const newDelta: BattleDelta = {
-            type: "SWITCH",
-            side: action.actor.side,
-            fromSlot: action.actor.slotIndex,
-            toSlot: target.slotIndex
+        if (target) {
+            const newDelta: BattleDelta = {
+                type: "SWITCH",
+                side: action.actor.side,
+                fromSlot: action.actor.slotIndex,
+                toSlot: target.slotIndex
+            }
+            action.deltas = [...otherDeltas, newDelta]
+        } else {
+            action.deltas = otherDeltas
         }
-        
-        action.deltas = [...otherDeltas, newDelta]
     }
     
     setActions(newActions)
@@ -266,11 +303,11 @@ export function TurnEditor({
     
     const newAction: TurnAction = {
         id: crypto.randomUUID(),
-        type: "switch",
+        type: "forced-switch",
         actor: { side, slotIndex },
         target: undefined,
         deltas: [],
-        metadata: { isForcedSwitch: true },
+        metadata: { },
         isCollapsed: false
     }
 
@@ -381,30 +418,10 @@ export function TurnEditor({
                 ap.slotIndex === action.actor.slotIndex
             )
 
-            const koData = detectedKOs[index]
-            const hasKO = koData && koData.length > 0
-
             return (
               <div key={action.id} className="space-y-2">
                   <div className="relative">
-                      {action.metadata?.isForcedSwitch ? (
-                          <SwitchActionAfterKo 
-                              action={action}
-                              index={index}
-                              totalActions={actions.length}
-                              activePokemon={dynamicActivePokemon}
-                              myTeam={stateBeforeAction.myTeam}
-                              enemyTeam={stateBeforeAction.enemyTeam}
-                              onUpdateTarget={(target) => !readOnly && updateActionTarget(index, target)}
-                              onAddHpChange={() => !readOnly && addDeltaToAction(index)}
-                              onUpdateHpChange={(deltaIndex, field, value) => !readOnly && updateActionHpChange(index, deltaIndex, field, value)}
-                              onRemoveHpChange={(deltaIndex) => !readOnly && removeActionDelta(index, deltaIndex)}
-                              onMoveHpChange={(from, to) => !readOnly && moveActionDelta(index, from, to)}
-                              onMove={(direction) => !readOnly && moveAction(index, direction)}
-                              onDelete={() => !readOnly && handleDeleteAction(index)}
-                          />
-                      ) : (
-                          <PokemonAction
+                       <PokemonAction
                             action={action}
                             index={index}
                             totalActions={actions.length}
@@ -421,40 +438,11 @@ export function TurnEditor({
                             onMoveHpChange={(from, to) => !readOnly && moveActionDelta(index, from, to)}
                             myTeam={stateBeforeAction.myTeam} 
                             enemyTeam={stateBeforeAction.enemyTeam} 
-                          />
-                      )}
+                            onDelete={() => !readOnly && handleDeleteAction(index)}
+                            canMoveUp={!readOnly && canMoveActionUp(index)}
+                            canMoveDown={!readOnly && index < actions.length - 1}
+                        />
                   </div>
-
-                  {/* Banner for KO detection */}
-                  {hasKO && (
-                      <div className="mx-2 mt-2 bg-red-50 border-l-4 border-red-500 p-3 rounded-r-md flex flex-col gap-2 shadow-sm animate-in fade-in slide-in-from-top-1 duration-300">
-                          <div className="flex items-center gap-2 text-red-700 font-bold">
-                              <AlertTriangle className="h-4 w-4" />
-                              <span className="text-xs">
-                                  {koData.map(k => k.pokemon.name).join(" et ")} est K.O. !
-                              </span>
-                          </div>
-                          {!readOnly && (
-                              <div className="flex gap-2">
-                                  {koData.map((k, kIdx) => (
-                                      <Button 
-                                          key={kIdx}
-                                          variant="destructive" 
-                                          size="sm" 
-                                          className="h-6 text-[10px] w-auto bg-red-600 hover:bg-red-700"
-                                          onClick={() => {
-                                              const team = k.isAlly ? stateBeforeAction.myTeam : stateBeforeAction.enemyTeam
-                                              const slotIndex = team.findIndex(p => p.id === k.pokemon.id)
-                                              handleAddReplacement(k.isAlly ? "my" : "opponent", slotIndex !== -1 ? slotIndex : 0)
-                                          }}
-                                      >
-                                          Remplacer {k.pokemon.name}
-                                      </Button>
-                                  ))}
-                              </div>
-                          )}
-                      </div>
-                  )}
               </div>
             )
           })}

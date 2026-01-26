@@ -145,7 +145,7 @@ export function SwitchEffects({
         onAdd={onAddEntryHpChange}
         onUpdate={handleUpdate}
         onRemove={onRemoveHpChange}
-        addButtonLabel="Add Entry Damage"
+        addButtonLabel="Add Effect"
     />
   )
 }
