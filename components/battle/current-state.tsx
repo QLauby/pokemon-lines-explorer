@@ -1,9 +1,9 @@
 "use client"
 
-import { BattlefieldState, Pokemon, TreeNode } from "@/lib/types"
 import { cn } from "@/lib/utils/cn"
+import { BattlefieldState, Pokemon, TreeNode } from "@/types/types"
 import { CustomTagsManager } from "../shared/custom-tags-manager"
-import { PokemonCardDisplay } from "./pokemon-card-display"
+import { PokemonCardDisplay } from "./pokemon-card-display/pokemon-card-display"
 
 interface CurrentStateProps {
   selectedNode: TreeNode

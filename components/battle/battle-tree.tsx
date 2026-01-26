@@ -2,9 +2,9 @@ import { Minus, Plus, RotateCcw } from "lucide-react"
 import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
-import { darkenColor, lightenColor } from "@/lib/colors"
-import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
-import { TreeNode } from "@/lib/types"
+import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
+import { darkenColor, lightenColor } from "@/lib/utils/colors-utils"
+import { TreeNode } from "@/types/types"
 import { getTreeBranchColor } from "./battle-view"
 
 interface BattleTreeProps {

@@ -3,9 +3,9 @@
 import { CombatView } from "@/components/battle/battle-view"
 import { AppHeader } from "@/components/layout/app-header"
 import { TeamsView } from "@/components/pokemons/teams-view"
-import { CorruptionProvider, useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
+import { CorruptionProvider, useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
 import { usePokemonBattle } from "@/lib/hooks/use-pokemon-battle"
-import { CombatSession } from "@/lib/types"
+import { CombatSession } from "@/types/types"
 
 
 

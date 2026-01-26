@@ -1,6 +1,6 @@
 "use client"
 
-import { lightenColor } from "@/lib/colors"
+import { lightenColor } from "@/lib/utils/colors-utils"
 import { CustomTagsManager } from "../shared/custom-tags-manager"
 
 interface BattlefieldZoneProps {

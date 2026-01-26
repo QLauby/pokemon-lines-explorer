@@ -3,9 +3,9 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
-import { useCorruptionResolution } from "@/lib/hooks/features/use-corruption-resolution"
-import { CombatSession } from "@/lib/types"
+import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
+import { useCorruptionResolution } from "@/lib/hooks/tree-corruption/use-corruption-resolution"
+import { CombatSession } from "@/types/types"
 import { AlertTriangle } from "lucide-react"
 
 interface CorruptionAlertBannerProps {

@@ -1,9 +1,9 @@
-import { BattleState, TreeNode } from "@/lib/types"
+import { BattleState, TreeNode } from "@/types/types"
 import { useMemo } from "react"
 import { BattleEngine } from "../logic/battle-engine"
-import { useBattleSession } from "./features/use-battle-session"
-import { useBattleTree } from "./features/use-battle-tree"
-import { useTeamManager } from "./features/use-team-manager"
+import { useBattleSession } from "./use-battle-storage/features/use-battle-session"
+import { useBattleTree } from "./use-battle-storage/features/use-battle-tree"
+import { useTeamManager } from "./use-battle-storage/features/use-team-manager"
 
 export function usePokemonBattle() {
   // 1. Session Management

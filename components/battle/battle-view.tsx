@@ -2,12 +2,12 @@
 
 import { useMemo, useState } from "react"
 
-import { getCyclicColor } from "@/lib/colors"
 import { TREE_BASE_COLOR } from "@/lib/constants/color-constants"
 import { BattleEngine } from "@/lib/logic/battle-engine"
 import { recalculateTreeLayout } from "@/lib/logic/tree-layout"
-import type { CombatSession, Pokemon, TreeNode } from "@/lib/types"
-import { TurnData } from "@/lib/types"
+import { getCyclicColor } from "@/lib/utils/colors-utils"
+import type { CombatSession, Pokemon, TreeNode } from "@/types/types"
+import { TurnData } from "@/types/types"
 
 export function getTreeBranchColor(branchIndex: number): string {
   return getCyclicColor(TREE_BASE_COLOR, 10, "shortList", branchIndex + 1)
@@ -16,14 +16,14 @@ export function getTreeBranchColor(branchIndex: number): string {
 import { BattleTree } from "./battle-tree"
 import { CorruptionAlertBanner } from "./corruption-alert-banner"
 import { CurrentState } from "./current-state"
-import { TurnsResolver } from "./turns-resolver"
+import { TurnsResolver } from "./turns-resolver/turns-resolver"
 
 interface CombatViewProps {
   nodes: Map<string, TreeNode>
   selectedNodeId: string
   onSelectedNodeChange: (nodeId: string) => void
   onResetBattle: () => void
-  onAddAction: (data: import("@/lib/types").TurnData) => void
+  onAddAction: (data: import("@/types/types").TurnData) => void
   onUpdateNode: (nodeId: string, updates: Partial<TreeNode>) => void
   onDeleteNode: (nodeId: string) => void
   myTeam: Pokemon[]
@@ -64,12 +64,14 @@ export function CombatView({
     return [
       ...(activeStarters?.myTeam || [])
         .slice(0, limit)
-        .filter((idx): idx is number => idx !== null)
-        .map(idx => ({ pokemon: myTeam[idx], isAlly: true })),
+        .filter((idx: number | null): idx is number => idx !== null)
+        .map((idx: number) => ({ pokemon: myTeam[idx], isAlly: true }))
+        .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon),
       ...(activeStarters?.opponentTeam || [])
         .slice(0, limit)
-        .filter((idx): idx is number => idx !== null)
-        .map(idx => ({ pokemon: enemyTeam[idx], isAlly: false }))
+        .filter((idx: number | null): idx is number => idx !== null)
+        .map((idx: number) => ({ pokemon: enemyTeam[idx], isAlly: false }))
+        .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon)
     ]
   }, [activeStarters, myTeam, enemyTeam, currentSession.battleType])
 
@@ -119,28 +121,44 @@ export function CombatView({
       // targetNodeId remains selectedNodeId
   }
 
-  // Compute Parent Active Pokemon (for Update Mode)
-  const parentActivePokemonList = useMemo(() => {
-     if (!selectedNode || !selectedNode.parentId) return activePokemonList
+  // Compute Parent Active Pokemon AND Teams (for Update Mode)
+  const parentState = useMemo(() => {
+     if (!selectedNode) return null
      
-     const parentState = BattleEngine.computeState(
+     // Special case: If we are updating Turn 1, the parent is "root" (Turn 0).
+     // The "root" node might technically exist in the map, but semantically,
+     // the state at "root" is simply the initial state of the session.
+     // By forcing this return, we avoid any potential lookup issues in the engine for the root node.
+     if (selectedNode.parentId === "root") {
+         return JSON.parse(JSON.stringify(currentSession.initialState))
+     }
+
+     if (!selectedNode.parentId) return null
+     
+     return BattleEngine.computeState(
         currentSession.initialState,
         nodes, // Use committed nodes for parent state lookup
         selectedNode.parentId
      )
+  }, [selectedNode, nodes, currentSession.initialState])
 
+  const parentActivePokemonList = useMemo(() => {
+     if (!parentState) return activePokemonList
+     
      const limit = currentSession.battleType === "double" ? 2 : 1
      return [
        ...(parentState.activeStarters?.myTeam || [])
          .slice(0, limit)
-         .filter((idx): idx is number => idx !== null)
-         .map(idx => ({ pokemon: parentState.myTeam[idx], isAlly: true })),
+         .filter((idx: number | null): idx is number => idx !== null)
+         .map((idx: number) => ({ pokemon: parentState.myTeam[idx], isAlly: true }))
+         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon),
        ...(parentState.activeStarters?.opponentTeam || [])
          .slice(0, limit)
-         .filter((idx): idx is number => idx !== null)
-         .map(idx => ({ pokemon: parentState.enemyTeam[idx], isAlly: false }))
+         .filter((idx: number | null): idx is number => idx !== null)
+         .map((idx: number) => ({ pokemon: parentState.enemyTeam[idx], isAlly: false }))
+         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon)
      ]
-  }, [selectedNode, nodes, currentSession.initialState, currentSession.battleType, activePokemonList])
+  }, [parentState, currentSession.battleType, activePokemonList])
 
   // Compute State (Live or Standard)
   const currentBattleState = BattleEngine.computeState(
@@ -207,7 +225,14 @@ export function CombatView({
                     myTeam={myTeam}
                     enemyTeam={enemyTeam}
                     parentActivePokemon={parentActivePokemonList}
+                    parentBattleState={parentState}
                     battleType={currentSession.battleType}
+                    // For "Update": Pass the computed parent state teams
+                    updateParentMyTeam={parentState?.myTeam || myTeam}
+                    updateParentEnemyTeam={parentState?.enemyTeam || enemyTeam}
+                    // For "Next Turn": Pass the current computed state teams
+                    nextCurrentMyTeam={currentBattleState.myTeam}
+                    nextCurrentEnemyTeam={currentBattleState.enemyTeam}
                  />
               </div>
           </div>

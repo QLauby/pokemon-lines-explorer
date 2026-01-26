@@ -5,8 +5,8 @@ import type React from "react"
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
-import { darkenColor, getTextColorForBackground, lightenColor } from "@/lib/colors"
 import { cn } from "@/lib/utils/cn"
+import { darkenColor, getTextColorForBackground, lightenColor } from "@/lib/utils/colors-utils"
 
 
 interface EditableTextProps {

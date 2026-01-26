@@ -1,7 +1,7 @@
 import DeletionDialog from "@/components/shared/deletion-dialog"
 import { Button } from "@/components/ui/button"
-import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
-import { TreeNode } from "@/lib/types"
+import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
+import { TreeNode } from "@/types/types"
 import { useEffect, useState } from "react"
 
 interface DeleteFromCurrentTurnProps {

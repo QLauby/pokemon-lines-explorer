@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { PokemonStatus } from "@/lib/logos"
-import { Pokemon } from "@/lib/types"
-import { PokemonCard } from "./pokemon-card"
+import { PokemonStatus } from "@/lib/constants/logos-constants"
+import { Pokemon } from "@/types/types"
+import { PokemonCard } from "./pokemon-card/pokemon-card"
 
 
 interface TeamSectionProps {

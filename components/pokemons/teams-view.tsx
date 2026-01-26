@@ -3,8 +3,8 @@
 import { Play } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { PokemonStatus } from "@/lib/logos"
-import { Pokemon } from "@/lib/types"
+import { PokemonStatus } from "@/lib/constants/logos-constants"
+import { Pokemon } from "@/types/types"
 
 import { BattlefieldZone } from "./battlefield-zone"
 import { TeamSection } from "./team-section"

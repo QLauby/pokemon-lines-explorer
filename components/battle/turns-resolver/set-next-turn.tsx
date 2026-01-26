@@ -1,8 +1,8 @@
 "use client"
 
-import { Pokemon, TreeNode, TurnData } from "@/lib/types"
+import { Pokemon, TreeNode, TurnData } from "@/types/types"
 
-import { TurnEditor } from "./turn-editor"
+import { TurnEditor } from "./shared/turn-editor"
 
 interface SetNextTurnProps {
   selectedNodeId: string
@@ -15,7 +15,7 @@ interface SetNextTurnProps {
   battleType: "simple" | "double"
 }
 
-import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
+import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
 import { AlertTriangle } from "lucide-react"
 import { useEffect } from "react"
 

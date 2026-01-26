@@ -1,4 +1,4 @@
-import { CombatSession } from "../types"
+import { CombatSession } from "@/types/types"
 
 /**
  * Detects which nodes become invalid (corrupted) based on changes to the session parameters.

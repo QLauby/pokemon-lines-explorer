@@ -1,4 +1,4 @@
-import { BattleDelta, BattleState, SlotReference, StatsModifiers, TreeNode } from "../types"
+import { BattleDelta, BattleState, SlotReference, StatsModifiers, TreeNode } from "@/types/types"
 
 export class BattleEngine {
   static computeState(initialState: BattleState, nodes: Map<string, TreeNode>, targetNodeId: string): BattleState {
@@ -138,6 +138,49 @@ export class BattleEngine {
 
   static validateTree(initialState: BattleState, nodes: Map<string, TreeNode>): string[] {
     return []
+  }
+
+  /**
+   * Computes the sequence of states for a single turn, step by step for each action.
+   * Returns an array where index i corresponds to the state BEFORE action i,
+   * and the last element corresponds to the state AFTER the last action.
+   */
+  static computeTurnSequence(initialState: BattleState, actions: any[]): BattleState[] {
+    const states: BattleState[] = []
+    
+    // State 0: Initial
+    let currentState = JSON.parse(JSON.stringify(initialState)) as BattleState
+    states.push(currentState)
+
+    for (const action of actions) {
+        // 1. Crée une copie profonde de currentState vers nextState pour éviter toute mutation par référence
+        let nextState = JSON.parse(JSON.stringify(currentState)) as BattleState
+
+        // 2. Gestion du Switch : Implémente l'échange réel des Pokémon
+        if (action.type === "switch" && action.target) {
+             const isAlly = action.actor.side === "my"
+             const team = isAlly ? nextState.myTeam : nextState.enemyTeam
+             const fromIndex = action.actor.slotIndex
+             const toIndex = action.target.slotIndex
+
+             // Logique : team[fromIndex] = team[toIndex] et vice-versa
+             if (team[fromIndex] && team[toIndex]) {
+                 const temp = team[fromIndex]
+                 team[fromIndex] = team[toIndex]
+                 team[toIndex] = temp
+             }
+        }
+
+        // 3. Application des Deltas : Continue d'appliquer les deltas via this.applyDelta
+        for (const delta of action.deltas) {
+            nextState = this.applyDelta(nextState, delta)
+        }
+        
+        currentState = nextState
+        states.push(currentState)
+    }
+
+    return states
   }
 
   static getStatsModifiersDefault(): StatsModifiers {

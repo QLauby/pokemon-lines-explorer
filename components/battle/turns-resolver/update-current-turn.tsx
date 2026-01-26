@@ -2,15 +2,16 @@
 
 import { useEffect } from "react"
 
-import { useCorruptionHandler } from "@/lib/hooks/features/use-corruption-handler"
-import { Pokemon, TreeNode, TurnData } from "@/lib/types"
+import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
 import { showSuccessToast } from "@/lib/utils/toasts/toast-handler"
-import { TurnEditor } from "./turn-editor"
+import { BattleState, Pokemon, TreeNode, TurnData } from "@/types/types"
+import { TurnEditor } from "./shared/turn-editor"
 
 interface UpdateCurrentTurnProps {
   selectedNodeId: string
   nodes: Map<string, TreeNode>
   activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
+  parentBattleState: BattleState | null
   onUpdateNode: (nodeId: string, updates: Partial<TreeNode>) => void
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
@@ -23,6 +24,7 @@ export function UpdateCurrentTurn({
   selectedNodeId,
   nodes,
   activePokemon,
+  parentBattleState,
   onUpdateNode,
   myTeam,
   enemyTeam,
@@ -51,6 +53,7 @@ export function UpdateCurrentTurn({
   return (
     <TurnEditor
       initialTurnData={selectedNode.turnData}
+      initialBattleState={parentBattleState}
       activePokemon={activePokemon}
       onSave={handleSave}
       saveLabel={isCorrupted ? "Locked due to corruption" : "Update turn"}
