@@ -20,7 +20,6 @@ export class BattleEngine {
     let currentState = JSON.parse(JSON.stringify(initialState)) as BattleState // Deep copy initial state
 
     for (const node of path) {
-      if (node.id === "root") continue
       
       // Process TurnData if visible
       if (node.turnData) {

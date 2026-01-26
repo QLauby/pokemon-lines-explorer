@@ -112,25 +112,19 @@ export function TurnsResolver({
 
       <div className="border rounded-lg p-4 bg-white/50">
          {activeTab === "update" && (
-            currentTurn === 0 ? (
-              <div className="text-center py-8 text-muted-foreground italic">
-                The starting state (Turn 0) cannot be updated.
-              </div>
-            ) : (
-              <UpdateCurrentTurn 
-                selectedNodeId={selectedNodeId}
-                nodes={nodes}
-                activePokemon={effectiveParentPokemon}
-                parentBattleState={parentBattleState || null}
-                onUpdateNode={onUpdateNode}
-                myTeam={updateParentMyTeam || myTeam}
-                enemyTeam={updateParentEnemyTeam || enemyTeam}
-                onChange={onPreviewChange}
+               <UpdateCurrentTurn 
+                 selectedNodeId={selectedNodeId}
+                 nodes={nodes}
+                 activePokemon={effectiveParentPokemon}
+                 parentBattleState={parentBattleState || null}
+                 onUpdateNode={onUpdateNode}
+                 myTeam={updateParentMyTeam || myTeam}
+                 enemyTeam={updateParentEnemyTeam || enemyTeam}
+                 onChange={onPreviewChange}
 
-                battleType={battleType}
-              />
-            )
-         )}
+                 battleType={battleType}
+               />
+          )}
          {activeTab === "delete" && (
             <DeleteFromCurrentTurn 
               selectedNodeId={selectedNodeId}

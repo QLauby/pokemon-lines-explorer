@@ -58,7 +58,7 @@ export function InitialDeploymentManager({
     })
 
     elements.push(<span key="suffix"> enter the battlefield</span>)
-    return elements
+    return <span>&quot;<i>{elements}</i>&quot;</span>
   }
 
   // 2. Flatten deltas for the unified ConsequencesList
@@ -147,7 +147,7 @@ export function InitialDeploymentManager({
   }
 
   return (
-    <div className="space-y-4 pb-6 border-b mb-6">
+    <div className="space-y-4">
       <div className="text-sm font-medium text-gray-700">
         {renderTitle()}
       </div>

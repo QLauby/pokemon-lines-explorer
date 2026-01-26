@@ -125,21 +125,21 @@ export function CombatView({
   const parentState = useMemo(() => {
      if (!selectedNode) return null
      
-     // Special case: If we are updating Turn 1, the parent is "root" (Turn 0).
-     // The "root" node might technically exist in the map, but semantically,
-     // the state at "root" is simply the initial state of the session.
-     // By forcing this return, we avoid any potential lookup issues in the engine for the root node.
-     if (selectedNode.parentId === "root") {
+     // 1. If we are at the root (Turn 0), the parent state is simply the absolute session initial state.
+     if (selectedNode.id === "root") {
          return JSON.parse(JSON.stringify(currentSession.initialState))
      }
 
-     if (!selectedNode.parentId) return null
+     // 2. If we have a parent, we compute the state up to that parent.
+     if (selectedNode.parentId) {
+         return BattleEngine.computeState(
+            currentSession.initialState,
+            nodes,
+            selectedNode.parentId
+         )
+     }
      
-     return BattleEngine.computeState(
-        currentSession.initialState,
-        nodes, // Use committed nodes for parent state lookup
-        selectedNode.parentId
-     )
+     return null
   }, [selectedNode, nodes, currentSession.initialState])
 
   const parentActivePokemonList = useMemo(() => {

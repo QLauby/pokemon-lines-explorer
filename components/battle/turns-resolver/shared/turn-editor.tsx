@@ -66,8 +66,8 @@ export function TurnEditor({
       setActions(JSON.parse(JSON.stringify(initialTurnData.actions)))
       setEndOfTurnDeltas(JSON.parse(JSON.stringify(initialTurnData.endOfTurnDeltas)))
     } else {
-      if (turnNumber === 1) {
-        // TURN 1: Initial Deployment (Self-Switch Actions) followed by Regular Actions
+      if (turnNumber === 0) {
+        // TURN 0: Initial Deployment (Self-Switch Actions)
         const activeSlots = battleFormat === "double" ? 2 : 1
         const deploymentActions: TurnAction[] = []
 
@@ -93,24 +93,9 @@ export function TurnEditor({
             })
         }
 
-        // Regular Actions for Turn 1
-        const regularActions: TurnAction[] = initialActivePokemon.map(ap => {
-            const side: "my" | "opponent" = ap.isAlly ? "my" : "opponent"
-            const team = ap.isAlly ? myTeam : enemyTeam
-            const slotIndex = team.findIndex(p => p.id === ap.pokemon.id)
-            
-            return {
-                id: crypto.randomUUID(),
-                actor: { side, slotIndex },
-                type: "attack",
-                deltas: [],
-                isCollapsed: true
-            }
-        })
-
-        setActions([...deploymentActions, ...regularActions])
+        setActions(deploymentActions)
       } else {
-        // SUBSEQUENT TURNS: Default Attack Actions
+        // TURN 1+: Default Attack Actions
         const resolvedActions: TurnAction[] = initialActivePokemon.map(ap => {
             const side: "my" | "opponent" = ap.isAlly ? "my" : "opponent"
             const team = ap.isAlly ? myTeam : enemyTeam
@@ -370,9 +355,9 @@ export function TurnEditor({
   return (
     <div className={`space-y-6 ${readOnly ? 'opacity-80 pointer-events-none' : ''}`}>
       <div className="space-y-4">
-        {turnNumber === 1 && (
+        {turnNumber === 0 && (
           <InitialDeploymentManager 
-            actions={actions.slice(0, (battleFormat === "double" ? 2 : 1) * 2)}
+            actions={actions}
             myTeam={myTeam}
             enemyTeam={enemyTeam}
             activeSlots={battleFormat === "double" ? 2 : 1}
@@ -382,7 +367,7 @@ export function TurnEditor({
 
         <div className="space-y-2">
           {actions.map((action, index) => {
-            const isDeployment = turnNumber === 1 && index < (battleFormat === "double" ? 2 : 1) * 2
+            const isDeployment = turnNumber === 0
             if (isDeployment) return null // Handled by InitialDeploymentManager
 
             // --- Dynamic Context ---
@@ -476,31 +461,33 @@ export function TurnEditor({
         </div>
       </div>
 
-      <div className="border-t pt-4">
-          <EffectsList 
-              title="End of Turn Effects"
-              deltas={endOfTurnDeltas}
-              options={[
-                  ...getStateAtAction(actions.length).myTeam.map((p, i) => ({
-                      label: p.name,
-                      value: { side: "my" as const, slotIndex: i },
-                      isAlly: true
-                  })),
-                  ...getStateAtAction(actions.length).enemyTeam.map((p, i) => ({
-                      label: p.name,
-                      value: { side: "opponent" as const, slotIndex: i },
-                      isAlly: false
-                  }))
-              ].filter(o => {
-                  const limit = battleFormat === "double" ? 2 : 1
-                  return o.value.slotIndex < limit // Only active ones usually
-              })}
-              onAdd={addEndOfTurnDelta}
-              onUpdate={!readOnly ? ((index: number, field: "slot" | "value" | "isHealing", value: any) => updateEndOfTurnDelta(index, field, value)) : () => {}}
-              onRemove={!readOnly ? ((index: number) => removeEndOfTurnDelta(index)) : () => {}}
-              addButtonLabel="Add Effect"
-          />
-      </div>
+      {turnNumber !== 0 && (
+        <div className="border-t pt-4">
+            <EffectsList 
+                title="End of Turn Effects"
+                deltas={endOfTurnDeltas}
+                options={[
+                    ...getStateAtAction(actions.length).myTeam.map((p, i) => ({
+                        label: p.name,
+                        value: { side: "my" as const, slotIndex: i },
+                        isAlly: true
+                    })),
+                    ...getStateAtAction(actions.length).enemyTeam.map((p, i) => ({
+                        label: p.name,
+                        value: { side: "opponent" as const, slotIndex: i },
+                        isAlly: false
+                    }))
+                ].filter(o => {
+                    const limit = battleFormat === "double" ? 2 : 1
+                    return o.value.slotIndex < limit // Only active ones usually
+                })}
+                onAdd={addEndOfTurnDelta}
+                onUpdate={!readOnly ? ((index: number, field: "slot" | "value" | "isHealing", value: any) => updateEndOfTurnDelta(index, field, value)) : () => {}}
+                onRemove={!readOnly ? ((index: number) => removeEndOfTurnDelta(index)) : () => {}}
+                addButtonLabel="Add Effect"
+            />
+        </div>
+      )}
 
       <Button onClick={handleSave} className="w-full h-12 text-lg font-bold shadow-md" disabled={readOnly}>
         {saveLabel}
