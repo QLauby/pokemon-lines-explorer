@@ -48,6 +48,7 @@ interface PokemonCardHeaderProps {
     isMyTeam: boolean
     teamIndex: number
     isStarter?: boolean
+    battleType: "simple" | "double"
     defaultName: string
     handleNameChange: (newName: string) => void
     activeStatusInfos: any[]
@@ -75,6 +76,7 @@ export function PokemonCardHeader({
     isMyTeam,
     teamIndex,
     isStarter,
+    battleType,
     defaultName,
     handleNameChange,
     activeStatusInfos,
@@ -284,7 +286,7 @@ export function PokemonCardHeader({
               />
             )}
 
-            <div className="relative">
+            <div className={`relative ${battleType === "simple" && !isStarter ? "hidden" : ""}`}>
               <CircularButton
                 isActive={isStarter || false}
                 onClick={() => onFlagClick(teamIndex, isMyTeam)}
@@ -296,7 +298,7 @@ export function PokemonCardHeader({
                 iconRatio={0.7}
                 readOnly={readOnly}
               />
-              {isStarter && (
+              {isStarter && battleType !== "simple" && (
                 <div className={cn(
                   "absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white",
                   isMyTeam ? "bg-blue-600 text-white" : "bg-red-600 text-white"

@@ -23,12 +23,33 @@ export function useBattleTree({
 
   // Auto-select node on initial load or session change
   useEffect(() => {
-     if (!currentSession || currentSession.nodes.length === 0) return;
+     if (!currentSession) return;
 
      // Check if the current selectedNodeId is valid for this session
      const isIdValid = currentSession.nodes.some((n: TreeNode) => n.id === selectedNodeId);
 
      if (!selectedNodeId || !isIdValid) {
+         // Auto-Create Root (Turn 0) if it doesn't exist
+         if (currentSession.nodes.length === 0) {
+             const rootNode: TreeNode = {
+                 id: "root",
+                 description: "État Initial",
+                 probability: 100,
+                 cumulativeProbability: 100,
+                 turnData: { actions: [], endOfTurnDeltas: [] },
+                 children: [],
+                 parentId: undefined,
+                 createdAt: Date.now(),
+                 turn: 0,
+                 branchIndex: 0,
+                 x: 32,
+                 y: 32
+             }
+             saveSession({ ...currentSession, nodes: [rootNode] })
+             setSelectedNodeId("root")
+             return // Wait for next render with updated session
+         }
+
          // Priority 1: Restore last selection from session
          if (currentSession.lastSelectedNodeId && currentSession.nodes.some((n: TreeNode) => n.id === currentSession.lastSelectedNodeId)) {
              setSelectedNodeId(currentSession.lastSelectedNodeId);
@@ -36,52 +57,10 @@ export function useBattleTree({
          // Priority 2: Pick the last node (root or latest action)
          else {
              const lastNode = currentSession.nodes[currentSession.nodes.length - 1];
-             setSelectedNodeId(lastNode.id);
+             if (lastNode) setSelectedNodeId(lastNode.id);
          }
      }
   }, [currentSession?.id, currentSession?.nodes.length]) // Trigger on session switch or node count change
-
-  // Persist selectedNodeId when it changes manually
-  useEffect(() => {
-    if (currentSession && selectedNodeId) {
-        if (currentSession.lastSelectedNodeId !== selectedNodeId) {
-            if (currentSession.nodes.some((n: TreeNode) => n.id === selectedNodeId)) {
-                saveSession({ ...currentSession, lastSelectedNodeId: selectedNodeId })
-            }
-        }
-    }
-  }, [selectedNodeId])
-
-  const initializeBattle = () => {
-    if (!currentSession) return
-    if (myTeam.length === 0 && enemyTeam.length === 0) return
-
-    // Create root node if not exists
-    if (!currentSession.nodes.some((n: TreeNode) => n.id === "root")) {
-        const rootNode: TreeNode = {
-            id: "root",
-            description: "État Initial",
-            probability: 100,
-            cumulativeProbability: 100,
-            turnData: {
-                actions: [],
-                endOfTurnDeltas: []
-            },
-            children: [],
-            parentId: undefined,
-            createdAt: Date.now(),
-            turn: 0,
-            branchIndex: 0,
-            x: 32,
-            y: 32
-        }
-        saveSession({ ...currentSession, nodes: [rootNode] })
-        setSelectedNodeId("root")
-    }
-
-    setCurrentView("combat")
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
 
   const addAction = (turnData: import("@/types/types").TurnData) => {
     if (!selectedNodeId || !currentSession) return
@@ -182,7 +161,7 @@ export function useBattleTree({
     
     markDescendants(nodeId)
 
-    if (nodesToDelete.size === 0) return
+    if (nodesToDelete.size === 0 && targetNode.turn !== 0) return
 
     // Filter out deleted nodes
     const remainingNodes = currentSession.nodes.filter((n: TreeNode) => !nodesToDelete.has(n.id))
@@ -202,7 +181,11 @@ export function useBattleTree({
     } else if (targetNode.turn === 0) {
         // We targeted root: clear its children but keep the node
         finalNodes = remainingNodes.map((n: TreeNode) => 
-            n.id === targetNode.id ? { ...n, children: [] } : n
+            n.id === targetNode.id ? { 
+                ...n, 
+                children: [],
+                turnData: { actions: [], endOfTurnDeltas: [] }
+            } : n
         )
     }
     
@@ -230,8 +213,23 @@ export function useBattleTree({
 
   const resetBattle = () => {
       if (currentSession) {
-          saveSession({ ...currentSession, nodes: [], lastSelectedNodeId: undefined })
-          setSelectedNodeId("")
+          // Reset to just the Root Node (Turn 0)
+          const rootNode: TreeNode = {
+                id: "root",
+                description: "État Initial",
+                probability: 100,
+                cumulativeProbability: 100,
+                turnData: { actions: [], endOfTurnDeltas: [] },
+                children: [],
+                parentId: undefined,
+                createdAt: Date.now(),
+                turn: 0,
+                branchIndex: 0,
+                x: 32,
+                y: 32
+          }
+          saveSession({ ...currentSession, nodes: [rootNode], lastSelectedNodeId: "root" })
+          setSelectedNodeId("root")
           setCurrentView("teams")
       }
   }
@@ -239,7 +237,6 @@ export function useBattleTree({
   return {
       selectedNodeId,
       setSelectedNodeId,
-      initializeBattle,
       addAction,
       updateNode,
       deleteNode,

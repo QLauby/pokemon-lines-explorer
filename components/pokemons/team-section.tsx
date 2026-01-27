@@ -87,34 +87,40 @@ export function TeamSection({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {team.map((pokemon, teamIndex) => (
-          <PokemonCard
-            key={pokemon.id}
-            pokemon={pokemon}
-            teamIndex={teamIndex}
-            isMyTeam={isMyTeam}
-            battleType={battleType}
-            isStarter={isStarterPokemon(pokemon, teamIndex, isMyTeam)}
-            editingPokemonId={editingPokemonId}
-            editingPokemonName={editingPokemonName}
-            onStartEditing={onStartEditing}
-            onUpdateName={onUpdateName}
-            onCancelEditing={onCancelEditing}
-            onRemove={onRemove}
-            onUpdateHealth={onUpdateHealth}
-            onUpdateStatus={onUpdateStatus}
-            onUpdatePokemon={onUpdatePokemon}
-            onToggleHeldItem={onToggleHeldItem}
-            onToggleTerastallized={onToggleTerastallized}
-            onToggleMega={onToggleMega}
-            onFlagClick={onFlagClick}
-            getSlotForPokemon={getSlotForPokemon}
-            getDefaultPokemonName={getDefaultPokemonName}
-            isExpanded={expandedPokemonIds?.includes(pokemon.id)}
-            onToggleExpansion={() => onToggleExpansion?.(pokemon.id)}
-          />
-
-        ))}
+        {[...team]
+          .sort((a, b) => Number(a.id) - Number(b.id))
+          .map((pokemon) => {
+             // Find original index for flag click logic which relies on array position
+             const originalIndex = team.findIndex(p => p.id === pokemon.id)
+             
+             return (
+              <PokemonCard
+                key={pokemon.id}
+                pokemon={pokemon}
+                teamIndex={originalIndex}
+                isMyTeam={isMyTeam}
+                battleType={battleType}
+                isStarter={isStarterPokemon(pokemon, originalIndex, isMyTeam)}
+                editingPokemonId={editingPokemonId}
+                editingPokemonName={editingPokemonName}
+                onStartEditing={onStartEditing}
+                onUpdateName={onUpdateName}
+                onCancelEditing={onCancelEditing}
+                onRemove={onRemove}
+                onUpdateHealth={onUpdateHealth}
+                onUpdateStatus={onUpdateStatus}
+                onUpdatePokemon={onUpdatePokemon}
+                onToggleHeldItem={onToggleHeldItem}
+                onToggleTerastallized={onToggleTerastallized}
+                onToggleMega={onToggleMega}
+                onFlagClick={onFlagClick}
+                getSlotForPokemon={getSlotForPokemon}
+                getDefaultPokemonName={getDefaultPokemonName}
+                isExpanded={expandedPokemonIds?.includes(pokemon.id)}
+                onToggleExpansion={() => onToggleExpansion?.(pokemon.id)}
+              />
+            )
+          })}
 
         <div className="pt-2">
           <Button

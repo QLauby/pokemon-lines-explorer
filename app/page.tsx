@@ -5,6 +5,7 @@ import { AppHeader } from "@/components/layout/app-header"
 import { TeamsView } from "@/components/pokemons/teams-view"
 import { CorruptionProvider, useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
 import { usePokemonBattle } from "@/lib/hooks/use-pokemon-battle"
+import { detectCorruption } from "@/lib/logic/corruption"
 import { CombatSession } from "@/types/types"
 
 
@@ -32,14 +33,17 @@ function InnerContent({
     setters: ReturnType<typeof usePokemonBattle>['setters'], 
     actions: ReturnType<typeof usePokemonBattle>['actions'] 
 }) {
-    const { updatePendingParams, pendingSession, isCorrupted } = useCorruptionHandler()
+    const { updatePendingParams, pendingSession, isCorrupted, reset } = useCorruptionHandler()
 
     const handleTryChangeBattleType = (type: 'simple' | 'double') => {
         if (type === state.battleType) return
+        if (!state.currentSession) return
+
+        // Check if this change would cause corruption using our single source of truth
+        const potentialCorruption = detectCorruption(state.currentSession, { battleType: type })
+        const willCorrupt = potentialCorruption.length > 0;
     
-        const hasHistory = state.nodes.size > 1 
-    
-        if (!hasHistory) {
+        if (!willCorrupt) {
           setters.setBattleType(type)
         } else {
           // Corruption detected
@@ -55,6 +59,7 @@ function InnerContent({
     }
 
     const handleCancelCorruption = () => {
+        reset()
         setters.setCurrentView('teams')
     }
 
@@ -91,7 +96,6 @@ function InnerContent({
               onToggleMega={actions.toggleMega}
               onFlagClick={actions.handleFlagClick}
               onAddPokemon={actions.addPokemon}
-              onInitializeBattle={actions.initializeBattle}
               onBattleTypeChange={handleTryChangeBattleType} 
               onResetBattle={actions.resetBattleIfNeeded}
               getDefaultPokemonName={actions.getDefaultPokemonName}

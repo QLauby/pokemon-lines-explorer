@@ -243,6 +243,7 @@ export function PokemonCard({
             isMyTeam={isMyTeam}
             teamIndex={teamIndex}
             isStarter={isStarter}
+            battleType={battleType}
             defaultName={defaultName}
             handleNameChange={handleNameChange}
             activeStatusInfos={activeStatusInfos}

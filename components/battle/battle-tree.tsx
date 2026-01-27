@@ -186,7 +186,8 @@ export function BattleTree({
 
                 {Array.from(nodes.values()).map((node) => {
                 const isSelected = node.id === selectedNodeId
-                const isNodeCorrupted = corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id)
+                // Turn 0 is never "corrupted" visually (it's a reset), so never show red
+                const isNodeCorrupted = node.turn !== 0 && (corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id))
                 const isPreview = node.id === previewNodeId
                 const branchColor = isNodeCorrupted ? "#ef4444" : getTreeBranchColor(node.branchIndex)
                 

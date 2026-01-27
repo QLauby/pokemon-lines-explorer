@@ -54,7 +54,9 @@ export function DeleteFromCurrentTurn({
         <p className="font-semibold mb-1">Attention Required</p>
         <p>
           {mainNode.turn === 0 
-            ? `Deleting from root will remove all ${affectedNodes.length} turns in this session. The initial state (Turn 0) will be preserved.`
+            ? (affectedNodes.length > 0
+                ? `Deleting from root will remove all ${affectedNodes.length} turns in this session. Turn 0 will be reset to its initial state.`
+                : "Resetting will clear all deployment actions for Turn 0.")
             : `Deleting this turn will also remove ${Math.max(0, affectedNodes.length - 1)} subsequent turns that branch from it.`
           }
           {" "}This action cannot be undone.
@@ -75,9 +77,9 @@ export function DeleteFromCurrentTurn({
         <Button 
             className="w-full bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-200 border disabled:opacity-50"
             onClick={() => setIsDialogOpen(true)}
-            disabled={affectedNodes.length === 0 || isCorrupted}
+            disabled={(mainNode.turn !== 0 && affectedNodes.length === 0) || isCorrupted}
         >
-            Delete {affectedNodes.length} Turns
+            {mainNode.turn === 0 && affectedNodes.length === 0 ? "Reset Turn 0" : `Delete ${affectedNodes.length} Turns`}
         </Button>
       </div>
 
@@ -90,10 +92,12 @@ export function DeleteFromCurrentTurn({
         }}
         title="Confirm Deletion"
         description={mainNode.turn === 0 
-            ? `Voulez-vous vraiment supprimer TOUS les tours (${affectedNodes.length}) de cette session ? Le tour 0 sera conservé mais vidé de son contenu.`
+            ? (affectedNodes.length > 0
+                ? `Do you really want to delete ALL ${affectedNodes.length} turns of this session ? Turn 0 will be reset to its initial state.`
+                : "Do you really want to reset Turn 0 to its initial deployment state?")
             : affectedNodes.length > 1 
-                ? `Are you sure you want to delete turn ${mainNode.turn} and all ${affectedNodes.length - 1} following turns?`
-                : `Are you sure you want to delete turn ${mainNode.turn}?`
+                ? `Do you really want to delete turn ${mainNode.turn} and all ${affectedNodes.length - 1} following turns?`
+                : `Do you really want to delete turn ${mainNode.turn}?`
         }
       />
     </div>

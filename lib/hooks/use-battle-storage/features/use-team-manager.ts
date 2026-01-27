@@ -146,43 +146,44 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
 
    const handleFlagClick = (index: number, isMyTeam: boolean) => {
     const teamKey = isMyTeam ? "myTeam" : "opponentTeam"
-    const currentStarters = [...activeStarters[teamKey]] // Should be [0, 1] or similar
+    const currentStarters = [...activeStarters[teamKey]]
     const maxSlots = currentSession?.battleType === "simple" ? 1 : 2
-    const team = isMyTeam ? myTeam : enemyTeam
     
-    const existingSlot = currentStarters.slice(0, maxSlots).indexOf(index)
+    // Check if clicked pokemon is already active
+    const isActive = currentStarters.includes(index)
+
     const updates: Partial<BattleState> = {}
+    const newStarters = [...currentStarters]
 
-    if (existingSlot !== -1) {
+    // Initialize array if needed based on maxSlots
+    while (newStarters.length < maxSlots) {
+        newStarters.push(null)
+    }
+
+    if (maxSlots === 1) {
+        // Single Battle: Always replace Slot 1 (Index 0)
+        newStarters[0] = index
     } else {
-      let targetIndex = -1
-      if (currentStarters[0] === null || (typeof currentStarters[0] === 'number' && currentStarters[0] !== 0)) {
-          targetIndex = 0
-      } else if (maxSlots > 1 && (currentStarters[1] === null || (typeof currentStarters[1] === 'number' && currentStarters[1] !== 1))) {
-          targetIndex = 1
-      } else {
-          targetIndex = maxSlots - 1
-      }
-
-      if (targetIndex !== -1) {
-          const newTeam = [...team]
-          const temp = newTeam[targetIndex]
-          newTeam[targetIndex] = newTeam[index]
-          newTeam[index] = temp
-          
-          if (isMyTeam) updates.myTeam = newTeam
-          else updates.enemyTeam = newTeam
-          
-          // Fixed activeStarters indices
-          const newStarters = [...currentStarters]
-          newStarters[targetIndex] = targetIndex
-          updates.activeStarters = { ...activeStarters, [teamKey]: newStarters }
-      }
+        // Double Battle
+        if (isActive) {
+             // If clicking an already active one (e.g. Slot 1), do nothing or swap? 
+             // User instruction: "Cliquer sur le badge... d'un pokemon qui n'est PAS au combat déselectionne le deuxieme"
+             // Implies we only act if NOT active. 
+             // If user clicks Slot 1, maybe they want to swap Slot 1? Let's assume No-Op for now based on strict reading.
+             return;
+        } else {
+             // Not active: Replace Slot 2 (Index 1)
+             newStarters[1] = index
+             
+             // Ensure Slot 1 is set (defaults to 0 if null/empty and 0 isn't index)
+             if (newStarters[0] === null || newStarters[0] === undefined) {
+                 newStarters[0] = (index === 0) ? 1 : 0 // Fallback
+             }
+        }
     }
-
-    if (Object.keys(updates).length > 0) {
-        updateInitialState(updates)
-    }
+    
+    updates.activeStarters = { ...activeStarters, [teamKey]: newStarters }
+    updateInitialState(updates)
   }
 
   const updateBattlefieldTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, customTags: tags } })

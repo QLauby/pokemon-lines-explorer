@@ -47,6 +47,8 @@ export function useCorruptionResolution({ onCommit, onCancel }: UseCorruptionRes
     if (rootNode) {
        // Reset root children
        rootNode.children = []
+       // Reset root data (Turn 0 reset)
+       rootNode.turnData = { actions: [], endOfTurnDeltas: [] }
        // Set nodes to just root
        newSession.nodes = [rootNode]
     } else {

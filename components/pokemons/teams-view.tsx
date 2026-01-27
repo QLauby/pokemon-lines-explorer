@@ -1,6 +1,5 @@
 "use client"
 
-import { Play } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { PokemonStatus } from "@/lib/constants/logos-constants"
@@ -42,7 +41,6 @@ interface TeamsViewProps {
   onToggleMega: (pokemonId: string, isMyTeam: boolean) => void
   onFlagClick: (index: number, isMyTeam: boolean) => void
   onAddPokemon: (teamType: "my" | "opponent") => void
-  onInitializeBattle: () => void
   onBattleTypeChange: (type: "simple" | "double") => void
   onResetBattle: () => void
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
@@ -78,7 +76,6 @@ export function TeamsView({
   onToggleMega,
   onFlagClick,
   onAddPokemon,
-  onInitializeBattle,
   onBattleTypeChange,
   onResetBattle,
   getDefaultPokemonName,
@@ -186,17 +183,7 @@ export function TeamsView({
           expandedPokemonIds={expandedPokemonIds}
           onToggleExpansion={onToggleExpansion}
         />
-
       </div>
-
-      {(myTeam.length > 0 || enemyTeam.length > 0) && (
-        <div className="text-center">
-          <Button onClick={onInitializeBattle} size="lg" className="cursor-pointer">
-            <Play className="h-4 w-4 mr-2" />
-            Commencer l'Exploration
-          </Button>
-        </div>
-      )}
     </>
   )
 }

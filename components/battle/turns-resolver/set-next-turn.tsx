@@ -41,6 +41,10 @@ export function SetNextTurn({
     }
   }, [onChange])
 
+  const handleTurnChange = useCallback((turnData: TurnData) => {
+      onChange?.({ mode: "add", turnData })
+  }, [onChange])
+
   if (isCorrupted) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 text-red-800">
@@ -52,10 +56,6 @@ export function SetNextTurn({
       </div>
     )
   }
-
-  const handleTurnChange = useCallback((turnData: TurnData) => {
-      onChange?.({ mode: "add", turnData })
-  }, [onChange])
 
   return (
     <TurnEditor

@@ -63,7 +63,21 @@ export function useBattleStorage() {
         activeStarters: { myTeam: [0, 1], opponentTeam: [0, 1] },
         battlefieldState: { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } },
       },
-      nodes: [],
+      nodes: [{
+        id: "root",
+        description: "État Initial",
+        probability: 100,
+        cumulativeProbability: 100,
+        turnData: { actions: [], endOfTurnDeltas: [] },
+        children: [],
+        parentId: undefined,
+        createdAt: Date.now(),
+        turn: 0,
+        branchIndex: 0,
+        x: 32,
+        y: 32
+      }],
+      lastSelectedNodeId: "root"
     }
     saveSession(newSession)
     return newSession

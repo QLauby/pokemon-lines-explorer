@@ -51,7 +51,43 @@ export function usePokemonBattle() {
 
     // Convert nodes array to Map for Engine
     const nodesMap = new Map(currentSession.nodes.map((n: TreeNode) => [n.id, n]))
-    return BattleEngine.computeState(currentSession.initialState, nodesMap, battleTree.selectedNodeId || "root")
+    
+    // helper: generate order array [active..., inactive...]
+    const getOrder = (team: any[], starters: (number | null)[]) => {
+         const activeIndices = starters.filter(i => i !== null && i !== undefined && i < team.length && i >= 0) as number[];
+         const activeSet = new Set(activeIndices);
+         const inactiveIndices = team.map((_, i) => i).filter(i => !activeSet.has(i));
+         return [...activeIndices, ...inactiveIndices];
+    }
+
+    const myOrder = getOrder(currentSession.initialState.myTeam, currentSession.initialState.activeStarters.myTeam);
+    const enemyOrder = getOrder(currentSession.initialState.enemyTeam, currentSession.initialState.activeStarters.opponentTeam);
+
+    // Prepare state for engine (active mons at 0, 1)
+    const engineInitialState = {
+        ...currentSession.initialState,
+        myTeam: myOrder.map(i => currentSession.initialState.myTeam[i]),
+        enemyTeam: enemyOrder.map(i => currentSession.initialState.enemyTeam[i]),
+        activeStarters: { myTeam: [0, 1], opponentTeam: [0, 1] } // Mock consistent starters for engine
+    }
+
+    const engineResult = BattleEngine.computeState(engineInitialState, nodesMap, battleTree.selectedNodeId || "root")
+
+    // Restore original order
+    const restoreTeam = (computedTeam: any[], order: number[]) => {
+        const restored = new Array(computedTeam.length);
+        order.forEach((originalIndex, computedIndex) => {
+            restored[originalIndex] = computedTeam[computedIndex];
+        });
+        return restored;
+    }
+
+    return {
+        ...engineResult,
+        myTeam: restoreTeam(engineResult.myTeam, myOrder),
+        enemyTeam: restoreTeam(engineResult.enemyTeam, enemyOrder),
+        activeStarters: currentSession.initialState.activeStarters // Restore original starters
+    }
 
   }, [currentSession, currentView, battleTree.selectedNodeId])
 
@@ -96,7 +132,6 @@ export function usePokemonBattle() {
         updatePokemonName: teamManager.updatePokemonName,
         startEditingPokemon: teamManager.startEditingPokemon,
         cancelEditing: teamManager.cancelEditing,
-        initializeBattle: battleTree.initializeBattle,
         addAction: battleTree.addAction,
         updateNode: battleTree.updateNode,
         deleteNode: battleTree.deleteNode,

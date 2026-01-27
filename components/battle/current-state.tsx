@@ -162,7 +162,7 @@ export function CurrentState({
              <h4 className="text-[8px] font-bold text-blue-800 mb-1 uppercase tracking-widest pl-1">My Team</h4>
              <div className="grid grid-cols-2 gap-2">
                  {myTeam.map((pokemon, idx) => {
-                    const isActive = idx < activeCount
+                    const isActive = (activeStarters?.myTeam || [0, 1]).slice(0, activeCount).includes(idx)
                     return (
                         <div key={pokemon.id} className={cn("transition-all duration-300", isActive ? "opacity-30 scale-[0.98] grayscale-[0.2]" : "opacity-100")}>
                              <PokemonCardDisplay 
@@ -181,7 +181,7 @@ export function CurrentState({
              <h4 className="text-[8px] font-bold text-red-800 mb-1 uppercase tracking-widest pl-1">Opponent Team</h4>
               <div className="grid grid-cols-2 gap-2">
                  {enemyTeam.map((pokemon, idx) => {
-                    const isActive = idx < activeCount
+                    const isActive = (activeStarters?.opponentTeam || [0, 1]).slice(0, activeCount).includes(idx)
                     return (
                         <div key={pokemon.id} className={cn("transition-all duration-300", isActive ? "opacity-30 scale-[0.98] grayscale-[0.2]" : "opacity-100")}>
                              <PokemonCardDisplay 
