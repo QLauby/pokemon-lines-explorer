@@ -1,4 +1,4 @@
-import { BattleDelta, BattleState, SlotReference, StatsModifiers, TreeNode } from "@/types/types"
+import { BattleDelta, BattleState, StatsModifiers, TreeNode } from "@/types/types"
 
 export class BattleEngine {
   static computeState(initialState: BattleState, nodes: Map<string, TreeNode>, targetNodeId: string): BattleState {
@@ -26,77 +26,21 @@ export class BattleEngine {
         // 1. Process Ordered Actions
         for (const action of node.turnData.actions) {
             
-            // --- Legacy Support Start ---
-            const effectiveDeltas: BattleDelta[] = [...(action.deltas || [])]
-
-            // Legacy Switch Handling
-            if (action.type === "switch" && action.targetId && action.actorId && effectiveDeltas.length === 0) {
-                 const from = this.findSlotForId(currentState, action.actorId)
-                 const to = this.findSlotForId(currentState, action.targetId)
-                 if (from && to) {
-                     effectiveDeltas.push({
-                         type: "SWITCH",
-                         side: from.side,
-                         fromSlot: from.slotIndex,
-                         toSlot: to.slotIndex
-                     })
-                 }
-            }
-
-            // Legacy HP Changes Handling
-            if (action.hpChanges && action.hpChanges.length > 0) {
-                 for (const legacyDelta of action.hpChanges) {
-                     const targetSlot = this.findSlotForId(currentState, legacyDelta.targetId)
-                     if (targetSlot) {
-                         effectiveDeltas.push({
-                             type: "HP_RELATIVE",
-                             target: targetSlot,
-                             amount: legacyDelta.amount
-                         })
-                     }
-                 }
-            }
-            // --- Legacy Support End ---
-
+            const effectiveDeltas: BattleDelta[] = action.deltas || []
             for (const delta of effectiveDeltas) {
                 currentState = this.applyDelta(currentState, delta)
             }
         }
         
         // 2. Process End of Turn
-        // Handle potential missing endOfTurnDeltas or legacy structure if needed
         const eotDeltas = node.turnData.endOfTurnDeltas || []
         for (const delta of eotDeltas) {
-             // Check if it's a legacy delta (targetId instead of target)
-             if ('targetId' in delta && typeof delta.targetId === 'string') {
-                  const targetSlot = this.findSlotForId(currentState, delta.targetId as string)
-                  if (targetSlot) {
-                      const amount = (delta as any).amount || 0
-                      currentState = this.applyDelta(currentState, {
-                          type: "HP_RELATIVE",
-                          target: targetSlot,
-                          amount: amount
-                      })
-                  }
-             } else {
-                 currentState = this.applyDelta(currentState, delta)
-             }
+             currentState = this.applyDelta(currentState, delta)
         }
       }
     }
 
     return currentState
-  }
-  
-  // Helper for Legacy Migrations
-  private static findSlotForId(state: BattleState, id: string): SlotReference | null {
-      const myIndex = state.myTeam.findIndex(p => p.id === id)
-      if (myIndex !== -1) return { side: "my", slotIndex: myIndex }
-      
-      const oppIndex = state.enemyTeam.findIndex(p => p.id === id)
-      if (oppIndex !== -1) return { side: "opponent", slotIndex: oppIndex }
-      
-      return null
   }
 
   static applyDelta(state: BattleState, delta: BattleDelta): BattleState {
@@ -155,23 +99,11 @@ export class BattleEngine {
         // 1. Crée une copie profonde de currentState vers nextState pour éviter toute mutation par référence
         let nextState = JSON.parse(JSON.stringify(currentState)) as BattleState
 
-        // 2. Gestion du Switch : Implémente l'échange réel des Pokémon
-        if (action.type === "switch" && action.target) {
-             const isAlly = action.actor.side === "my"
-             const team = isAlly ? nextState.myTeam : nextState.enemyTeam
-             const fromIndex = action.actor.slotIndex
-             const toIndex = action.target.slotIndex
-
-             // Logique : team[fromIndex] = team[toIndex] et vice-versa
-             if (team[fromIndex] && team[toIndex]) {
-                 const temp = team[fromIndex]
-                 team[fromIndex] = team[toIndex]
-                 team[toIndex] = temp
-             }
-        }
+        // 2. State mutations (HP changes, switches) are handled via deltas.
 
         // 3. Application des Deltas : Continue d'appliquer les deltas via this.applyDelta
-        for (const delta of action.deltas) {
+        const deltas = action.deltas || []
+        for (const delta of deltas) {
             nextState = this.applyDelta(nextState, delta)
         }
         

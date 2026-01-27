@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Package, Repeat, Swords, Trash2 } from "lucide-react"
+import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Package, Repeat, Swords } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { KO_BG_COLOR, KO_BORDEAUX } from "@/lib/constants/color-constants"
@@ -55,13 +55,13 @@ export function PokemonAction({
   canMoveDown = true,
 }: PokemonActionProps) {
   const isAlly = action.actor.side === "my"
-  const isForcedSwitch = action.type === "forced-switch"
+  const isSwitchAfterKo = action.type === "switch-after-ko"
   
   const typeIcons = {
     attack: <Swords className="h-3.5 w-3.5" />,
     switch: <Repeat className="h-3.5 w-3.5" />,
     item: <Package className="h-3.5 w-3.5" />,
-    "forced-switch": <Repeat className="h-3.5 w-3.5" />
+    "switch-after-ko": <Repeat className="h-3.5 w-3.5" />
   }
   
   const allActiveTargets = activePokemon.map((ap: { pokemon: Pokemon; isAlly: boolean }) => {
@@ -162,7 +162,7 @@ export function PokemonAction({
           ? "border-blue-100 bg-blue-50/30 hover:bg-blue-50/50" 
           : "border-red-100 bg-red-50/30 hover:bg-red-50/50"
 
-  if (isForcedSwitch) {
+  if (isSwitchAfterKo) {
       containerStyle = {
           borderColor: KO_BORDEAUX,
           backgroundColor: KO_BG_COLOR,
@@ -173,7 +173,7 @@ export function PokemonAction({
 
 
   
-  const commonElementStyle = isForcedSwitch 
+  const commonElementStyle = isSwitchAfterKo 
     ? { borderColor: KO_BORDEAUX } 
     : { borderColor: isAlly ? "#dbeafe" : "#fee2e2" } // Matches border-blue-100 / border-red-100
 
@@ -191,7 +191,7 @@ export function PokemonAction({
         <div 
             className={cn(
                 "flex flex-col gap-0 bg-background/50 rounded overflow-hidden border group-hover:border-input transition-colors shrink-0",
-                !isForcedSwitch && borderColorClass
+                !isSwitchAfterKo && borderColorClass
             )}
             style={commonElementStyle}
         >
@@ -199,7 +199,7 @@ export function PokemonAction({
             variant="ghost"
             size="icon"
             className="h-3.5 w-5 rounded-none hover:bg-background border-b border-transparent hover:border-input"
-            disabled={!canMoveUp || (index === 0 && !isForcedSwitch)}
+            disabled={!canMoveUp || (index === 0 && !isSwitchAfterKo)}
             onClick={() => onMove("up")}
           >
             <ChevronUp className="h-3 w-3" />
@@ -208,7 +208,7 @@ export function PokemonAction({
             variant="ghost"
             size="icon"
             className="h-3.5 w-5 rounded-none hover:bg-background"
-            disabled={!canMoveDown || (index === totalActions - 1 && !isForcedSwitch)}
+            disabled={!canMoveDown || (index === totalActions - 1 && !isSwitchAfterKo)}
             onClick={() => onMove("down")}
           >
             <ChevronDown className="h-3 w-3" />
@@ -219,7 +219,7 @@ export function PokemonAction({
         <div className="flex-1 min-w-0 flex items-center gap-1.5">
           {/* 1. Actor Name */}
           <div className="flex items-center gap-1.5 shrink-0 max-w-[200px]">
-              {isForcedSwitch && <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0" />}
+              {isSwitchAfterKo && <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0" />}
               
               <div className={cn(
                 "text-[11px] font-extrabold truncate shrink-0 max-w-[120px]",
@@ -228,7 +228,7 @@ export function PokemonAction({
                 {getActorName()}
               </div>
 
-              {isForcedSwitch && (
+              {isSwitchAfterKo && (
                   <span className="text-[10px] uppercase font-bold text-gray-700 opacity-70">
                       is KO
                   </span>
@@ -239,7 +239,7 @@ export function PokemonAction({
 
           {/* 2. Action Type */}
           <div className="flex items-center shrink-0">
-                  {isForcedSwitch ? (
+                  {isSwitchAfterKo ? (
                       // Locked Badge for Forced Switch
                       <div className="flex items-center shrink-0 opacity-80">
                           <div 
@@ -306,11 +306,11 @@ export function PokemonAction({
                 )}
 
                 {/* SWITCH TARGETS */}
-                {action.type === "switch" && (
+                {(action.type === "switch" || action.type === "switch-after-ko") && (
                     <select
                       className={cn(
                           "h-6 w-[130px] text-[10px] font-medium bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate",
-                          !isForcedSwitch && borderColorClass
+                          !isSwitchAfterKo && borderColorClass
                       )}
                       style={commonElementStyle}
                       value={action.target ? JSON.stringify(action.target) : ""}
@@ -343,19 +343,7 @@ export function PokemonAction({
                     />
                 )}
               </div>
-              
-              {/* Delete for Forced Switch */}
-              {isForcedSwitch && onDelete && (
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-6 w-6 text-gray-500 hover:text-red-700 hover:bg-red-50 ml-1"
-                        onClick={onDelete}
-                    >
-                        <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-              )}
-        </div>
+            </div>
 
         {/* Collapse Toggle */}
         <Button
@@ -378,7 +366,7 @@ export function PokemonAction({
             className="border-t border-dashed px-3 py-2 pb-3 bg-white/40"
             style={commonElementStyle}
         >
-           {action.type === "switch" || action.type === "forced-switch" ? (
+           {action.type === "switch" || action.type === "switch-after-ko" ? (
              <SwitchEffects
                action={action}
                activePokemon={activePokemon}

@@ -106,7 +106,7 @@ export function TurnsResolver({
              activeTab === "next" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
            )}
         >
-           Set next <span style={{ color: nextBranchColor }} className="font-bold">turn {currentTurn + 1}</span>
+           Set new <span style={{ color: nextBranchColor }} className="font-bold">turn {currentTurn + 1}</span>
         </button>
       </div>
 

@@ -56,6 +56,7 @@ export function UpdateCurrentTurn({
 
   return (
     <TurnEditor
+      key={selectedNode.id}
       initialTurnData={selectedNode.turnData}
       initialBattleState={parentBattleState}
       activePokemon={activePokemon}

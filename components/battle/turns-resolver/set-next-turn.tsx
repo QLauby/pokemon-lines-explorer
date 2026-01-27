@@ -59,6 +59,7 @@ export function SetNextTurn({
 
   return (
     <TurnEditor
+      key={`next-${selectedNodeId}`}
       activePokemon={activePokemon}
       onSave={onAddAction}
       saveLabel="End turn"

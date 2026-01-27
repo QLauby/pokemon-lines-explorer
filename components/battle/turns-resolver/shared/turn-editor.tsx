@@ -56,7 +56,8 @@ export function TurnEditor({
       initialState: initialBattleState || undefined, // Use explicit initial state if provided
       actions,
       myTeam,
-      enemyTeam
+      enemyTeam,
+      activeSlotsCount: battleFormat === "double" ? 2 : 1
   })
 
   // Initialize actions based on active pokemon or initial data
@@ -132,7 +133,7 @@ export function TurnEditor({
       const action = actions[index]
 
       // Temporal Guard Check
-      if (action.type === "forced-switch") {
+      if (action.type === "switch-after-ko") {
           // Allow Defusion: If this is a fused action, we can move it up to revert it
           if (action.metadata?.fusedFrom) return true
           
@@ -150,10 +151,20 @@ export function TurnEditor({
       return true
   }
 
+  const canMoveActionDown = (index: number) => {
+      if (index >= actions.length - 1) return false
+      
+      // Prevent moving an action down if the next one is a forced switch (causality barrier)
+      const nextAction = actions[index + 1]
+      if (nextAction.type === "switch-after-ko") return false
+
+      return true
+  }
+
   const moveAction = (index: number, direction: "up" | "down") => {
     if (readOnly) return
     if (direction === "up" && !canMoveActionUp(index)) return
-    if (direction === "down" && index === actions.length - 1) return
+    if (direction === "down" && !canMoveActionDown(index)) return
 
     const newActions = [...actions]
     const targetIndex = direction === "up" ? index - 1 : index + 1
@@ -169,8 +180,16 @@ export function TurnEditor({
   const updateActionType = (index: number, type: TurnActionType) => {
     if (readOnly) return
     const newActions = [...actions]
+    const oldAction = newActions[index]
     
-    newActions[index] = { ...newActions[index], type }
+    // Reset data when changing type to ensure no leftover state (e.g. switch deltas on an attack)
+    newActions[index] = { 
+        ...oldAction,
+        type, 
+        target: undefined, 
+        deltas: [], 
+        metadata: {} 
+    }
     
     setActions(newActions)
   }
@@ -182,7 +201,7 @@ export function TurnEditor({
     
     action.target = target
     
-    if (action.type === "switch") {
+    if (action.type === "switch" || action.type === "switch-after-ko") {
         const otherDeltas = action.deltas.filter(d => d.type !== "SWITCH")
         
         if (target) {
@@ -233,10 +252,19 @@ export function TurnEditor({
          targetSlotSelector = action.target || action.actor
     }
 
-    action.deltas = [
-      ...action.deltas,
-      { type: "HP_RELATIVE", target: targetSlotSelector, amount: -0 },
-    ]
+    const switchDeltaIndex = action.deltas.findIndex(d => d.type === "SWITCH")
+    
+    const newDelta = { type: "HP_RELATIVE", target: targetSlotSelector, amount: -0 } as const
+
+    if (switchDeltaIndex !== -1) {
+        // Insert BEFORE the switch to ensure we hit the target at its pre-switch location
+        const updatedDeltas = [...action.deltas]
+        updatedDeltas.splice(switchDeltaIndex, 0, newDelta)
+        action.deltas = updatedDeltas
+    } else {
+        action.deltas = [...action.deltas, newDelta]
+    }
+    
     setActions(newActions)
   }
 
@@ -303,7 +331,7 @@ export function TurnEditor({
     
     const newAction: TurnAction = {
         id: crypto.randomUUID(),
-        type: "forced-switch",
+        type: "switch-after-ko",
         actor: { side, slotIndex },
         target: undefined,
         deltas: [],
@@ -440,7 +468,7 @@ export function TurnEditor({
                             enemyTeam={stateBeforeAction.enemyTeam} 
                             onDelete={() => !readOnly && handleDeleteAction(index)}
                             canMoveUp={!readOnly && canMoveActionUp(index)}
-                            canMoveDown={!readOnly && index < actions.length - 1}
+                            canMoveDown={!readOnly && canMoveActionDown(index)}
                         />
                   </div>
               </div>

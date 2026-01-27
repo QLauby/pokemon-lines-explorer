@@ -78,7 +78,7 @@ export type BattleDelta =
   | { type: "HP_RELATIVE"; target: SlotReference; amount: number }
   | { type: "SWITCH"; side: "my" | "opponent"; fromSlot: number; toSlot: number }
 
-export type TurnActionType = "attack" | "switch" | "item" | "forced-switch"
+export type TurnActionType = "attack" | "switch" | "item" | "switch-after-ko"
 
 export interface TurnAction {
   id: string
@@ -92,8 +92,10 @@ export interface TurnAction {
     attackName?: string
     // Stores original state if this action was fused into a forced-switch
     fusedFrom?: {
+        id?: string // Saved Original ID of the fused action
         type: TurnActionType
         target?: SlotReference
+        deltas?: BattleDelta[]
     }
   }
   // Legacy fields for migration

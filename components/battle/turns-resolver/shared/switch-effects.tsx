@@ -115,16 +115,8 @@ export function SwitchEffects({
     const outgoingTeam = isAllySwitch ? myTeam : enemyTeam
     const outgoingTeamIndex = outgoingTeam.findIndex(p => p.id === outgoingPokemon?.pokemon.id)
     
-    const isOutgoing = selectedSlot.side === action.actor.side && selectedSlot.slotIndex === outgoingTeamIndex
-
-    if (isOutgoing) {
-      if (deltaIndex > switchDeltaIndex) {
-        onMoveHpChange(deltaIndex, switchDeltaIndex)
-      }
-    } else {
-      if (deltaIndex < switchDeltaIndex) {
-        onMoveHpChange(deltaIndex, switchDeltaIndex + 1)
-      }
+    if (deltaIndex > switchDeltaIndex) {
+       onMoveHpChange(deltaIndex, switchDeltaIndex)
     }
   }
 

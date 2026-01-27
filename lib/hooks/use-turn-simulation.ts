@@ -7,6 +7,7 @@ interface UseTurnSimulationProps {
   actions: TurnAction[]
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
+  activeSlotsCount?: number
 }
 
 export interface KODetected {
@@ -19,6 +20,7 @@ export function useTurnSimulation({
   actions,
   myTeam,
   enemyTeam,
+  activeSlotsCount = 1,
 }: UseTurnSimulationProps) {
   
   // 1. Ensure we have a valid starting state
@@ -59,16 +61,18 @@ export function useTurnSimulation({
 
       const currentKOs: KODetected[] = []
 
-      // Check My Team
+      // Check My Team (Active Slots Only)
       stateAfter.myTeam.forEach((p, idx) => {
+        if (idx >= activeSlotsCount) return 
         const prevP = stateBefore.myTeam[idx]
         if (prevP && prevP.hpPercent > 0 && p.hpPercent === 0) {
           currentKOs.push({ pokemon: p, isAlly: true })
         }
       })
 
-      // Check Enemy Team
+      // Check Enemy Team (Active Slots Only)
       stateAfter.enemyTeam.forEach((p, idx) => {
+        if (idx >= activeSlotsCount) return 
         const prevP = stateBefore.enemyTeam[idx]
         if (prevP && prevP.hpPercent > 0 && p.hpPercent === 0) {
           currentKOs.push({ pokemon: p, isAlly: false })
@@ -81,7 +85,7 @@ export function useTurnSimulation({
     })
 
     return kos
-  }, [computedStates, actions])
+  }, [computedStates, actions, activeSlotsCount])
 
   // 4. Helper to get the state visible to the user at a specific step (before the action occurs)
   const getStateAtAction = (index: number): BattleState => {
