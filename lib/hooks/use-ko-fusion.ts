@@ -23,20 +23,46 @@ export function useKoFusion({
     useEffect(() => {
         if (readOnly) return
     
-        const allKOs: { isAlly: boolean, pokemonId: string, occurringAtIndex: number }[] = []
+        const allKOs: { isAlly: boolean, pokemonId: string, occurringAtIndex: number, koOrderIndex: number }[] = []
         
+        let globalKoOrder = 0
         Object.entries(detectedKOs).forEach(([actionIdxStr, kos]) => {
             const idx = Number.parseInt(actionIdxStr, 10)
-            kos.forEach(k => {
+            const action = actions[idx]
+            const stateBefore = getStateAtAction(idx)
+            
+            // Build a map of pokemon to their delta index (order of damage application)
+            const deltaOrderMap = new Map<string, number>()
+            if (action?.deltas) {
+                action.deltas.forEach((delta, deltaIdx) => {
+                    if (delta.type === "HP_RELATIVE" && delta.target) {
+                        const targetTeam = delta.target.side === "my" ? stateBefore.myTeam : stateBefore.enemyTeam
+                        const targetPokemon = targetTeam[delta.target.slotIndex]
+                        if (targetPokemon) {
+                            deltaOrderMap.set(targetPokemon.id, deltaIdx)
+                        }
+                    }
+                })
+            }
+            
+            // Sort KOs by their delta order
+            const sortedKos = [...kos].sort((a, b) => {
+                const aOrder = deltaOrderMap.get(a.pokemon.id) ?? 9999
+                const bOrder = deltaOrderMap.get(b.pokemon.id) ?? 9999
+                return aOrder - bOrder
+            })
+            
+            sortedKos.forEach(k => {
                 allKOs.push({
                     isAlly: k.isAlly,
                     pokemonId: k.pokemon.id,
-                    occurringAtIndex: idx
+                    occurringAtIndex: idx,
+                    koOrderIndex: globalKoOrder++
                 })
             })
         })
     
-        const requirements: { side: "my" | "opponent", slotIndex: number, triggeredByActionIndex: number }[] = []
+        const requirements: { side: "my" | "opponent", slotIndex: number, triggeredByActionIndex: number, pokemonId: string, koOrderIndex: number }[] = []
     
         allKOs.forEach(ko => {
             const stateAfter = getStateAtAction(ko.occurringAtIndex + 1)
@@ -47,20 +73,17 @@ export function useKoFusion({
                 requirements.push({
                     side: ko.isAlly ? "my" : "opponent",
                     slotIndex,
-                    triggeredByActionIndex: ko.occurringAtIndex
+                    triggeredByActionIndex: ko.occurringAtIndex,
+                    pokemonId: ko.pokemonId,
+                    koOrderIndex: ko.koOrderIndex
                 })
             }
         })
     
-    
-        const processedActions: TurnAction[] = []
-        const matchedReqIndices = new Set<number>()
-        
-        // 1. Update Persistent Cache with current known choices (ID + Target + Deltas + UI State)
+        // 1. Update Persistent Cache with current known choices
         actions.forEach(action => {
              if (action.type === "switch-after-ko") {
                  const key = `${action.actor.side}-${action.actor.slotIndex}`
-                 // Always update the cache with the latest state of this switch card
                  orphanedChoicesRef.current.set(key, { 
                      id: action.id,
                      target: action.target, 
@@ -70,168 +93,215 @@ export function useKoFusion({
              }
         })
         
-        const orphanedChoices = orphanedChoicesRef.current // Use ref as source of truth
+        const orphanedChoices = orphanedChoicesRef.current
         let changesMade = false
-    
-        actions.forEach((action, currentActionIndex) => {
-            const reqIndex = requirements.findIndex((req, idx) => 
-                !matchedReqIndices.has(idx) &&
-                req.side === action.actor.side &&
+
+        // SEPARATE ACTIONS
+        const inputNormalActions: TurnAction[] = []
+        const inputSwitchActions: TurnAction[] = []
+
+        actions.forEach(a => {
+            if (a.type === "switch-after-ko") inputSwitchActions.push(a)
+            else inputNormalActions.push(a)
+        })
+
+        const finalProcessedActions: TurnAction[] = []
+        const matchedReqIndices = new Set<number>()
+
+        // -------------------------------------------------------------
+        // PHASE 1: Process Normal Actions (Fusion Logic)
+        // -------------------------------------------------------------
+        
+        inputNormalActions.forEach((action) => {
+            const originalIndex = actions.indexOf(action)
+            
+            const relevantReqIndex = requirements.findIndex(req => 
+                req.side === action.actor.side && 
                 req.slotIndex === action.actor.slotIndex &&
-                currentActionIndex > req.triggeredByActionIndex
+                originalIndex > req.triggeredByActionIndex
             )
-    
-            const isMatch = reqIndex !== -1
-    
-            if (action.type === "switch-after-ko") {
-                if (isMatch) {
-                     matchedReqIndices.add(reqIndex)
-                     processedActions.push(action)
-                } else {
-                     if (action.metadata?.fusedFrom) {
-                         // 1. Defusion / Split: 
-                         const originalAction: TurnAction = {
-                             id: action.metadata.fusedFrom.id || crypto.randomUUID(), // Restore Original ID or fail safe
-                             actor: action.actor,
-                             type: "attack", // Reset to default/original type
-                             target: undefined, 
-                             deltas: [], 
-                             metadata: {}, 
-                             isCollapsed: true 
-                         }
-                         processedActions.push(originalAction)
 
-                         // B. The Switch Action (Switch) - Ejected downwards
-                         const switchAction: TurnAction = {
-                            id: action.id, // Keep the Switch ID
-                            type: "switch-after-ko",
-                            actor: action.actor,
-                            target: action.target,
-                            deltas: action.deltas,
-                            metadata: { ...action.metadata, fusedFrom: undefined },
-                            isCollapsed: action.isCollapsed
-                         }
-                         
-                         // We also update cache to be super safe
-                         const key = `${action.actor.side}-${action.actor.slotIndex}`
-                         orphanedChoicesRef.current.set(key, { 
-                             id: switchAction.id,
-                             target: switchAction.target,
-                             deltas: switchAction.deltas || [],
-                             isCollapsed: switchAction.isCollapsed ?? true
-                         })
-
-                         changesMade = true
-                     } else {
-                         // Case: Unmatched Switch Action. We drop it (delete).
-                         changesMade = true
-                     }
+            if (relevantReqIndex !== -1) {
+                matchedReqIndices.add(relevantReqIndex)
+                
+                // Attach fusion metadata to requirement
+                // We restart a fresh object to avoid mutation issues across renders if strict mode
+                const req = requirements[relevantReqIndex] as any
+                req._fusedFrom = {
+                     id: action.id,
+                     type: action.type,
+                     metadata: action.metadata || {}
                 }
+                
+                changesMade = true
             } else {
-                if (isMatch) {
-                    matchedReqIndices.add(reqIndex)
-                    
-                    // FUSION HAPPENING (Merge)
-                   
-                    const key = `${action.actor.side}-${action.actor.slotIndex}`
-                    const cachedSwitch = orphanedChoices.get(key)
-                    
-                    const switchId = cachedSwitch?.id || crypto.randomUUID()
+                finalProcessedActions.push(action)
+            }
+        })
 
-                    processedActions.push({
-                        ...action, // Keep basic props (actor)
-                        id: switchId, // SWAP ID -> Become the Switch
-                        type: "switch-after-ko",
-                        target: cachedSwitch?.target, 
+        // -------------------------------------------------------------
+        // PHASE 2: Process Switch Actions (Defusion Logic)
+        // -------------------------------------------------------------
+        
+        actions.forEach((action, idx) => {
+            if (action.type === "switch-after-ko" && action.metadata?.fusedFrom) {
+                // If there is ANY non-switch action AFTER this switch in the input list, it means it was moved up (or action moved down)
+                // Logic: Switch should be at the very end.
+                const hasNormalActionAfter = actions.slice(idx + 1).some(a => a.type !== "switch-after-ko")
+                
+                if (hasNormalActionAfter) {
+                    const fusedFrom = action.metadata.fusedFrom! as any
+                    const restoredAction: TurnAction = {
+                        id: fusedFrom.id || crypto.randomUUID(),
+                        actor: action.actor,
+                        type: "attack",
+                        target: undefined,
+                        deltas: [],
+                        metadata: fusedFrom.metadata || {},
+                        isCollapsed: true
+                    }
+                    
+                    const req = requirements.find(r => r.side === action.actor.side && r.slotIndex === action.actor.slotIndex)
+                    
+                    if (req) {
+                        const triggerActionOld = actions[req.triggeredByActionIndex]
+                        const triggerId = triggerActionOld?.id
                         
-                        deltas: cachedSwitch?.deltas || (cachedSwitch?.target ? [{
-                            type: "SWITCH",
-                            side: action.actor.side,
-                            fromSlot: action.actor.slotIndex,
-                            toSlot: cachedSwitch.target.slotIndex
-                        }] : []),
-                        
-                        // Restore PRESERVED collapsed state
-                        isCollapsed: cachedSwitch?.isCollapsed ?? true,
-                        
-                        metadata: {
-                            ...action.metadata,
-                            fusedFrom: {
-                                id: action.id, // SAVE Original Action ID
-                                type: action.type,
-                                // We strictly DO NOT save target/deltas of the ACTION here to comply with "data deleted" rule
-                            }
+                        let insertIdx = finalProcessedActions.findIndex(a => a.id === triggerId)
+                        if (insertIdx !== -1) {
+                            finalProcessedActions.splice(insertIdx, 0, restoredAction)
+                        } else {
+                            finalProcessedActions.push(restoredAction)
                         }
-                    })
-                    changesMade = true
-                } else {
-                    processedActions.push(action)
+                        
+                        changesMade = true
+                    }
                 }
             }
         })
-    
-        requirements.forEach((req, idx) => {
-            if (!matchedReqIndices.has(idx)) {
-                // Check for orphaned choice for this slot
-                const key = `${req.side}-${req.slotIndex}`
-                const recoveredData = orphanedChoices.get(key)
 
-                const newSwitch: TurnAction = {
-                    id: recoveredData?.id || crypto.randomUUID(), // RECOVER ID if available
-                    type: "switch-after-ko",
-                    actor: { side: req.side, slotIndex: req.slotIndex },
-                    target: recoveredData?.target, // Apply recovered target if available
-                    // Restore PRESERVED deltas (including switch + effects)
-                    deltas: recoveredData?.deltas || (recoveredData?.target ? [{
+        // -------------------------------------------------------------
+        // PHASE 2.5: Handle Orphaned Fused Switches (KO requirement disappeared)
+        // -------------------------------------------------------------
+        
+        // Identify switches that no longer have a matching KO requirement
+        inputSwitchActions.forEach(switchAction => {
+            const hasRequirement = requirements.some(r => 
+                r.side === switchAction.actor.side && 
+                r.slotIndex === switchAction.actor.slotIndex
+            )
+            
+            // If KO disappeared AND switch was fused, restore the original action
+            if (!hasRequirement && switchAction.metadata?.fusedFrom) {
+                const fusedFrom = switchAction.metadata.fusedFrom as any
+                const restoredAction: TurnAction = {
+                    id: fusedFrom.id || crypto.randomUUID(),
+                    actor: switchAction.actor,
+                    type: fusedFrom.type || "attack",
+                    target: undefined,
+                    deltas: [],
+                    metadata: fusedFrom.metadata || {},
+                    isCollapsed: true
+                }
+                
+                // Add at the end as the user specified "dernière position des actions du tour"
+                finalProcessedActions.push(restoredAction)
+                changesMade = true
+            }
+            // If unfused orphan, simply discard (which happens automatically by not adding it)
+        })
+
+        // -------------------------------------------------------------
+        // PHASE 3: Generate Switches (Enforce Position & Order)
+        // -------------------------------------------------------------
+
+        // Sort requirements by KO sequence order (preserves delta order within same action)
+        requirements.sort((a, b) => a.koOrderIndex - b.koOrderIndex)
+
+        requirements.forEach(req => {
+            const key = `${req.side}-${req.slotIndex}`
+            const cachedSwitch = orphanedChoices.get(key)
+            
+            const fusedFrom = (req as any)._fusedFrom
+            
+            // Check for ANY existing switch (fused or unfused) for this side/slot
+            const existingSwitch = inputSwitchActions.find(a => 
+                a.actor.side === req.side && 
+                a.actor.slotIndex === req.slotIndex
+            )
+
+            // Check if there are available bench members for this switch
+            const stateAtSwitch = getStateAtAction(actions.length) // State at end of all actions
+            const team = req.side === "my" ? stateAtSwitch.myTeam : stateAtSwitch.enemyTeam
+            const activeSlots = req.side === "my" ? stateAtSwitch.activeSlots?.myTeam : stateAtSwitch.activeSlots?.opponentTeam
+            
+            const availableBenchMembers = team
+                .map((p, idx) => ({ pokemon: p, idx }))
+                .filter(({ pokemon, idx }) => 
+                    pokemon.hpPercent > 0 && // Living
+                    !(activeSlots || []).includes(idx) // Not active
+                )
+            
+            const hasNoAvailableSwitch = availableBenchMembers.length === 0
+
+            // If a switch already exists, reuse it with potential updates
+            if (existingSwitch) {
+                // Create a new switch object (don't mutate existing)
+                const updatedSwitch: TurnAction = {
+                    ...existingSwitch,
+                    target: hasNoAvailableSwitch ? undefined : existingSwitch.target,
+                    deltas: hasNoAvailableSwitch ? [{
                         type: "SWITCH",
                         side: req.side,
                         fromSlot: req.slotIndex,
-                        toSlot: recoveredData.target.slotIndex
-                    }] : []),
-                    metadata: {},
-                    // Restore PRESERVED collapsed state
-                    isCollapsed: recoveredData?.isCollapsed ?? true
+                        toSlot: null
+                    } as any] : existingSwitch.deltas,
+                    metadata: (fusedFrom && !existingSwitch.metadata?.fusedFrom) 
+                        ? { ...existingSwitch.metadata, fusedFrom }
+                        : existingSwitch.metadata
                 }
-    
-                const triggerActionId = actions[req.triggeredByActionIndex]?.id
                 
-                let insertionIndex = processedActions.findIndex(a => a.id === triggerActionId)
-    
-                if (insertionIndex === -1) {
-                    processedActions.push(newSwitch)
-                } else {
-                    insertionIndex++ 
-    
-                    while (insertionIndex < processedActions.length) {
-                        const nextAction = processedActions[insertionIndex]
-                        
-                        if (nextAction.type !== "switch-after-ko") break
-    
-                         const nextReqIndex = requirements.findIndex(r => 
-                            r.side === nextAction.actor.side &&
-                            r.slotIndex === nextAction.actor.slotIndex &&
-                            r.triggeredByActionIndex === req.triggeredByActionIndex 
-                        )
-    
-                        if (nextReqIndex !== -1) {
-                             if (nextAction.actor.slotIndex < req.slotIndex) {
-                                 insertionIndex++
-                             } else {
-                                 break
-                             }
-                        } else {
-                            break
-                        }
-                    }
-                    
-                    processedActions.splice(insertionIndex, 0, newSwitch)
+                finalProcessedActions.push(updatedSwitch)
+            } else {
+                // No existing switch, create a new one
+                const newSwitch: TurnAction = {
+                    id: cachedSwitch?.id || crypto.randomUUID(),
+                    type: "switch-after-ko",
+                    actor: { side: req.side, slotIndex: req.slotIndex },
+                    target: hasNoAvailableSwitch ? undefined : cachedSwitch?.target,
+                    deltas: hasNoAvailableSwitch ? [{
+                        type: "SWITCH",
+                        side: req.side,
+                        fromSlot: req.slotIndex,
+                        toSlot: null
+                    }] : (cachedSwitch?.deltas || (cachedSwitch?.target ? [{
+                        type: "SWITCH",
+                        side: req.side,
+                        fromSlot: req.slotIndex,
+                        toSlot: cachedSwitch.target.slotIndex
+                    }] : [])),
+                    isCollapsed: cachedSwitch?.isCollapsed ?? true,
+                    metadata: fusedFrom ? { fusedFrom } : {}
                 }
-                changesMade = true
+
+                finalProcessedActions.push(newSwitch)
+                
+                // Check for change: If we generated a switch that didn't exist or changed state
+                if (!existingSwitch && !cachedSwitch && !fusedFrom) {
+                     // It's a "silent" update usually, but ensuring we trigger update if needed
+                }
             }
         })
-    
+        
+        // Final sanity check
+        if (!changesMade) {
+            const inputIds = actions.map(a => a.id).join(",")
+            const outputIds = finalProcessedActions.map(a => a.id).join(",")
+            if (inputIds !== outputIds) changesMade = true
+        }
+
         if (changesMade) {
-            setActions(processedActions)
+            setActions(finalProcessedActions)
         }
     
       }, [actions, detectedKOs, getStateAtAction, readOnly, setActions])

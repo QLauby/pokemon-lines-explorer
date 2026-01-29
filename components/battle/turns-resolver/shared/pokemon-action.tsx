@@ -111,9 +111,13 @@ export function PokemonAction({
           label: p.name,
           value: JSON.stringify({ side: isAlly ? "my" : "opponent", slotIndex: idx }),
           isAlly: isAlly,
-          slotIndex: idx
+          slotIndex: idx,
+          pokemon: p
       }
   }).filter((p): p is NonNullable<typeof p> => p !== null)
+
+  // Filter out KO'd Pokémon from available switch targets
+  const availableBenchMembers = benchMembers.filter(member => member.pokemon.hpPercent > 0)
 
   const getActorName = () => {
       if (actor) return actor.pokemon.name.toUpperCase()
@@ -221,20 +225,23 @@ export function PokemonAction({
             variant="ghost"
             size="icon"
             className="h-3.5 w-5 rounded-none hover:bg-background border-b border-transparent hover:border-input"
-            disabled={!canMoveUp || (index === 0 && !isSwitchAfterKo)}
+            disabled={isSwitchAfterKo ? !action.metadata?.fusedFrom : (!canMoveUp || index === 0)}
             onClick={() => onMove("up")}
           >
             <ChevronUp className="h-3 w-3" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-3.5 w-5 rounded-none hover:bg-background"
-            disabled={!canMoveDown || (index === totalActions - 1 && !isSwitchAfterKo)}
-            onClick={() => onMove("down")}
-          >
-            <ChevronDown className="h-3 w-3" />
-          </Button>
+          
+          {!isSwitchAfterKo && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-3.5 w-5 rounded-none hover:bg-background"
+                disabled={!canMoveDown || index === totalActions - 1}
+                onClick={() => onMove("down")}
+              >
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+          )}
         </div>
 
         {/* Action Controls Row */}
@@ -329,27 +336,39 @@ export function PokemonAction({
 
                 {/* SWITCH TARGETS */}
                 {(action.type === "switch" || action.type === "switch-after-ko") && (
-                    <select
-                      className={cn(
-                          "h-6 w-[130px] text-[10px] font-medium bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate",
-                          !isSwitchAfterKo && borderColorClass
-                      )}
-                      style={commonElementStyle}
-                      value={action.target ? JSON.stringify(action.target) : ""}
-                      onChange={(e) => onUpdateTarget(e.target.value ? JSON.parse(e.target.value) : undefined)}
-                    >
-                      <option value="">Select...</option>
-                      {benchMembers.map(t => (
-                          <option 
-                            key={t.value} 
-                            value={t.value}
-                            className={t.isAlly ? "text-blue-600" : "text-red-600"}
-                          >
-                            {/* Always show arrow for switch targets as requested */}
-                            {"\u2192 "}{t.label}
-                          </option>
-                      ))}
-                    </select>
+                    availableBenchMembers.length === 0 && action.type === "switch-after-ko" ? (
+                        // No switch available for KO'd Pokémon
+                        <div 
+                          className={cn(
+                              "h-6 w-[130px] text-[10px] font-medium bg-background/50 border rounded px-1.5 flex items-center text-muted-foreground italic",
+                              !isSwitchAfterKo && borderColorClass
+                          )}
+                          style={commonElementStyle}
+                        >
+                          No switch available
+                        </div>
+                    ) : (
+                        <select
+                          className={cn(
+                              "h-6 w-[130px] text-[10px] font-medium bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate",
+                              !isSwitchAfterKo && borderColorClass
+                          )}
+                          style={commonElementStyle}
+                          value={action.target ? JSON.stringify(action.target) : ""}
+                          onChange={(e) => onUpdateTarget(e.target.value ? JSON.parse(e.target.value) : undefined)}
+                        >
+                          <option value="">Select...</option>
+                          {availableBenchMembers.map(t => (
+                              <option 
+                                key={t.value} 
+                                value={t.value}
+                                className={t.isAlly ? "text-blue-600" : "text-red-600"}
+                              >
+                                {"\u2192 "}{t.label}
+                              </option>
+                          ))}
+                        </select>
+                    )
                 )}
 
                 {/* ITEM INPUT */}

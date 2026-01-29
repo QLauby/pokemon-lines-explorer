@@ -181,6 +181,23 @@ export function CombatView({
      )
   }, [currentSession.initialState, nodes, selectedNodeId])
 
+  // Compute active Pokemon for NEXT turn (SetNextTurn tab)
+  const nextActivePokemonList = useMemo(() => {
+     const limit = currentSession.battleType === "double" ? 2 : 1
+     return [
+       ...(selectedNodeState.activeSlots?.myTeam || [])
+         .slice(0, limit)
+         .filter((idx: number | null): idx is number => idx !== null)
+         .map((idx: number) => ({ pokemon: selectedNodeState.myTeam[idx], isAlly: true }))
+         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon),
+       ...(selectedNodeState.activeSlots?.opponentTeam || [])
+         .slice(0, limit)
+         .filter((idx: number | null): idx is number => idx !== null)
+         .map((idx: number) => ({ pokemon: selectedNodeState.enemyTeam[idx], isAlly: false }))
+         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon)
+     ]
+  }, [selectedNodeState, currentSession.battleType])
+
   return (
     <div className="w-full p-2 bg-gray-50/50 min-h-screen">
        {/* Main Grid: Left (Tree + Battle) | Right (Actions) */}
@@ -242,6 +259,9 @@ export function CombatView({
                     // For "Next Turn": Pass the clean end state of the selected node
                     nextCurrentMyTeam={selectedNodeState.myTeam}
                     nextCurrentEnemyTeam={selectedNodeState.enemyTeam}
+                    nextActivePokemon={nextActivePokemonList}
+                    nextBattleState={selectedNodeState}
+                    initialBattleState={parentState || currentSession.initialState}
                  />
               </div>
           </div>

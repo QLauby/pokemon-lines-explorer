@@ -61,8 +61,9 @@ export function TurnEditor({
           const currentMy = initialBattleState.activeSlots?.myTeam || []
           const currentOpp = initialBattleState.activeSlots?.opponentTeam || []
 
-          const patchMy = currentMy.length < neededSlots
-          const patchOpp = currentOpp.length < neededSlots
+          // Need to patch if length doesn't match (either too few OR too many slots)
+          const patchMy = currentMy.length !== neededSlots
+          const patchOpp = currentOpp.length !== neededSlots
 
           if (!patchMy && !patchOpp) return initialBattleState
 
@@ -70,10 +71,14 @@ export function TurnEditor({
               ...initialBattleState,
               activeSlots: {
                 myTeam: patchMy 
-                    ? Array.from({ length: neededSlots }, (_, i) => i) 
+                    ? currentMy.slice(0, neededSlots).concat(
+                        Array.from({ length: Math.max(0, neededSlots - currentMy.length) }, (_, i) => currentMy.length + i)
+                      )
                     : currentMy,
                 opponentTeam: patchOpp 
-                    ? Array.from({ length: neededSlots }, (_, i) => i) 
+                    ? currentOpp.slice(0, neededSlots).concat(
+                        Array.from({ length: Math.max(0, neededSlots - currentOpp.length) }, (_, i) => currentOpp.length + i)
+                      )
                     : currentOpp
               }
           }
@@ -184,33 +189,34 @@ export function TurnEditor({
       if (index === 0) return false
       
       const action = actions[index]
-
-      // Temporal Guard Check
+      
+      // Constraint: Switch-After-KO cannot be moved above a Normal Action unless it is fused (Defusion)
       if (action.type === "switch-after-ko") {
-          // Allow Defusion: If this is a fused action, we can move it up to revert it
           if (action.metadata?.fusedFrom) return true
-          
-          const targetIndex = index - 1
-          const stateAtTarget = getStateAtAction(targetIndex)
-          const actorSide = action.actor.side
-          const actorSlot = action.actor.slotIndex
-          const team = actorSide === "my" ? stateAtTarget.myTeam : stateAtTarget.enemyTeam
-          const pokemon = team[actorSlot]
-          
-          if (pokemon && pokemon.hpPercent > 0) {
-              return false
-          }
+
+          return false
       }
+      
       return true
   }
 
   const canMoveActionDown = (index: number) => {
       if (index >= actions.length - 1) return false
       
-      // Prevent moving an action down if the next one is a forced switch (causality barrier)
+      const action = actions[index]
       const nextAction = actions[index + 1]
-      if (nextAction.type === "switch-after-ko") return false
-
+      
+      // Constraint: Normal Action cannot move down if next is a Switch-After-KO
+      if (action.type !== "switch-after-ko" && nextAction.type === "switch-after-ko") {
+          return false
+      }
+      
+      // Normal actions can move down freely otherwise
+      if (action.type !== "switch-after-ko") {
+          return true
+      }
+      
+      // Switch moving down (allowed for reordering switches)
       return true
   }
 
@@ -220,6 +226,24 @@ export function TurnEditor({
     if (direction === "down" && !canMoveActionDown(index)) return
 
     const newActions = [...actions]
+    
+    // SPECIAL DE-FUSION LOGIC:
+    if (direction === "up" && actions[index].type === "switch-after-ko" && actions[index].metadata?.fusedFrom) {
+         let targetPos = index - 1
+         // Skip any switches directly above
+         while (targetPos >= 0 && newActions[targetPos].type === "switch-after-ko") {
+             targetPos--
+         }
+         
+         if (targetPos >= 0) {
+             const [movedAction] = newActions.splice(index, 1)
+             newActions.splice(targetPos, 0, movedAction)
+             
+             setActions(newActions)
+             return
+         }
+    }
+
     const targetIndex = direction === "up" ? index - 1 : index + 1
     
     // Perform Swap

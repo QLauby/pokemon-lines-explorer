@@ -26,6 +26,9 @@ interface TurnsResolverProps {
   updateParentEnemyTeam?: Pokemon[]
   nextCurrentMyTeam?: Pokemon[]
   nextCurrentEnemyTeam?: Pokemon[]
+  nextActivePokemon?: { pokemon: Pokemon; isAlly: boolean }[]
+  nextBattleState?: BattleState
+  initialBattleState?: BattleState
 }
 
 type Tab = "update" | "delete" | "next"
@@ -49,6 +52,9 @@ export function TurnsResolver({
   updateParentEnemyTeam,
   nextCurrentMyTeam,
   nextCurrentEnemyTeam,
+  nextActivePokemon,
+  nextBattleState,
+  initialBattleState,
 }: TurnsResolverProps) {
   const [activeTab, setActiveTab] = useState<Tab>("next")
   const selectedNode = nodes.get(selectedNodeId)
@@ -121,7 +127,6 @@ export function TurnsResolver({
                  myTeam={updateParentMyTeam || myTeam}
                  enemyTeam={updateParentEnemyTeam || enemyTeam}
                  onChange={onPreviewChange}
-
                  battleType={battleType}
                />
           )}
@@ -138,14 +143,16 @@ export function TurnsResolver({
                 selectedNodeId={selectedNodeId}
                 nodes={nodes}
                 onAddAction={onAddAction}
-                activePokemon={activePokemon}
+                activePokemon={nextActivePokemon || activePokemon}
                 onChange={onPreviewChange}
                 myTeam={nextCurrentMyTeam || myTeam}
                 enemyTeam={nextCurrentEnemyTeam || enemyTeam}
                 battleType={battleType}
+                currentBattleState={nextBattleState}
+                initialBattleState={initialBattleState}
             />
          )}
-      </div>
+       </div>
     </div>
   )
 }
