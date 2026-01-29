@@ -13,7 +13,7 @@ interface TeamsViewProps {
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
   battleType: "simple" | "double"
-  activeStarters: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
+  activeSlots: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   getSlotForPokemon: (index: number, isMyTeam: boolean) => number | null
   editingPokemonId: string | null
   editingPokemonName: string
@@ -52,15 +52,13 @@ interface TeamsViewProps {
   onUpdateBattlefieldTags: (tags: string[]) => void
   onUpdatePlayerSideTags: (tags: string[]) => void
   onUpdateOpponentSideTags: (tags: string[]) => void
-  expandedPokemonIds?: string[]
-  onToggleExpansion?: (id: string) => void
 }
 
 export function TeamsView({
   myTeam,
   enemyTeam,
   battleType,
-  activeStarters,
+  activeSlots,
   getSlotForPokemon,
   editingPokemonId,
   editingPokemonName,
@@ -87,8 +85,6 @@ export function TeamsView({
   onUpdateBattlefieldTags,
   onUpdatePlayerSideTags,
   onUpdateOpponentSideTags,
-  expandedPokemonIds,
-  onToggleExpansion,
 }: TeamsViewProps) {
 
   return (
@@ -153,8 +149,6 @@ export function TeamsView({
           getDefaultPokemonName={getDefaultPokemonName}
           getTeamCounterDisplay={getTeamCounterDisplay}
           isStarterPokemon={isStarterPokemon}
-          expandedPokemonIds={expandedPokemonIds}
-          onToggleExpansion={onToggleExpansion}
         />
 
         <TeamSection
@@ -180,8 +174,6 @@ export function TeamsView({
           getDefaultPokemonName={getDefaultPokemonName}
           getTeamCounterDisplay={getTeamCounterDisplay}
           isStarterPokemon={isStarterPokemon}
-          expandedPokemonIds={expandedPokemonIds}
-          onToggleExpansion={onToggleExpansion}
         />
       </div>
     </>

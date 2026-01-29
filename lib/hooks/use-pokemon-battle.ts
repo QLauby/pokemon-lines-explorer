@@ -39,9 +39,8 @@ export function usePokemonBattle() {
       return {
         myTeam: [],
         enemyTeam: [],
-        activeStarters: { myTeam: [0, 1], opponentTeam: [0, 1] },
+        activeSlots: { myTeam: [0, 1], opponentTeam: [0, 1] },
         battlefieldState: { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } },
-        expandedPokemonIds: []
       }
     }
 
@@ -60,15 +59,17 @@ export function usePokemonBattle() {
          return [...activeIndices, ...inactiveIndices];
     }
 
-    const myOrder = getOrder(currentSession.initialState.myTeam, currentSession.initialState.activeStarters.myTeam);
-    const enemyOrder = getOrder(currentSession.initialState.enemyTeam, currentSession.initialState.activeStarters.opponentTeam);
+    const activeSlots = currentSession.initialState.activeSlots || (currentSession.initialState as any).activeStarters || { myTeam: [0, 1], opponentTeam: [0, 1] }
+
+    const myOrder = getOrder(currentSession.initialState.myTeam, activeSlots.myTeam);
+    const enemyOrder = getOrder(currentSession.initialState.enemyTeam, activeSlots.opponentTeam);
 
     // Prepare state for engine (active mons at 0, 1)
     const engineInitialState = {
         ...currentSession.initialState,
         myTeam: myOrder.map(i => currentSession.initialState.myTeam[i]),
         enemyTeam: enemyOrder.map(i => currentSession.initialState.enemyTeam[i]),
-        activeStarters: { myTeam: [0, 1], opponentTeam: [0, 1] } // Mock consistent starters for engine
+        activeSlots: { myTeam: [0, 1], opponentTeam: [0, 1] } // Mock consistent starters for engine
     }
 
     const engineResult = BattleEngine.computeState(engineInitialState, nodesMap, battleTree.selectedNodeId || "root")
@@ -86,7 +87,7 @@ export function usePokemonBattle() {
         ...engineResult,
         myTeam: restoreTeam(engineResult.myTeam, myOrder),
         enemyTeam: restoreTeam(engineResult.enemyTeam, enemyOrder),
-        activeStarters: currentSession.initialState.activeStarters // Restore original starters
+        activeSlots: activeSlots // Restore original starters
     }
 
   }, [currentSession, currentView, battleTree.selectedNodeId])
@@ -110,10 +111,9 @@ export function usePokemonBattle() {
         newOpponentPokemonName: teamManager.newOpponentPokemonName,
         editingPokemonId: teamManager.editingPokemonId,
         editingPokemonName: teamManager.editingPokemonName,
-        activeStarters: currentState.activeStarters,
+        activeSlots: currentState.activeSlots,
         getSlotForPokemon: teamManager.getSlotForPokemon,
         battlefieldState: currentState.battlefieldState,
-        expandedPokemonIds: currentState.expandedPokemonIds,
         currentSession,
     },
     setters: {
@@ -149,7 +149,6 @@ export function usePokemonBattle() {
         updateBattlefieldTags: teamManager.updateBattlefieldTags,
         updatePlayerSideTags: teamManager.updatePlayerSideTags,
         updateOpponentSideTags: teamManager.updateOpponentSideTags,
-        togglePokemonExpansion: teamManager.togglePokemonExpansion,
         overwriteSession: saveSession
     }
   }

@@ -30,13 +30,15 @@ export function useTurnSimulation({
     return {
       myTeam: JSON.parse(JSON.stringify(myTeam)),
       enemyTeam: JSON.parse(JSON.stringify(enemyTeam)),
-      activeStarters: { myTeam: [0], opponentTeam: [0] }, // Default fallback
+      activeSlots: { 
+          myTeam: Array.from({ length: activeSlotsCount }, (_, i) => i), 
+          opponentTeam: Array.from({ length: activeSlotsCount }, (_, i) => i) 
+      }, // Default fallback respected activeSlotsCount
       battlefieldState: {
         customTags: [],
         playerSide: { customTags: [] },
         opponentSide: { customTags: [] },
       },
-      expandedPokemonIds: [],
     }
   }, [initialState, myTeam, enemyTeam])
 
@@ -48,10 +50,6 @@ export function useTurnSimulation({
   // 3. Detect KOs by comparing state transition for each action
   const detectedKOs = useMemo(() => {
     const kos: Record<number, KODetected[]> = {}
-
-    // computedStates has length actions.length + 1
-    // State[i] is BEFORE Action[i]
-    // State[i+1] is AFTER Action[i]
     
     actions.forEach((_, actionIndex) => {
       const stateBefore = computedStates[actionIndex]
@@ -62,19 +60,25 @@ export function useTurnSimulation({
       const currentKOs: KODetected[] = []
 
       // Check My Team (Active Slots Only)
-      stateAfter.myTeam.forEach((p, idx) => {
-        if (idx >= activeSlotsCount) return 
+      const myActiveIndices = stateAfter.activeSlots?.myTeam || [0]
+      myActiveIndices.forEach((idx) => {
+        if (idx === null || idx === undefined) return
+        const p = stateAfter.myTeam[idx]
         const prevP = stateBefore.myTeam[idx]
-        if (prevP && prevP.hpPercent > 0 && p.hpPercent === 0) {
+        
+        if (p && prevP && prevP.hpPercent > 0 && p.hpPercent === 0) {
           currentKOs.push({ pokemon: p, isAlly: true })
         }
       })
 
       // Check Enemy Team (Active Slots Only)
-      stateAfter.enemyTeam.forEach((p, idx) => {
-        if (idx >= activeSlotsCount) return 
+      const enemyActiveIndices = stateAfter.activeSlots?.opponentTeam || [0]
+      enemyActiveIndices.forEach((idx) => {
+        if (idx === null || idx === undefined) return
+        const p = stateAfter.enemyTeam[idx]
         const prevP = stateBefore.enemyTeam[idx]
-        if (prevP && prevP.hpPercent > 0 && p.hpPercent === 0) {
+       
+        if (p && prevP && prevP.hpPercent > 0 && p.hpPercent === 0) {
           currentKOs.push({ pokemon: p, isAlly: false })
         }
       })

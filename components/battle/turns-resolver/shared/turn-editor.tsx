@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { useTurnSimulation } from "@/lib/hooks/use-turn-simulation"
@@ -52,8 +52,61 @@ export function TurnEditor({
   }, [actions, endOfTurnDeltas, onChange])
 
   // --- 1. Integration of the Brain (useTurnSimulation) ---
+
+  // Safety: Ensure activeSlots structure matches the format (Partial Fix for inconsistent state)
+  const simulationState = useMemo(() => {
+      // CASE A: We have an explicit initial state (Update Mode)
+      if (initialBattleState) {
+          const neededSlots = battleFormat === "double" ? 2 : 1
+          const currentMy = initialBattleState.activeSlots?.myTeam || []
+          const currentOpp = initialBattleState.activeSlots?.opponentTeam || []
+
+          const patchMy = currentMy.length < neededSlots
+          const patchOpp = currentOpp.length < neededSlots
+
+          if (!patchMy && !patchOpp) return initialBattleState
+
+          return {
+              ...initialBattleState,
+              activeSlots: {
+                myTeam: patchMy 
+                    ? Array.from({ length: neededSlots }, (_, i) => i) 
+                    : currentMy,
+                opponentTeam: patchOpp 
+                    ? Array.from({ length: neededSlots }, (_, i) => i) 
+                    : currentOpp
+              }
+          }
+      }
+
+      // CASE B: NO initial state (Set Next Turn Mode)
+      const myActiveIndices = initialActivePokemon
+          .filter(p => p.isAlly)
+          .map(ap => myTeam.findIndex(p => p.id === ap.pokemon.id))
+          .filter(idx => idx !== -1)
+
+      const enemyActiveIndices = initialActivePokemon
+          .filter(p => !p.isAlly)
+          .map(ap => enemyTeam.findIndex(p => p.id === ap.pokemon.id))
+          .filter(idx => idx !== -1)
+
+      return {
+          myTeam: JSON.parse(JSON.stringify(myTeam)),
+          enemyTeam: JSON.parse(JSON.stringify(enemyTeam)),
+          activeSlots: {
+              myTeam: myActiveIndices.length > 0 ? myActiveIndices : Array.from({ length: battleFormat === "double" ? 2 : 1 }, (_, i) => i),
+              opponentTeam: enemyActiveIndices.length > 0 ? enemyActiveIndices : Array.from({ length: battleFormat === "double" ? 2 : 1 }, (_, i) => i)
+          },
+          battlefieldState: {
+              customTags: [],
+              playerSide: { customTags: [] },
+              opponentSide: { customTags: [] }
+          }
+      }
+  }, [initialBattleState, battleFormat, initialActivePokemon, myTeam, enemyTeam])
+
   const { detectedKOs, getStateAtAction } = useTurnSimulation({
-      initialState: initialBattleState || undefined, // Use explicit initial state if provided
+      initialState: simulationState,
       actions,
       myTeam,
       enemyTeam,
@@ -116,7 +169,7 @@ export function TurnEditor({
         setEndOfTurnDeltas(JSON.parse(JSON.stringify(initialTurnData.endOfTurnDeltas)))
       }
     }
-  }, [initialTurnData, turnNumber, battleFormat /** Only run once or when context changes drastically, manual deps */])
+  }, [initialTurnData, turnNumber, battleFormat])
 
   // --- Automatic Forced Switch Management ---
   useKoFusion({
@@ -326,22 +379,6 @@ export function TurnEditor({
     setActions(newActions)
   }
 
-  const handleAddReplacement = (side: "my" | "opponent", slotIndex: number) => {
-    if (readOnly) return
-    
-    const newAction: TurnAction = {
-        id: crypto.randomUUID(),
-        type: "switch-after-ko",
-        actor: { side, slotIndex },
-        target: undefined,
-        deltas: [],
-        metadata: { },
-        isCollapsed: false
-    }
-
-    setActions([...actions, newAction])
-  }
-
   const handleDeleteAction = (index: number) => {
     if (readOnly) return
     const newActions = actions.filter((_, i) => i !== index)
@@ -410,10 +447,31 @@ export function TurnEditor({
 
   // Helper to extract active pokemon from a dynamic state
   const getActivePokemonFromState = (state: import("@/types/types").BattleState) => {
+    const activeSlots = state.activeSlots || { myTeam: [0], opponentTeam: [0] } // Safety fallback
     const limit = battleFormat === "double" ? 2 : 1
+    
+    // Get active slots for each side, respecting the limit
+    const myActiveIndices = (activeSlots.myTeam || []).slice(0, limit)
+    const enemyActiveIndices = (activeSlots.opponentTeam || []).slice(0, limit)
+
     return [
-        ...(state.myTeam || []).map((p, i) => ({ pokemon: p, isAlly: true, slotIndex: i })).filter((p, i) => i < limit), 
-        ...(state.enemyTeam || []).map((p, i) => ({ pokemon: p, isAlly: false, slotIndex: i })).filter((p, i) => i < limit)
+        ...myActiveIndices
+            .filter((idx): idx is number => idx !== null && idx !== undefined)
+            .map(idx => {
+                const pokemon = state.myTeam[idx]
+                if (!pokemon) return null
+                return { pokemon, isAlly: true, slotIndex: idx }
+            })
+            .filter((p): p is NonNullable<typeof p> => p !== null),
+            
+        ...enemyActiveIndices
+            .filter((idx): idx is number => idx !== null && idx !== undefined)
+            .map(idx => {
+                const pokemon = state.enemyTeam[idx]
+                if (!pokemon) return null
+                return { pokemon, isAlly: false, slotIndex: idx }
+            })
+            .filter((p): p is NonNullable<typeof p> => p !== null)
     ]
   }
 
@@ -454,7 +512,7 @@ export function TurnEditor({
                             index={index}
                             totalActions={actions.length}
                             actor={actorObj}
-                            activePokemon={dynamicActivePokemon} 
+                            activeSlots={stateBeforeAction.activeSlots}
                             onMove={(direction) => !readOnly && moveAction(index, direction)}
                             onToggleCollapse={() => toggleActionCollapse(index)} 
                             onUpdateType={(type) => !readOnly && updateActionType(index, type)}

@@ -98,10 +98,6 @@ export interface TurnAction {
         deltas?: BattleDelta[]
     }
   }
-  // Legacy fields for migration
-  actorId?: string
-  targetId?: string
-  hpChanges?: { type: string, targetId: string, amount: number }[]
 }
 
 export interface TurnData {
@@ -109,25 +105,20 @@ export interface TurnData {
   endOfTurnDeltas: BattleDelta[]
 }
 
+
+export interface BattleState {
+  myTeam: Pokemon[]
+  enemyTeam: Pokemon[]
+  activeSlots: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
+  battlefieldState: BattlefieldState
+}
+
 // Full Combat Session
 export interface CombatSession {
   id: string
   name: string
   battleType: "simple" | "double"
-  initialState: {
-    myTeam: Pokemon[]
-    enemyTeam: Pokemon[]
-    activeStarters: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
-    battlefieldState: BattlefieldState
-  }
+  initialState: BattleState
   nodes: TreeNode[]
   lastSelectedNodeId?: string
-}
-
-export interface BattleState {
-  myTeam: Pokemon[]
-  enemyTeam: Pokemon[]
-  activeStarters: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
-  battlefieldState: BattlefieldState
-  expandedPokemonIds?: string[]
 }

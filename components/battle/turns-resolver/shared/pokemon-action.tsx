@@ -15,7 +15,6 @@ interface PokemonActionProps {
   index: number
   totalActions: number
   actor: { pokemon: Pokemon; isAlly: boolean } | undefined
-  activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
   onMove: (direction: "up" | "down") => void
   onToggleCollapse: () => void
   onUpdateType: (type: TurnActionType) => void
@@ -27,6 +26,7 @@ interface PokemonActionProps {
   onMoveHpChange: (fromIndex: number, toIndex: number) => void
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
+  activeSlots: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   // Optional props for Forced Switch mode
   onDelete?: () => void
   canMoveUp?: boolean
@@ -38,7 +38,6 @@ export function PokemonAction({
   index,
   totalActions,
   actor,
-  activePokemon,
   onMove,
   onToggleCollapse,
   onUpdateType,
@@ -50,6 +49,7 @@ export function PokemonAction({
   onMoveHpChange,
   myTeam,
   enemyTeam,
+  activeSlots,
   onDelete,
   canMoveUp = true,
   canMoveDown = true,
@@ -64,30 +64,56 @@ export function PokemonAction({
     "switch-after-ko": <Repeat className="h-3.5 w-3.5" />
   }
   
-  const allActiveTargets = activePokemon.map((ap: { pokemon: Pokemon; isAlly: boolean }) => {
-      const side = ap.isAlly ? "my" : "opponent"
-      const team = ap.isAlly ? myTeam : enemyTeam
-      const slotIndex = team.findIndex((p: Pokemon) => p.id === ap.pokemon.id)
-      return {
-          value: JSON.stringify({ side, slotIndex }),
-          side,
-          slotIndex,
-          label: ap.pokemon.name,
-          isAlly: ap.isAlly
+  // --- 1. Available Attack Targets (Everyone on field) ---
+  const activeTargets: { label: string; value: string; isAlly: boolean; side: "my" | "opponent"; slotIndex: number }[] = []
+
+  // Add My Active Pokemon
+  activeSlots.myTeam.forEach(slotIndex => {
+      if (slotIndex !== null && slotIndex !== undefined && myTeam[slotIndex]) {
+          activeTargets.push({
+              label: myTeam[slotIndex].name,
+              value: JSON.stringify({ side: "my", slotIndex }),
+              isAlly: true,
+              side: "my",
+              slotIndex
+          })
       }
-  }).sort((a,b) => {
-      if (a.isAlly === b.isAlly) return 0
-      return a.isAlly === isAlly ? 1 : -1 // Opponents first
   })
 
-  // For Switch: Bench slots
-  const teamMembers = (isAlly ? myTeam : enemyTeam).map((p: Pokemon, idx: number) => ({
-    value: JSON.stringify({ side: isAlly ? "my" : "opponent", slotIndex: idx }),
-    slotIndex: idx,
-    label: p.name,
-    isAlly: isAlly,
-    id: p.id // for filtering
-  }))
+  // Add Opponent Active Pokemon
+  activeSlots.opponentTeam.forEach(slotIndex => {
+      if (slotIndex !== null && slotIndex !== undefined && enemyTeam[slotIndex]) {
+          activeTargets.push({
+              label: enemyTeam[slotIndex].name,
+              value: JSON.stringify({ side: "opponent", slotIndex }),
+              isAlly: false,
+              side: "opponent",
+              slotIndex
+          })
+      }
+  })
+  
+  // Sort: Opponents first, then Allies
+  activeTargets.sort((a, b) => {
+      if (a.isAlly === b.isAlly) return 0
+      return a.isAlly === isAlly ? 1 : -1 
+  })
+
+  // --- 2. Available Switch Candidates (Bench only) ---
+  const teamArray = isAlly ? myTeam : enemyTeam
+  const teamActiveSlots = isAlly ? activeSlots.myTeam : activeSlots.opponentTeam
+  
+  const benchMembers = teamArray.map((p, idx) => {
+      // Is this index currently active?
+      if (teamActiveSlots.includes(idx)) return null
+      
+      return {
+          label: p.name,
+          value: JSON.stringify({ side: isAlly ? "my" : "opponent", slotIndex: idx }),
+          isAlly: isAlly,
+          slotIndex: idx
+      }
+  }).filter((p): p is NonNullable<typeof p> => p !== null)
 
   const getActorName = () => {
       if (actor) return actor.pokemon.name.toUpperCase()
@@ -127,28 +153,24 @@ export function PokemonAction({
       }
 
       // B. Partners (Same Side)
-      activePokemon
-          .filter(p => (p.isAlly ? "my" : "opponent") === refSide && p.pokemon.id !== refPokemon?.id)
-          .forEach(ap => {
-              const team = ap.isAlly ? myTeam : enemyTeam
-              const idx = team.findIndex(p => p.id === ap.pokemon.id)
+      activeTargets
+          .filter(t => t.side === refSide && t.value !== (refPokemon ? JSON.stringify({ side: refSide, slotIndex: refSlotIndex }) : ""))
+          .forEach(t => {
               opts.push({
-                  label: ap.pokemon.name,
-                  value: { side: ap.isAlly ? "my" : "opponent", slotIndex: idx },
-                  isAlly: ap.isAlly
+                  label: t.label,
+                  value: { side: t.side, slotIndex: t.slotIndex },
+                  isAlly: t.isAlly
               })
           })
 
       // C. Opposing Side
-      activePokemon
-          .filter(p => (p.isAlly ? "my" : "opponent") !== refSide)
-          .forEach(ap => {
-              const team = ap.isAlly ? myTeam : enemyTeam
-              const idx = team.findIndex(p => p.id === ap.pokemon.id)
+      activeTargets
+          .filter(t => t.side !== refSide)
+          .forEach(t => {
               opts.push({
-                  label: ap.pokemon.name,
-                  value: { side: ap.isAlly ? "my" : "opponent", slotIndex: idx },
-                  isAlly: ap.isAlly
+                  label: t.label,
+                  value: { side: t.side, slotIndex: t.slotIndex },
+                  isAlly: t.isAlly
               })
           })
       
@@ -293,7 +315,7 @@ export function PokemonAction({
                       onChange={(e) => onUpdateTarget(e.target.value ? JSON.parse(e.target.value) : undefined)}
                     >
                       <option value="">No Target</option>
-                      {allActiveTargets.map(t => (
+                      {activeTargets.map(t => (
                           <option 
                             key={t.value} 
                             value={t.value}
@@ -317,7 +339,7 @@ export function PokemonAction({
                       onChange={(e) => onUpdateTarget(e.target.value ? JSON.parse(e.target.value) : undefined)}
                     >
                       <option value="">Select...</option>
-                      {teamMembers.filter(m => m.slotIndex !== action.actor.slotIndex).map(t => (
+                      {benchMembers.map(t => (
                           <option 
                             key={t.value} 
                             value={t.value}
@@ -369,7 +391,7 @@ export function PokemonAction({
            {action.type === "switch" || action.type === "switch-after-ko" ? (
              <SwitchEffects
                action={action}
-               activePokemon={activePokemon}
+               activeSlots={activeSlots}
                onAddEntryHpChange={onAddHpChange}
                onUpdateHpChange={onUpdateHpChange}
                onRemoveHpChange={onRemoveHpChange}

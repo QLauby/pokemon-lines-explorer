@@ -5,7 +5,7 @@ import { EffectsList } from "./effects-list"
 
 interface SwitchEffectsProps {
   action: TurnAction
-  activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
+  activeSlots: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   onAddEntryHpChange: () => void
   onUpdateHpChange: (index: number, field: "slot" | "value" | "isHealing", value: any) => void
   onRemoveHpChange: (index: number) => void
@@ -16,7 +16,7 @@ interface SwitchEffectsProps {
 
 export function SwitchEffects({
   action,
-  activePokemon,
+  activeSlots,
   onAddEntryHpChange,
   onUpdateHpChange,
   onRemoveHpChange,
@@ -53,47 +53,41 @@ export function SwitchEffects({
       })
     }
 
-    // B. The outgoing (action.actor)
-    const actorFieldSlot = action.actor.slotIndex
-    const sameSideActive = activePokemon.filter(p => p.isAlly === isAllySwitch)
-    const outgoingPokemon = sameSideActive[actorFieldSlot]
-
-    let outgoingTeamIndex = -1
-    if (outgoingPokemon) {
-      const fullTeam = isAllySwitch ? myTeam : enemyTeam
-      outgoingTeamIndex = fullTeam.findIndex(p => p.id === outgoingPokemon.pokemon.id)
-      
+    // B. The outgoing (action.actor) - Get from activeSlots
+    const actorSlots = isAllySwitch ? activeSlots.myTeam : activeSlots.opponentTeam
+    const actorTeam = isAllySwitch ? myTeam : enemyTeam
+    const outgoingTeamIndex = actorSlots[action.actor.slotIndex] ?? -1
+    
+    if (outgoingTeamIndex !== -1 && actorTeam[outgoingTeamIndex]) {
       opts.push({
-        label: `${outgoingPokemon.pokemon.name}`,
+        label: actorTeam[outgoingTeamIndex].name,
         value: { side: action.actor.side, slotIndex: outgoingTeamIndex },
         isAlly: isAllySwitch
       })
     }
 
-    // C. The other allies (Partners)
-    sameSideActive.forEach((ap) => {
-      const fullTeam = ap.isAlly ? myTeam : enemyTeam
-      const teamIndex = fullTeam.findIndex(p => p.id === ap.pokemon.id)
-      // Exclude the outgoing (already added)
-      if (teamIndex !== -1 && teamIndex !== outgoingTeamIndex) {
+    // C. The other allies (Partners) - From activeSlots
+    actorSlots.forEach((slotIdx, fieldPos) => {
+      if (slotIdx !== null && slotIdx !== -1 && slotIdx !== outgoingTeamIndex && actorTeam[slotIdx]) {
         opts.push({
-          label: ap.pokemon.name,
-          value: { side: ap.isAlly ? "my" : "opponent", slotIndex: teamIndex },
-          isAlly: ap.isAlly
+          label: actorTeam[slotIdx].name,
+          value: { side: action.actor.side, slotIndex: slotIdx },
+          isAlly: isAllySwitch
         })
       }
     })
 
-    // D. The opposing side (opponents)
-    const opposingSideActive = activePokemon.filter(p => p.isAlly !== isAllySwitch)
-    opposingSideActive.forEach((ap) => {
-      const oppTeam = ap.isAlly ? myTeam : enemyTeam
-      const teamIndex = oppTeam.findIndex(p => p.id === ap.pokemon.id)
-      if (teamIndex !== -1) {
+    // D. The opposing side (opponents) - From activeSlots
+    const oppSlots = isAllySwitch ? activeSlots.opponentTeam : activeSlots.myTeam
+    const oppTeam = isAllySwitch ? enemyTeam : myTeam
+    const oppSide = isAllySwitch ? "opponent" : "my"
+    
+    oppSlots.forEach((slotIdx) => {
+      if (slotIdx !== null && slotIdx !== -1 && oppTeam[slotIdx]) {
         opts.push({
-          label: ap.pokemon.name,
-          value: { side: ap.isAlly ? "my" : "opponent", slotIndex: teamIndex },
-          isAlly: ap.isAlly
+          label: oppTeam[slotIdx].name,
+          value: { side: oppSide, slotIndex: slotIdx },
+          isAlly: !isAllySwitch
         })
       }
     })
@@ -109,12 +103,8 @@ export function SwitchEffects({
     onUpdateHpChange(deltaIndex, "slot", selectedSlot)
 
     if (switchDeltaIndex === -1) return
-
-    const sameSideActive = activePokemon.filter(p => p.isAlly === isAllySwitch)
-    const outgoingPokemon = sameSideActive[action.actor.slotIndex]
-    const outgoingTeam = isAllySwitch ? myTeam : enemyTeam
-    const outgoingTeamIndex = outgoingTeam.findIndex(p => p.id === outgoingPokemon?.pokemon.id)
     
+    // Move HP change before switch if it's currently after
     if (deltaIndex > switchDeltaIndex) {
        onMoveHpChange(deltaIndex, switchDeltaIndex)
     }

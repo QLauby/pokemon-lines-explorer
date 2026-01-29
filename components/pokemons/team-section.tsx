@@ -46,8 +46,6 @@ interface TeamSectionProps {
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
   getTeamCounterDisplay: (teamLength: number) => string
   isStarterPokemon: (pokemon: Pokemon, index: number, isMyTeam: boolean) => boolean
-  expandedPokemonIds?: string[]
-  onToggleExpansion?: (id: string) => void
 }
 
 
@@ -74,8 +72,6 @@ export function TeamSection({
   getDefaultPokemonName,
   getTeamCounterDisplay,
   isStarterPokemon,
-  expandedPokemonIds,
-  onToggleExpansion,
 }: TeamSectionProps) {
 
   return (
@@ -116,8 +112,6 @@ export function TeamSection({
                 onFlagClick={onFlagClick}
                 getSlotForPokemon={getSlotForPokemon}
                 getDefaultPokemonName={getDefaultPokemonName}
-                isExpanded={expandedPokemonIds?.includes(pokemon.id)}
-                onToggleExpansion={() => onToggleExpansion?.(pokemon.id)}
               />
             )
           })}

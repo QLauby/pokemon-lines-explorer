@@ -28,7 +28,7 @@ interface CombatViewProps {
   onDeleteNode: (nodeId: string) => void
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
-  activeStarters: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
+  activeSlots: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   currentSession: CombatSession
   onCommit: (newSession: CombatSession) => void
   onCancel: () => void
@@ -46,7 +46,7 @@ export function CombatView({
   onDeleteNode,
   myTeam,
   enemyTeam,
-  activeStarters,
+  activeSlots,
   currentSession,
   onCommit,
   onCancel,
@@ -62,18 +62,18 @@ export function CombatView({
     const limit = currentSession.battleType === "double" ? 2 : 1
     
     return [
-      ...(activeStarters?.myTeam || [])
+      ...(activeSlots?.myTeam || [])
         .slice(0, limit)
         .filter((idx: number | null): idx is number => idx !== null)
         .map((idx: number) => ({ pokemon: myTeam[idx], isAlly: true }))
         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon),
-      ...(activeStarters?.opponentTeam || [])
+      ...(activeSlots?.opponentTeam || [])
         .slice(0, limit)
         .filter((idx: number | null): idx is number => idx !== null)
         .map((idx: number) => ({ pokemon: enemyTeam[idx], isAlly: false }))
         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon)
     ]
-  }, [activeStarters, myTeam, enemyTeam, currentSession.battleType])
+  }, [activeSlots, myTeam, enemyTeam, currentSession.battleType])
 
   // -- PREVIEW LOGIC --
   let displayNodes = nodes
@@ -147,12 +147,12 @@ export function CombatView({
      
      const limit = currentSession.battleType === "double" ? 2 : 1
      return [
-       ...(parentState.activeStarters?.myTeam || [])
+       ...(parentState.activeSlots?.myTeam || [])
          .slice(0, limit)
          .filter((idx: number | null): idx is number => idx !== null)
          .map((idx: number) => ({ pokemon: parentState.myTeam[idx], isAlly: true }))
          .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon),
-       ...(parentState.activeStarters?.opponentTeam || [])
+       ...(parentState.activeSlots?.opponentTeam || [])
          .slice(0, limit)
          .filter((idx: number | null): idx is number => idx !== null)
          .map((idx: number) => ({ pokemon: parentState.enemyTeam[idx], isAlly: false }))
@@ -208,7 +208,7 @@ export function CombatView({
                      selectedNode={displayNodes.get(targetNodeId) || selectedNode}
                      myTeam={currentBattleState.myTeam}
                      enemyTeam={currentBattleState.enemyTeam}
-                     activeStarters={currentBattleState.activeStarters}
+                     activeSlots={currentBattleState.activeSlots}
                      battlefieldState={currentBattleState.battlefieldState}
                      battleType={currentSession.battleType}
                   />

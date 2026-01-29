@@ -44,7 +44,16 @@ export class BattleEngine {
   }
 
   static applyDelta(state: BattleState, delta: BattleDelta): BattleState {
-    const newState = { ...state, myTeam: [...state.myTeam], enemyTeam: [...state.enemyTeam] }
+    const newState = { 
+        ...state, 
+        myTeam: [...state.myTeam], 
+        enemyTeam: [...state.enemyTeam],
+        // Safety copy for activeSlots
+        activeSlots: { 
+            myTeam: [...(state.activeSlots?.myTeam || [])], 
+            opponentTeam: [...(state.activeSlots?.opponentTeam || [])] 
+        }
+    }
 
     switch (delta.type) {
       case "HP_RELATIVE": {
@@ -62,15 +71,24 @@ export class BattleEngine {
       }
       
       case "SWITCH": {
-        const team = delta.side === "my" ? newState.myTeam : newState.enemyTeam
-        
-        // Ensure indices are valid
-        if (team[delta.fromSlot] && team[delta.toSlot]) {
-             // Perform the swap
-             const temp = team[delta.fromSlot]
-             team[delta.fromSlot] = team[delta.toSlot]
-             team[delta.toSlot] = temp
+        // 1. Deep copy activeSlots to ensure immutability
+        const newActiveSlots = {
+             myTeam: [...(newState.activeSlots?.myTeam || [])],
+             opponentTeam: [...(newState.activeSlots?.opponentTeam || [])]
         }
+        newState.activeSlots = newActiveSlots
+
+        // 2. Identify which side to update
+        const slotsToUpdate = delta.side === "my" ? newActiveSlots.myTeam : newActiveSlots.opponentTeam
+        
+        // 3. Find the loop index where "fromSlot" is currently active
+        const activePointerIndex = slotsToUpdate.indexOf(delta.fromSlot)
+
+        if (activePointerIndex !== -1) {
+             // 4. Update the pointer to point to the new Pokemon (delta.toSlot)
+             slotsToUpdate[activePointerIndex] = delta.toSlot
+        }
+
         return newState
       }
 
@@ -79,9 +97,7 @@ export class BattleEngine {
     }
   }
 
-  static validateTree(initialState: BattleState, nodes: Map<string, TreeNode>): string[] {
-    return []
-  }
+
 
   /**
    * Computes the sequence of states for a single turn, step by step for each action.
@@ -96,12 +112,12 @@ export class BattleEngine {
     states.push(currentState)
 
     for (const action of actions) {
-        // 1. Crée une copie profonde de currentState vers nextState pour éviter toute mutation par référence
+        // 1. Create a deep copy of currentState to nextState to avoid mutation by reference
         let nextState = JSON.parse(JSON.stringify(currentState)) as BattleState
 
         // 2. State mutations (HP changes, switches) are handled via deltas.
 
-        // 3. Application des Deltas : Continue d'appliquer les deltas via this.applyDelta
+        // 3. Apply Deltas: Continue applying deltas via this.applyDelta
         const deltas = action.deltas || []
         for (const delta of deltas) {
             nextState = this.applyDelta(nextState, delta)

@@ -80,7 +80,7 @@ function InnerContent({
               myTeam={state.myTeam}
               enemyTeam={state.enemyTeam}
               battleType={state.battleType}
-              activeStarters={state.activeStarters}
+              activeSlots={state.activeSlots}
               getSlotForPokemon={state.getSlotForPokemon}
               editingPokemonId={state.editingPokemonId}
               editingPokemonName={state.editingPokemonName}
@@ -107,8 +107,6 @@ function InnerContent({
               onUpdateBattlefieldTags={actions.updateBattlefieldTags}
               onUpdatePlayerSideTags={actions.updatePlayerSideTags}
               onUpdateOpponentSideTags={actions.updateOpponentSideTags}
-              expandedPokemonIds={state.expandedPokemonIds}
-              onToggleExpansion={actions.togglePokemonExpansion}
             />
     
           ) : (
@@ -123,7 +121,7 @@ function InnerContent({
                 onDeleteNode={actions.deleteNode}
                 myTeam={state.myTeam}
                 enemyTeam={state.enemyTeam}
-                activeStarters={state.activeStarters}
+                activeSlots={state.activeSlots}
                 currentSession={state.currentSession!}
                 onCommit={handleCommitCorruption}
                 onCancel={handleCancelCorruption}

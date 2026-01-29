@@ -18,9 +18,8 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
   // Derived from currentSession (facade for easier access)
   const myTeam = currentSession?.initialState.myTeam || []
   const enemyTeam = currentSession?.initialState.enemyTeam || []
-  const activeStarters = currentSession?.initialState.activeStarters
+  const activeSlots = currentSession?.initialState.activeSlots || (currentSession?.initialState as any)?.activeStarters
   const battlefieldState = currentSession?.initialState.battlefieldState
-  const expandedPokemonIds = currentSession?.initialState.expandedPokemonIds
   
   const getDefaultPokemonName = (team: Pokemon[], teamType: "my" | "opponent") => {
     if (teamType === "my") {
@@ -146,43 +145,39 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
 
    const handleFlagClick = (index: number, isMyTeam: boolean) => {
     const teamKey = isMyTeam ? "myTeam" : "opponentTeam"
-    const currentStarters = [...activeStarters[teamKey]]
+    const currentActiveSlots = [...activeSlots[teamKey]]
     const maxSlots = currentSession?.battleType === "simple" ? 1 : 2
     
     // Check if clicked pokemon is already active
-    const isActive = currentStarters.includes(index)
+    const isActive = currentActiveSlots.includes(index)
 
     const updates: Partial<BattleState> = {}
-    const newStarters = [...currentStarters]
+    const newActiveSlots = [...currentActiveSlots]
 
     // Initialize array if needed based on maxSlots
-    while (newStarters.length < maxSlots) {
-        newStarters.push(null)
+    while (newActiveSlots.length < maxSlots) {
+        newActiveSlots.push(null)
     }
 
     if (maxSlots === 1) {
         // Single Battle: Always replace Slot 1 (Index 0)
-        newStarters[0] = index
+        newActiveSlots[0] = index
     } else {
         // Double Battle
         if (isActive) {
-             // If clicking an already active one (e.g. Slot 1), do nothing or swap? 
-             // User instruction: "Cliquer sur le badge... d'un pokemon qui n'est PAS au combat déselectionne le deuxieme"
-             // Implies we only act if NOT active. 
-             // If user clicks Slot 1, maybe they want to swap Slot 1? Let's assume No-Op for now based on strict reading.
              return;
         } else {
              // Not active: Replace Slot 2 (Index 1)
-             newStarters[1] = index
+             newActiveSlots[1] = index
              
              // Ensure Slot 1 is set (defaults to 0 if null/empty and 0 isn't index)
-             if (newStarters[0] === null || newStarters[0] === undefined) {
-                 newStarters[0] = (index === 0) ? 1 : 0 // Fallback
+             if (newActiveSlots[0] === null || newActiveSlots[0] === undefined) {
+                 newActiveSlots[0] = (index === 0) ? 1 : 0 // Fallback
              }
         }
     }
     
-    updates.activeStarters = { ...activeStarters, [teamKey]: newStarters }
+    updates.activeSlots = { ...activeSlots, [teamKey]: newActiveSlots }
     updateInitialState(updates)
   }
 
@@ -190,29 +185,19 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
   const updatePlayerSideTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, playerSide: { customTags: tags } } })
   const updateOpponentSideTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, opponentSide: { customTags: tags } } })
 
-  const togglePokemonExpansion = (id: string) => {
-    const currentExpanded = expandedPokemonIds || []
-    const isExpanded = currentExpanded.includes(id)
-    const newExpanded = isExpanded 
-      ? currentExpanded.filter((pid: string) => pid !== id)
-      : [...currentExpanded, id]
-    
-    updateInitialState({ expandedPokemonIds: newExpanded })
-  }
-
   const getSlotForPokemon = (idx: number, isMyTeam: boolean) => {
-    if (!activeStarters) return null
-    const starters = isMyTeam ? activeStarters.myTeam : activeStarters.opponentTeam
+    if (!activeSlots) return null
+    const slots = isMyTeam ? activeSlots.myTeam : activeSlots.opponentTeam
     const maxSlots = currentSession?.battleType === "simple" ? 1 : 2
-    const slot = starters.slice(0, maxSlots).indexOf(idx)
+    const slot = slots.slice(0, maxSlots).indexOf(idx)
     return slot !== -1 ? slot + 1 : null
   }
 
-  const isStarterPokemon = (p: Pokemon, idx: number, isMyTeam: boolean) => {
-    if (!activeStarters) return false
-    const starters = isMyTeam ? activeStarters.myTeam : activeStarters.opponentTeam
+  const isPokemonActive = (p: Pokemon, idx: number, isMyTeam: boolean) => {
+    if (!activeSlots) return false
+    const slots = isMyTeam ? activeSlots.myTeam : activeSlots.opponentTeam
     const maxSlots = currentSession?.battleType === "simple" ? 1 : 2
-    return starters.slice(0, maxSlots).includes(idx)
+    return slots.slice(0, maxSlots).includes(idx)
   }
 
   const startEditingPokemon = (p: Pokemon) => { setEditingPokemonId(p.id); setEditingPokemonName(p.name); }
@@ -227,9 +212,8 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
       // Data
       myTeam,
       enemyTeam,
-      activeStarters,
+      activeSlots,
       battlefieldState,
-      expandedPokemonIds,
 
       // Actions
       addPokemon,
@@ -245,9 +229,9 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
       updateBattlefieldTags,
       updatePlayerSideTags,
       updateOpponentSideTags,
-      togglePokemonExpansion,
+      togglePokemonExpansion: () => {}, // No-op now
       getSlotForPokemon,
-      isStarterPokemon,
+      isStarterPokemon: isPokemonActive,
       startEditingPokemon,
       cancelEditing,
       getDefaultPokemonName
