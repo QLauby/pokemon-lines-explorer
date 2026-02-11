@@ -45,16 +45,19 @@ export function SwitchEffects({
     const incomingTeam = incomingRef.side === "my" ? myTeam : enemyTeam
     const incomingPokemon = incomingTeam[incomingRef.slotIndex]
     
-    if (incomingPokemon) {
+    // Find the Battlefield Slot where this switch is happening
+    const actorSlots = isAllySwitch ? activeSlots.myTeam : activeSlots.opponentTeam
+    const outgoingBattlefieldSlot = actorSlots.findIndex(idx => idx === action.actor.slotIndex)
+
+    if (incomingPokemon && outgoingBattlefieldSlot !== -1) {
       opts.push({
         label: incomingPokemon.name,
-        value: incomingRef,
+        value: { side: incomingRef.side, slotIndex: outgoingBattlefieldSlot }, // Use Battlefield Slot!
         isAlly: incomingRef.side === "my"
       })
     }
 
     // B. The outgoing (action.actor) - Get from activeSlots
-    const actorSlots = isAllySwitch ? activeSlots.myTeam : activeSlots.opponentTeam
     const actorTeam = isAllySwitch ? myTeam : enemyTeam
     const outgoingTeamIndex = actorSlots[action.actor.slotIndex] ?? -1
     
@@ -104,10 +107,6 @@ export function SwitchEffects({
 
     if (switchDeltaIndex === -1) return
     
-    // Move HP change before switch if it's currently after
-    if (deltaIndex > switchDeltaIndex) {
-       onMoveHpChange(deltaIndex, switchDeltaIndex)
-    }
   }
 
   // Wrapper for onUpdate to intercept slot changes

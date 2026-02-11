@@ -19,13 +19,15 @@ export function InitialDeploymentManager({
   onUpdateAction,
 }: InitialDeploymentManagerProps) {
   
-  // 1. Collect entering pokemon info for the title
-  const myEntering = actions
+  // 1. Collect entering pokemon info for the title (Only initial deployments)
+  const deploymentActions = actions.filter(a => a.type !== "switch-after-ko")
+
+  const myEntering = deploymentActions
     .filter(a => a.actor.side === "my")
     .map(a => ({ name: myTeam[a.actor.slotIndex]?.name, side: "my" as const }))
     .filter(p => p.name)
   
-  const enemyEntering = actions
+  const enemyEntering = deploymentActions
     .filter(a => a.actor.side === "opponent")
     .map(a => ({ name: enemyTeam[a.actor.slotIndex]?.name, side: "opponent" as const }))
     .filter(p => p.name)
@@ -61,14 +63,16 @@ export function InitialDeploymentManager({
     return <span>&quot;<i>{elements}</i>&quot;</span>
   }
 
-  // 2. Flatten deltas for the unified ConsequencesList
-  const flattenedDeltasWithMeta = actions.flatMap((action, actionIndex) => 
-    action.deltas.map((delta, deltaIndex) => ({
+  // 2. Flatten deltas for the unified ConsequencesList (Only for deployment actions)
+  const flattenedDeltasWithMeta = actions.flatMap((action, actionIndex) => {
+    if (action.type === "switch-after-ko") return []
+    
+    return action.deltas.map((delta, deltaIndex) => ({
       delta,
       actionIndex,
       deltaIndex
     }))
-  )
+  })
 
   const flattenedDeltas = flattenedDeltasWithMeta.map(item => item.delta)
 

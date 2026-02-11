@@ -37,10 +37,45 @@ export class BattleEngine {
         for (const delta of eotDeltas) {
              currentState = this.applyDelta(currentState, delta)
         }
+
+        // 3. Process Post-Turn Actions (Switches after KO)
+        const postActions = node.turnData.postTurnActions || []
+        for (const action of postActions) {
+            const effectiveDeltas: BattleDelta[] = action.deltas || []
+            for (const delta of effectiveDeltas) {
+                currentState = this.applyDelta(currentState, delta)
+            }
+        }
       }
     }
 
     return currentState
+  }
+
+  /**
+   * Resolves a battlefield slot to the actual team index.
+   * Battlefield slots (0, 1, etc.) represent active positions on the field.
+   * This method looks up which Pokemon from the team roster is currently in that position.
+   * 
+   * @param state Current battle state
+   * @param side Which side ("my" or "opponent")
+   * @param battlefieldSlot The battlefield slot (0 = first active position, 1 = second, etc.)
+   * @returns The team array index, or null if slot is empty
+   */
+  static resolveSlotToTeamIndex(
+    state: BattleState, 
+    side: "my" | "opponent", 
+    battlefieldSlot: number
+  ): number | null {
+    const activeSlots = side === "my" 
+      ? state.activeSlots?.myTeam 
+      : state.activeSlots?.opponentTeam
+    
+    if (!activeSlots || battlefieldSlot >= activeSlots.length) {
+      return null
+    }
+    
+    return activeSlots[battlefieldSlot] ?? null
   }
 
   static applyDelta(state: BattleState, delta: BattleDelta): BattleState {
@@ -58,14 +93,28 @@ export class BattleEngine {
     switch (delta.type) {
       case "HP_RELATIVE": {
         const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
-        const targetPokemon = team[delta.target.slotIndex]
+        
+        // Resolve battlefield slot to team index
+        // This ensures we hit whoever is CURRENTLY in this battlefield position
+        const teamIndex = this.resolveSlotToTeamIndex(
+          newState, 
+          delta.target.side, 
+          delta.target.slotIndex
+        )
+        
+        if (teamIndex === null) {
+          // No Pokemon in this battlefield slot, skip damage application
+          return newState
+        }
+        
+        const targetPokemon = team[teamIndex]
         
         if (targetPokemon) {
              const newPokemon = { 
                  ...targetPokemon, 
                  hpPercent: Math.max(0, Math.min(100, targetPokemon.hpPercent + delta.amount)) 
              }
-             team[delta.target.slotIndex] = newPokemon
+             team[teamIndex] = newPokemon
         }
         return newState
       }
@@ -86,7 +135,10 @@ export class BattleEngine {
 
         if (activePointerIndex !== -1) {
              // 4. Update the pointer to point to the new Pokemon (delta.toSlot)
-             slotsToUpdate[activePointerIndex] = delta.toSlot
+             slotsToUpdate[activePointerIndex] = delta.toSlot === -1 ? null : delta.toSlot
+             // console.log("BattleEngine: Switch Successful", { from: delta.fromSlot, to: delta.toSlot, newSlots: slotsToUpdate })
+        } else {
+             // console.warn("BattleEngine: Switch Failed - fromSlot not found in active slots", { fromSlot: delta.fromSlot, activeSlots: slotsToUpdate })
         }
 
         return newState
@@ -112,8 +164,24 @@ export class BattleEngine {
     states.push(currentState)
 
     for (const action of actions) {
-        // 1. Create a deep copy of currentState to nextState to avoid mutation by reference
+        // 1. Create a deep copy of currentState to nextState
         let nextState = JSON.parse(JSON.stringify(currentState)) as BattleState
+
+        // Validation for switch-after-ko: Skip if actor is not KO
+        if (action.type === 'switch-after-ko') {
+             const actorSide = action.actor?.side
+             const actorSlotIndex = action.actor?.slotIndex
+             if (actorSide && actorSlotIndex !== undefined) {
+                 const team = actorSide === 'my' ? currentState.myTeam : currentState.enemyTeam
+                 const actor = team[actorSlotIndex]
+                 if (actor && actor.hpPercent > 0) {
+                     // Actor is alive, so this switch-after-ko is invalid/stale.
+                     // Treat as no-op.
+                     states.push(currentState) // Push duplicate state to keep index alignment
+                     continue 
+                 }
+             }
+        }
 
         // 2. State mutations (HP changes, switches) are handled via deltas.
 

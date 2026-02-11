@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect } from "react"
+
 import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Package, Repeat, Swords } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -31,6 +33,7 @@ interface PokemonActionProps {
   onDelete?: () => void
   canMoveUp?: boolean
   canMoveDown?: boolean
+  canDefuse?: boolean
 }
 
 export function PokemonAction({
@@ -53,6 +56,7 @@ export function PokemonAction({
   onDelete,
   canMoveUp = true,
   canMoveDown = true,
+  canDefuse = false,
 }: PokemonActionProps) {
   const isAlly = action.actor.side === "my"
   const isSwitchAfterKo = action.type === "switch-after-ko"
@@ -68,28 +72,34 @@ export function PokemonAction({
   const activeTargets: { label: string; value: string; isAlly: boolean; side: "my" | "opponent"; slotIndex: number }[] = []
 
   // Add My Active Pokemon
-  activeSlots.myTeam.forEach(slotIndex => {
-      if (slotIndex !== null && slotIndex !== undefined && myTeam[slotIndex]) {
-          activeTargets.push({
-              label: myTeam[slotIndex].name,
-              value: JSON.stringify({ side: "my", slotIndex }),
-              isAlly: true,
-              side: "my",
-              slotIndex
-          })
+  activeSlots.myTeam.forEach((teamMemberIndex, battlefieldSlotIndex) => {
+      if (teamMemberIndex !== null && teamMemberIndex !== undefined && myTeam[teamMemberIndex]) {
+          const pokemon = myTeam[teamMemberIndex]
+          if (pokemon.hpPercent > 0) {
+              activeTargets.push({
+                  label: pokemon.name,
+                  value: JSON.stringify({ side: "my", slotIndex: battlefieldSlotIndex }),
+                  isAlly: true,
+                  side: "my",
+                  slotIndex: battlefieldSlotIndex
+              })
+          }
       }
   })
 
   // Add Opponent Active Pokemon
-  activeSlots.opponentTeam.forEach(slotIndex => {
-      if (slotIndex !== null && slotIndex !== undefined && enemyTeam[slotIndex]) {
-          activeTargets.push({
-              label: enemyTeam[slotIndex].name,
-              value: JSON.stringify({ side: "opponent", slotIndex }),
-              isAlly: false,
-              side: "opponent",
-              slotIndex
-          })
+  activeSlots.opponentTeam.forEach((teamMemberIndex, battlefieldSlotIndex) => {
+      if (teamMemberIndex !== null && teamMemberIndex !== undefined && enemyTeam[teamMemberIndex]) {
+          const pokemon = enemyTeam[teamMemberIndex]
+          if (pokemon.hpPercent > 0) {
+              activeTargets.push({
+                  label: pokemon.name,
+                  value: JSON.stringify({ side: "opponent", slotIndex: battlefieldSlotIndex }),
+                  isAlly: false,
+                  side: "opponent",
+                  slotIndex: battlefieldSlotIndex
+              })
+          }
       }
   })
   
@@ -98,6 +108,22 @@ export function PokemonAction({
       if (a.isAlly === b.isAlly) return 0
       return a.isAlly === isAlly ? 1 : -1 
   })
+
+  // Cleanup effect: If current target becomes invalid (e.g. KO or switched out), clear it
+  useEffect(() => {
+    // Only apply cleanup for ATTACKS. Switches have their own target logic (bench members)
+    if (action.type === "attack" && action.target) {
+        // Special case: Slot targeting means we check if ANY valid target exists for this slot
+        const isValid = activeTargets.some(t => 
+            t.side === action.target!.side && t.slotIndex === action.target!.slotIndex
+        )
+        
+        if (!isValid) {
+            // Only update if it's not already cleared to avoid infinite loops
+            onUpdateTarget(undefined)
+        }
+    }
+  }, [JSON.stringify(activeTargets), action.target])
 
   // --- 2. Available Switch Candidates (Bench only) ---
   const teamArray = isAlly ? myTeam : enemyTeam
@@ -145,7 +171,10 @@ export function PokemonAction({
       }
 
       const refTeam = refSide === "my" ? myTeam : enemyTeam
-      const refPokemon = refTeam[refSlotIndex]
+      
+      // Look for the reference in our pre-calculated activeTargets which correctly maps slots to current Pokemon
+      const refTargetOption = activeTargets.find(t => t.side === refSide && t.slotIndex === refSlotIndex)
+      const refPokemon = refTargetOption ? { name: refTargetOption.label } : refTeam[refSlotIndex]
 
       // A. The Reference
       if (refPokemon) {
@@ -225,7 +254,7 @@ export function PokemonAction({
             variant="ghost"
             size="icon"
             className="h-3.5 w-5 rounded-none hover:bg-background border-b border-transparent hover:border-input"
-            disabled={isSwitchAfterKo ? !action.metadata?.fusedFrom : (!canMoveUp || index === 0)}
+            disabled={isSwitchAfterKo ? !canDefuse : !canMoveUp}
             onClick={() => onMove("up")}
           >
             <ChevronUp className="h-3 w-3" />
@@ -236,7 +265,7 @@ export function PokemonAction({
                 variant="ghost"
                 size="icon"
                 className="h-3.5 w-5 rounded-none hover:bg-background"
-                disabled={!canMoveDown || index === totalActions - 1}
+                disabled={!canMoveDown}
                 onClick={() => onMove("down")}
               >
                 <ChevronDown className="h-3 w-3" />

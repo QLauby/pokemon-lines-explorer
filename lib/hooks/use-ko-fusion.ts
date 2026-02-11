@@ -1,5 +1,6 @@
 import { BattleState, TurnAction } from "@/types/types"
 import { useEffect, useRef } from "react"
+import { BattleEngine } from "../logic/battle-engine"
 
 interface UseKoFusionProps {
     actions: TurnAction[]
@@ -28,6 +29,10 @@ export function useKoFusion({
         let globalKoOrder = 0
         Object.entries(detectedKOs).forEach(([actionIdxStr, kos]) => {
             const idx = Number.parseInt(actionIdxStr, 10)
+            
+            // Ignore KOs that happen at End of Turn or later (handled by usePostTurnSwitches)
+            if (idx >= actions.length) return
+
             const action = actions[idx]
             const stateBefore = getStateAtAction(idx)
             
@@ -37,9 +42,19 @@ export function useKoFusion({
                 action.deltas.forEach((delta, deltaIdx) => {
                     if (delta.type === "HP_RELATIVE" && delta.target) {
                         const targetTeam = delta.target.side === "my" ? stateBefore.myTeam : stateBefore.enemyTeam
-                        const targetPokemon = targetTeam[delta.target.slotIndex]
-                        if (targetPokemon) {
-                            deltaOrderMap.set(targetPokemon.id, deltaIdx)
+                        
+                        // Resolve battlefield slot to team index
+                        const teamIndex = BattleEngine.resolveSlotToTeamIndex(
+                            stateBefore,
+                            delta.target.side,
+                            delta.target.slotIndex
+                        )
+                        
+                        if (teamIndex !== null) {
+                            const targetPokemon = targetTeam[teamIndex]
+                            if (targetPokemon) {
+                                deltaOrderMap.set(targetPokemon.id, deltaIdx)
+                            }
                         }
                     }
                 })
@@ -112,32 +127,49 @@ export function useKoFusion({
         // PHASE 1: Process Normal Actions (Fusion Logic)
         // -------------------------------------------------------------
         
-        inputNormalActions.forEach((action) => {
+        for (const action of inputNormalActions) {
             const originalIndex = actions.indexOf(action)
             
             const relevantReqIndex = requirements.findIndex(req => 
                 req.side === action.actor.side && 
                 req.slotIndex === action.actor.slotIndex &&
-                originalIndex > req.triggeredByActionIndex
+                originalIndex >= req.triggeredByActionIndex
             )
 
             if (relevantReqIndex !== -1) {
-                matchedReqIndices.add(relevantReqIndex)
-                
-                // Attach fusion metadata to requirement
-                // We restart a fresh object to avoid mutation issues across renders if strict mode
-                const req = requirements[relevantReqIndex] as any
-                req._fusedFrom = {
-                     id: action.id,
-                     type: action.type,
-                     metadata: action.metadata || {}
+                const req = requirements[relevantReqIndex]
+
+                // SELF-KO CHECK: If this action caused its own actor's death (e.g. Explosion)
+                if (originalIndex === req.triggeredByActionIndex) {
+                    finalProcessedActions.push(action)
+                    continue
                 }
                 
-                changesMade = true
+                // DEFUSION CHECK: If there's a switch-after-ko for this slot BEFORE this action,
+                const hasUnfusedSwitchBefore = inputSwitchActions.some(sw => 
+                    sw.actor.side === action.actor.side &&
+                    sw.actor.slotIndex === action.actor.slotIndex &&
+                    actions.indexOf(sw) < originalIndex &&
+                    !sw.metadata?.fusedFrom // Only count unfused switches as defusion intent
+                )
+                
+                if (hasUnfusedSwitchBefore) {
+                    // User wants them separate, don't fuse
+                    finalProcessedActions.push(action)
+                } else {
+                    // Normal fusion
+                    matchedReqIndices.add(relevantReqIndex)
+                    
+                    // Mark requirement as fused
+                    const reqAny = req as any
+                    reqAny._fusedFrom = true
+                    
+                    changesMade = true
+                }
             } else {
                 finalProcessedActions.push(action)
             }
-        })
+        }
 
         // -------------------------------------------------------------
         // PHASE 2: Process Switch Actions (Defusion Logic)
@@ -249,16 +281,20 @@ export function useKoFusion({
                 // Create a new switch object (don't mutate existing)
                 const updatedSwitch: TurnAction = {
                     ...existingSwitch,
-                    target: hasNoAvailableSwitch ? undefined : existingSwitch.target,
-                    deltas: hasNoAvailableSwitch ? [{
-                        type: "SWITCH",
-                        side: req.side,
-                        fromSlot: req.slotIndex,
-                        toSlot: null
-                    } as any] : existingSwitch.deltas,
-                    metadata: (fusedFrom && !existingSwitch.metadata?.fusedFrom) 
-                        ? { ...existingSwitch.metadata, fusedFrom }
-                        : existingSwitch.metadata
+                    // Keep existing target if set, only clear if no switch available AND no target was set
+                    target: existingSwitch.target || (hasNoAvailableSwitch ? undefined : existingSwitch.target),
+                    // Keep existing deltas if target is set, otherwise use no-switch delta
+                    deltas: existingSwitch.target 
+                        ? existingSwitch.deltas 
+                        : (hasNoAvailableSwitch ? [{
+                            type: "SWITCH",
+                            side: req.side,
+                            fromSlot: req.slotIndex,
+                            toSlot: null
+                        } as any] : existingSwitch.deltas),
+                    metadata: (fusedFrom || existingSwitch.metadata?.fusedFrom) 
+                        ? { fusedFrom: true }
+                        : {}
                 }
                 
                 finalProcessedActions.push(updatedSwitch)
@@ -274,14 +310,14 @@ export function useKoFusion({
                         side: req.side,
                         fromSlot: req.slotIndex,
                         toSlot: null
-                    }] : (cachedSwitch?.deltas || (cachedSwitch?.target ? [{
+                    }] : (cachedSwitch?.deltas && cachedSwitch.deltas.length > 0 ? cachedSwitch.deltas : (cachedSwitch?.target ? [{
                         type: "SWITCH",
                         side: req.side,
                         fromSlot: req.slotIndex,
                         toSlot: cachedSwitch.target.slotIndex
                     }] : [])),
                     isCollapsed: cachedSwitch?.isCollapsed ?? true,
-                    metadata: fusedFrom ? { fusedFrom } : {}
+                    metadata: fusedFrom ? { fusedFrom: true } : {}
                 }
 
                 finalProcessedActions.push(newSwitch)

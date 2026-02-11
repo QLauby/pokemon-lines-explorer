@@ -90,19 +90,15 @@ export interface TurnAction {
   metadata?: {
     itemName?: string
     attackName?: string
-    // Stores original state if this action was fused into a forced-switch
-    fusedFrom?: {
-        id?: string // Saved Original ID of the fused action
-        type: TurnActionType
-        target?: SlotReference
-        deltas?: BattleDelta[]
-    }
+    // Flag indicating this switch-after-ko was created by fusing (deleting) an action
+    fusedFrom?: boolean
   }
 }
 
 export interface TurnData {
   actions: TurnAction[]
   endOfTurnDeltas: BattleDelta[]
+  postTurnActions?: TurnAction[]
 }
 
 

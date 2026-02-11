@@ -7,6 +7,7 @@ import { useTurnSimulation } from "@/lib/hooks/use-turn-simulation"
 import { BattleDelta, BattleState, Pokemon, TurnAction, TurnActionType, TurnData } from "@/types/types"
 
 import { useKoFusion } from "@/lib/hooks/use-ko-fusion"
+import { usePostTurnSwitches } from "@/lib/hooks/use-post-turn-switches"
 import { EffectsList } from "./effects-list"
 import { InitialDeploymentManager } from "./initial-deployment-manager"
 import { PokemonAction } from "./pokemon-action"
@@ -40,16 +41,18 @@ export function TurnEditor({
 }: TurnEditorProps) {
   const [actions, setActions] = useState<TurnAction[]>([])
   const [endOfTurnDeltas, setEndOfTurnDeltas] = useState<BattleDelta[]>([])
+  const [postTurnActions, setPostTurnActions] = useState<TurnAction[]>([])
 
   // Notify parent of changes
   useEffect(() => {
     if (onChange) {
         onChange({
             actions,
-            endOfTurnDeltas
+            endOfTurnDeltas,
+            postTurnActions
         })
     }
-  }, [actions, endOfTurnDeltas, onChange])
+  }, [actions, endOfTurnDeltas, postTurnActions, onChange])
 
   // --- 1. Integration of the Brain (useTurnSimulation) ---
 
@@ -110,9 +113,21 @@ export function TurnEditor({
       }
   }, [initialBattleState, battleFormat, initialActivePokemon, myTeam, enemyTeam])
 
-  const { detectedKOs, getStateAtAction } = useTurnSimulation({
+  const { detectedKOs, endOfTurnKOs, finalState, getStateAtAction, getPostTurnStateAt } = useTurnSimulation({
       initialState: simulationState,
       actions,
+      endOfTurnDeltas,
+      postTurnActions,
+      myTeam,
+      enemyTeam,
+      activeSlotsCount: battleFormat === "double" ? 2 : 1
+  })
+
+  // --- 2. Post-Turn Switches Management ---
+  usePostTurnSwitches({
+      endOfTurnKOs: endOfTurnKOs || [],
+      postTurnActions,
+      onUpdatePostTurnActions: setPostTurnActions,
       myTeam,
       enemyTeam,
       activeSlotsCount: battleFormat === "double" ? 2 : 1
@@ -122,7 +137,8 @@ export function TurnEditor({
   useEffect(() => {
     if (initialTurnData && initialTurnData.actions.length > 0) {
       setActions(JSON.parse(JSON.stringify(initialTurnData.actions)))
-      setEndOfTurnDeltas(JSON.parse(JSON.stringify(initialTurnData.endOfTurnDeltas)))
+      setEndOfTurnDeltas(initialTurnData.endOfTurnDeltas ? JSON.parse(JSON.stringify(initialTurnData.endOfTurnDeltas)) : [])
+      setPostTurnActions(initialTurnData.postTurnActions ? JSON.parse(JSON.stringify(initialTurnData.postTurnActions)) : [])
     } else {
       if (turnNumber === 0) {
         // TURN 0: Initial Deployment (Self-Switch Actions)
@@ -224,24 +240,62 @@ export function TurnEditor({
     if (readOnly) return
     if (direction === "up" && !canMoveActionUp(index)) return
     if (direction === "down" && !canMoveActionDown(index)) return
-
+    
     const newActions = [...actions]
     
-    // SPECIAL DE-FUSION LOGIC:
+    // DEFUSION LOGIC:
+    // If moving a fused switch-after-ko UP, restore the original action
     if (direction === "up" && actions[index].type === "switch-after-ko" && actions[index].metadata?.fusedFrom) {
-         let targetPos = index - 1
-         // Skip any switches directly above
-         while (targetPos >= 0 && newActions[targetPos].type === "switch-after-ko") {
-             targetPos--
+         const fusedSwitch = actions[index]
+         
+         // Restore a fresh action
+         const restoredAction: TurnAction = {
+             id: crypto.randomUUID(),
+             actor: fusedSwitch.actor,
+             type: "attack",
+             target: undefined,
+             deltas: [],
+             metadata: {},
+             isCollapsed: true
          }
          
-         if (targetPos >= 0) {
-             const [movedAction] = newActions.splice(index, 1)
-             newActions.splice(targetPos, 0, movedAction)
-             
-             setActions(newActions)
-             return
+         const unfusedSwitch: TurnAction = {
+             ...fusedSwitch,
+             metadata: {}
          }
+         
+         // Find which action caused the KO for this Pokemon
+         let koTriggerIndex = -1
+         for (const [actionIndexStr, kos] of Object.entries(detectedKOs)) {
+             const actionIndex = parseInt(actionIndexStr, 10)
+             const hasMatchingKO = kos.some(ko => 
+                 ko.isAlly === (fusedSwitch.actor.side === "my") &&
+                 ko.pokemon.id === (fusedSwitch.actor.side === "my" ? myTeam : enemyTeam)[fusedSwitch.actor.slotIndex]?.id
+             )
+             if (hasMatchingKO) {
+                 koTriggerIndex = actionIndex
+                 break
+             }
+         }
+         
+         // Remove the fused switch from its current position
+         newActions.splice(index, 1)
+         
+         // Insert restored action JUST BEFORE the action that caused the KO
+         if (koTriggerIndex >= 0) {
+             // Adjust index if we removed an item before it
+             const adjustedIndex = koTriggerIndex > index ? koTriggerIndex - 1 : koTriggerIndex
+             newActions.splice(adjustedIndex, 0, restoredAction)
+         } else {
+             // Fallback: insert at beginning if we can't find the trigger
+             newActions.unshift(restoredAction)
+         }
+         
+         // Add unfused switch at the END (switches happen after all actions)
+         newActions.push(unfusedSwitch)
+         
+         setActions(newActions)
+         return
     }
 
     const targetIndex = direction === "up" ? index - 1 : index + 1
@@ -254,12 +308,15 @@ export function TurnEditor({
     setActions(newActions)
   }
 
-  const updateActionType = (index: number, type: TurnActionType) => {
+  /* --- Unified Action Handlers --- */
+
+  const updateActionType = (index: number, type: TurnActionType, isPostTurn = false) => {
     if (readOnly) return
-    const newActions = [...actions]
+    const setter = isPostTurn ? setPostTurnActions : setActions
+    const list = isPostTurn ? postTurnActions : actions
+    const newActions = [...list]
     const oldAction = newActions[index]
     
-    // Reset data when changing type to ensure no leftover state (e.g. switch deltas on an attack)
     newActions[index] = { 
         ...oldAction,
         type, 
@@ -267,13 +324,14 @@ export function TurnEditor({
         deltas: [], 
         metadata: {} 
     }
-    
-    setActions(newActions)
+    setter(newActions)
   }
 
-  const updateActionTarget = (index: number, target: { side: "my" | "opponent", slotIndex: number } | undefined) => {
+  const updateActionTarget = (index: number, target: { side: "my" | "opponent", slotIndex: number } | undefined, isPostTurn = false) => {
     if (readOnly) return
-    const newActions = [...actions]
+    const setter = isPostTurn ? setPostTurnActions : setActions
+    const list = isPostTurn ? postTurnActions : actions
+    const newActions = [...list]
     const action = newActions[index]
     
     action.target = target
@@ -281,42 +339,48 @@ export function TurnEditor({
     if (action.type === "switch" || action.type === "switch-after-ko") {
         const otherDeltas = action.deltas.filter(d => d.type !== "SWITCH")
         
-        if (target) {
-            const newDelta: BattleDelta = {
-                type: "SWITCH",
-                side: action.actor.side,
-                fromSlot: action.actor.slotIndex,
-                toSlot: target.slotIndex
-            }
-            action.deltas = [...otherDeltas, newDelta]
-        } else {
-            action.deltas = otherDeltas
+        // Ensure a Switch delta always exists. 
+        // toSlot: -1 signals "No replacement / Withdraw" to BattleEngine
+        const newDelta: BattleDelta = {
+            type: "SWITCH",
+            side: action.actor.side,
+            fromSlot: action.actor.slotIndex,
+            toSlot: target ? target.slotIndex : -1
         }
+        // Prepend switch so it happens before hazards/effects
+        action.deltas = [newDelta, ...otherDeltas]
     }
     
-    setActions(newActions)
+    setter(newActions)
   }
 
-  const updateActionMetadata = (index: number, metadata: { itemName?: string; attackName?: string }) => {
+  const updateActionMetadata = (index: number, metadata: { itemName?: string; attackName?: string }, isPostTurn = false) => {
     if (readOnly) return
-    const newActions = [...actions]
+    const setter = isPostTurn ? setPostTurnActions : setActions
+    const list = isPostTurn ? postTurnActions : actions
+    const newActions = [...list]
     newActions[index] = { 
         ...newActions[index], 
         metadata: { ...newActions[index].metadata, ...metadata } 
     }
-    setActions(newActions)
+    setter(newActions)
   }
 
-  const toggleActionCollapse = (index: number) => {
-    const newActions = [...actions]
+  const toggleActionCollapse = (index: number, isPostTurn = false) => {
+    const setter = isPostTurn ? setPostTurnActions : setActions
+    const list = isPostTurn ? postTurnActions : actions
+    const newActions = [...list]
     newActions[index] = { ...newActions[index], isCollapsed: !newActions[index].isCollapsed }
-    setActions(newActions)
+    setter(newActions)
   }
 
-  // Delta Logic for Actions
-  const addDeltaToAction = (actionIndex: number) => {
+  /* --- Unified Delta Handlers --- */
+
+  const addDeltaToAction = (actionIndex: number, isPostTurn = false) => {
     if (readOnly) return
-    const newActions = [...actions]
+    const setter = isPostTurn ? setPostTurnActions : setActions
+    const list = isPostTurn ? postTurnActions : actions
+    const newActions = [...list]
     const action = newActions[actionIndex]
     
     // Default smart targeting: Priority to Target, Fallback to Actor
@@ -325,45 +389,44 @@ export function TurnEditor({
                            : action.actor;
 
     if (action.deltas.filter(d => d.type === "HP_RELATIVE").length >= 1) {
-         // If we have multiple, stick to actor logic or repetition
          targetSlotSelector = action.target || action.actor
     }
-
-    const switchDeltaIndex = action.deltas.findIndex(d => d.type === "SWITCH")
     
-    const newDelta = { type: "HP_RELATIVE", target: targetSlotSelector, amount: -0 } as const
-
-    if (switchDeltaIndex !== -1) {
-        // Insert BEFORE the switch to ensure we hit the target at its pre-switch location
-        const updatedDeltas = [...action.deltas]
-        updatedDeltas.splice(switchDeltaIndex, 0, newDelta)
-        action.deltas = updatedDeltas
-    } else {
-        action.deltas = [...action.deltas, newDelta]
+    // For switches, we want to target the Battlefield Slot where the switch happens
+    if (action.type === 'switch' || action.type === 'switch-after-ko') {
+         // Get appropriate state for context
+         const stateBefore = isPostTurn ? getPostTurnStateAt(actionIndex) : getStateAtAction(actionIndex)
+         const activeSlots = action.actor.side === 'my' ? stateBefore.activeSlots?.myTeam : stateBefore.activeSlots?.opponentTeam
+         const battlefieldSlot = activeSlots?.indexOf(action.actor.slotIndex)
+         
+         if (battlefieldSlot !== undefined && battlefieldSlot !== -1) {
+             targetSlotSelector = { side: action.actor.side, slotIndex: battlefieldSlot }
+         }
     }
     
-    setActions(newActions)
+    const newDelta = { type: "HP_RELATIVE", target: targetSlotSelector, amount: -0 } as const
+    action.deltas = [...action.deltas, newDelta]
+    setter(newActions)
   }
 
   const updateActionHpChange = (
     actionIndex: number,
     deltaIndex: number,
     field: "slot" | "value" | "isHealing",
-    value: any
+    value: any,
+    isPostTurn = false
   ) => {
     if (readOnly) return
-    const newActions = [...actions]
+    const setter = isPostTurn ? setPostTurnActions : setActions
+    const list = isPostTurn ? postTurnActions : actions
+    const newActions = [...list]
     const action = newActions[actionIndex]
     
     const delta = { ...action.deltas[deltaIndex] } as BattleDelta
-    if (delta.type !== "HP_RELATIVE") return // Safety
+    if (delta.type !== "HP_RELATIVE") return 
 
     if (field === "slot") {
-        if (typeof value === "string") {
-            // It's an ID from HpChangeRow's new selection logic
-        } else {
-            delta.target = value
-        }
+        if (typeof value !== "string") delta.target = value
     }
 
     if (field === "value" || field === "isHealing") {
@@ -376,21 +439,23 @@ export function TurnEditor({
     }
 
     action.deltas[deltaIndex] = delta
-    setActions(newActions)
+    setter(newActions)
   }
 
-  const removeActionDelta = (actionIndex: number, deltaIndex: number) => {
+  const removeActionDelta = (actionIndex: number, deltaIndex: number, isPostTurn = false) => {
     if (readOnly) return
-    const newActions = [...actions]
-    newActions[actionIndex].deltas = newActions[actionIndex].deltas.filter(
-      (_, i) => i !== deltaIndex
-    )
-    setActions(newActions)
+    const setter = isPostTurn ? setPostTurnActions : setActions
+    const list = isPostTurn ? postTurnActions : actions
+    const newActions = [...list]
+    newActions[actionIndex].deltas = newActions[actionIndex].deltas.filter((_, i) => i !== deltaIndex)
+    setter(newActions)
   }
 
-  const moveActionDelta = (actionIndex: number, fromIndex: number, toIndex: number) => {
+  const moveActionDelta = (actionIndex: number, fromIndex: number, toIndex: number, isPostTurn = false) => {
     if (readOnly) return
-    const newActions = [...actions]
+    const setter = isPostTurn ? setPostTurnActions : setActions
+    const list = isPostTurn ? postTurnActions : actions
+    const newActions = [...list]
     const action = newActions[actionIndex]
     const deltas = [...action.deltas]
     
@@ -400,7 +465,7 @@ export function TurnEditor({
     deltas.splice(toIndex, 0, moved)
     
     action.deltas = deltas
-    setActions(newActions)
+    setter(newActions)
   }
 
   const handleDeleteAction = (index: number) => {
@@ -412,9 +477,20 @@ export function TurnEditor({
   // End of Turn Logic
   const addEndOfTurnDelta = () => {
     if (readOnly) return
+
+    // Find a valid potential target (default to my first active slot, or opponent if none)
+    const finalState = getStateAtAction(actions.length)
+    let defaultTarget: { side: "my" | "opponent", slotIndex: number } = { side: "my", slotIndex: 0 }
+
+    if (finalState.activeSlots?.myTeam[0] !== undefined && finalState.activeSlots?.myTeam[0] !== null) {
+        defaultTarget = { side: "my", slotIndex: 0 }
+    } else if (finalState.activeSlots?.opponentTeam[0] !== undefined && finalState.activeSlots?.opponentTeam[0] !== null) {
+        defaultTarget = { side: "opponent", slotIndex: 0 }
+    }
+
     setEndOfTurnDeltas([
       ...endOfTurnDeltas,
-      { type: "HP_RELATIVE", target: { side: "my", slotIndex: 0 }, amount: -0 },
+      { type: "HP_RELATIVE", target: defaultTarget, amount: -0 },
     ])
   }
 
@@ -459,6 +535,7 @@ export function TurnEditor({
     onSave({
       actions,
       endOfTurnDeltas,
+      postTurnActions,
     })
   }
 
@@ -468,6 +545,7 @@ export function TurnEditor({
     newActions[index] = newAction
     setActions(newActions)
   }
+
 
   // Helper to extract active pokemon from a dynamic state
   const getActivePokemonFromState = (state: import("@/types/types").BattleState) => {
@@ -515,10 +593,11 @@ export function TurnEditor({
         <div className="space-y-2">
           {actions.map((action, index) => {
             const isDeployment = turnNumber === 0
-            if (isDeployment) return null // Handled by InitialDeploymentManager
+            if (isDeployment && action.type !== "switch-after-ko") return null // Handled by InitialDeploymentManager
 
             // --- Dynamic Context ---
             const stateBeforeAction = getStateAtAction(index)
+            
             // Reconstruct active list for this specific moment
             const dynamicActivePokemon = getActivePokemonFromState(stateBeforeAction)
 
@@ -527,6 +606,10 @@ export function TurnEditor({
                 (ap.isAlly ? "my" : "opponent") === action.actor.side && 
                 ap.slotIndex === action.actor.slotIndex
             )
+
+            // Defusion is possible if the switch has fusedFrom metadata
+            const canDefuse = action.type === "switch-after-ko" && !!action.metadata?.fusedFrom
+
 
             return (
               <div key={action.id} className="space-y-2">
@@ -549,8 +632,9 @@ export function TurnEditor({
                             myTeam={stateBeforeAction.myTeam} 
                             enemyTeam={stateBeforeAction.enemyTeam} 
                             onDelete={() => !readOnly && handleDeleteAction(index)}
-                            canMoveUp={!readOnly && canMoveActionUp(index)}
-                            canMoveDown={!readOnly && canMoveActionDown(index)}
+                            canMoveUp={action.type !== "switch-after-ko" && !readOnly && index > 0}
+                            canMoveDown={action.type !== "switch-after-ko" && !readOnly && index < actions.length - 1 && actions[index + 1]?.type !== "switch-after-ko"}
+                            canDefuse={!readOnly && canDefuse}
                         />
                   </div>
               </div>
@@ -564,21 +648,37 @@ export function TurnEditor({
             <EffectsList 
                 title="End of Turn Effects"
                 deltas={endOfTurnDeltas}
-                options={[
-                    ...getStateAtAction(actions.length).myTeam.map((p, i) => ({
-                        label: p.name,
-                        value: { side: "my" as const, slotIndex: i },
-                        isAlly: true
-                    })),
-                    ...getStateAtAction(actions.length).enemyTeam.map((p, i) => ({
-                        label: p.name,
-                        value: { side: "opponent" as const, slotIndex: i },
-                        isAlly: false
-                    }))
-                ].filter(o => {
-                    const limit = battleFormat === "double" ? 2 : 1
-                    return o.value.slotIndex < limit // Only active ones usually
-                })}
+                options={(() => {
+                    const finalState = getStateAtAction(actions.length)
+                    const myActive = finalState.activeSlots?.myTeam || []
+                    const oppActive = finalState.activeSlots?.opponentTeam || []
+                    
+                    const opts: { label: string; value: { side: "my" | "opponent"; slotIndex: number }; isAlly: boolean }[] = []
+
+                    // My Team Active Slots
+                    myActive.forEach((teamIndex, battlefieldSlot) => {
+                        if (teamIndex !== null && finalState.myTeam[teamIndex]) {
+                            opts.push({
+                                label: finalState.myTeam[teamIndex].name,
+                                value: { side: "my" as const, slotIndex: battlefieldSlot }, // Use Battlefield Slot
+                                isAlly: true
+                            })
+                        }
+                    })
+
+                    // Opponent Team Active Slots
+                    oppActive.forEach((teamIndex, battlefieldSlot) => {
+                        if (teamIndex !== null && finalState.enemyTeam[teamIndex]) {
+                            opts.push({
+                                label: finalState.enemyTeam[teamIndex].name,
+                                value: { side: "opponent" as const, slotIndex: battlefieldSlot }, // Use Battlefield Slot
+                                isAlly: false
+                            })
+                        }
+                    })
+                    
+                    return opts
+                })()}
                 onAdd={addEndOfTurnDelta}
                 onUpdate={!readOnly ? ((index: number, field: "slot" | "value" | "isHealing", value: any) => updateEndOfTurnDelta(index, field, value)) : () => {}}
                 onRemove={!readOnly ? ((index: number) => removeEndOfTurnDelta(index)) : () => {}}
@@ -587,9 +687,68 @@ export function TurnEditor({
         </div>
       )}
 
+      {/* Post-Turn Switches (End of Turn KOs) */}
+      {postTurnActions.length > 0 && (
+          <div className="pt-2">
+              <div className="space-y-2">
+                  {postTurnActions.map((action, index) => {
+                       // Use unified simulation helper to get the state before this post-turn action
+                       const stateForContext = getPostTurnStateAt(index)
+                       const activePokemonForContext = getActivePokemonFromState(stateForContext)
+
+                       // Identify the actor in the context of the previous state
+                       const actorObj = activePokemonForContext.find(ap => 
+                            (ap.isAlly ? "my" : "opponent") === action.actor.side && 
+                            ap.slotIndex === action.actor.slotIndex
+                       )
+
+                      return (
+                          <div key={action.id}>
+                              <PokemonAction
+                                  action={action}
+                                  index={index}
+                                  totalActions={postTurnActions.length}
+                                  actor={actorObj}
+                                  // Handlers targeting postTurnActions
+                                  onMove={() => {}} 
+                                  onToggleCollapse={() => {
+                                      const newActions = [...postTurnActions]
+                                      newActions[index].isCollapsed = !newActions[index].isCollapsed
+                                      setPostTurnActions(newActions)
+                                  }}
+                                  onUpdateType={(type) => updateActionType(index, type, true)} 
+                                  onUpdateTarget={(t) => updateActionTarget(index, t, true)}
+                                  onUpdateMetadata={(metadata) => updateActionMetadata(index, metadata, true)}
+                                  onAddHpChange={() => addDeltaToAction(index, true)}
+                                  onUpdateHpChange={(di, f, v) => updateActionHpChange(index, di, f, v, true)}
+                                  onRemoveHpChange={(di) => removeActionDelta(index, di, true)}
+                                  onMoveHpChange={(fi, ti) => moveActionDelta(index, fi, ti, true)}
+                                  
+                                  // Context
+                                  activeSlots={stateForContext.activeSlots || { myTeam: [0], opponentTeam: [0] }}
+                                  myTeam={stateForContext.myTeam}
+                                  enemyTeam={stateForContext.enemyTeam}
+                                  
+                                  onDelete={() => {}} 
+                                  canMoveUp={false}
+                                  canMoveDown={false}
+                                  canDefuse={false}
+                              />
+                          </div>
+                      )
+                  })}
+              </div>
+          </div>
+      )}
+
       <Button onClick={handleSave} className="w-full h-12 text-lg font-bold shadow-md" disabled={readOnly}>
         {saveLabel}
       </Button>
     </div>
   )
+}
+
+// Helper to extract active pokemon from a dynamic state
+const getActivePokemonHelper = (state: BattleState, battleFormat: "simple" | "double") => {
+    return [] 
 }

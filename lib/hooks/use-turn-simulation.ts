@@ -1,10 +1,12 @@
-import { BattleState, Pokemon, TurnAction } from "@/types/types"
+import { BattleDelta, BattleState, Pokemon, TurnAction } from "@/types/types"
 import { useMemo } from "react"
 import { BattleEngine } from "../logic/battle-engine"
 
 interface UseTurnSimulationProps {
   initialState: BattleState | undefined
   actions: TurnAction[]
+  endOfTurnDeltas: BattleDelta[]
+  postTurnActions?: TurnAction[]
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
   activeSlotsCount?: number
@@ -13,11 +15,14 @@ interface UseTurnSimulationProps {
 export interface KODetected {
   pokemon: Pokemon
   isAlly: boolean
+  causedByEntryHazards?: boolean
 }
 
 export function useTurnSimulation({
   initialState,
   actions,
+  endOfTurnDeltas,
+  postTurnActions,
   myTeam,
   enemyTeam,
   activeSlotsCount = 1,
@@ -33,74 +38,115 @@ export function useTurnSimulation({
       activeSlots: { 
           myTeam: Array.from({ length: activeSlotsCount }, (_, i) => i), 
           opponentTeam: Array.from({ length: activeSlotsCount }, (_, i) => i) 
-      }, // Default fallback respected activeSlotsCount
+      }, 
       battlefieldState: {
         customTags: [],
         playerSide: { customTags: [] },
         opponentSide: { customTags: [] },
       },
     }
-  }, [initialState, myTeam, enemyTeam])
+  }, [initialState, myTeam, enemyTeam, activeSlotsCount])
 
-  // 2. Compute the full sequence of states
+  // 2. Flatten the timeline: Actions -> EndOfTurn -> PostTurnActions
+  const allActions = useMemo(() => {
+      // Synthetic action for End of Turn
+      const eotAction: TurnAction = {
+          id: "end-of-turn-synthetic",
+          type: "simulated-turn-end" as any, 
+          actor: { side: "my", slotIndex: -1 },
+          target: undefined,
+          deltas: endOfTurnDeltas || [],
+          isCollapsed: true
+      }
+
+      return [...actions, eotAction, ...(postTurnActions || [])]
+  }, [actions, endOfTurnDeltas, postTurnActions])
+
+  // 3. Compute the full sequence of states
   const computedStates = useMemo(() => {
-    return BattleEngine.computeTurnSequence(safeInitialState, actions)
-  }, [safeInitialState, actions])
+    return BattleEngine.computeTurnSequence(safeInitialState, allActions)
+  }, [safeInitialState, allActions])
 
-  // 3. Detect KOs by comparing state transition for each action
+  // 4. Detect KOs across the entire timeline
   const detectedKOs = useMemo(() => {
     const kos: Record<number, KODetected[]> = {}
     
-    actions.forEach((_, actionIndex) => {
-      const stateBefore = computedStates[actionIndex]
-      const stateAfter = computedStates[actionIndex + 1]
-
-      if (!stateBefore || !stateAfter) return
-
-      const currentKOs: KODetected[] = []
-
-      // Check My Team (Active Slots Only)
-      const myActiveIndices = stateAfter.activeSlots?.myTeam || [0]
-      myActiveIndices.forEach((idx) => {
-        if (idx === null || idx === undefined) return
-        const p = stateAfter.myTeam[idx]
-        const prevP = stateBefore.myTeam[idx]
+    // We iterate through all transitions in the flattened timeline
+    for (let i = 0; i < computedStates.length - 1; i++) {
+        const stateBefore = computedStates[i]
+        const stateAfter = computedStates[i+1]
         
-        if (p && prevP && prevP.hpPercent > 0 && p.hpPercent === 0) {
-          currentKOs.push({ pokemon: p, isAlly: true })
+        // Match the action at this step to determine if it's a switch (for hazard flag)
+        const action = allActions[i]
+        const isSwitch = action?.type === "switch" || action?.type === "switch-after-ko"
+        // Also consider post-EOT KOs as hazard-triggered by default if not a main action
+        const isPostMain = i >= actions.length
+
+        const currentKOs: KODetected[] = []
+
+        const checkTeam = (isAlly: boolean) => {
+            const team = isAlly ? stateAfter.myTeam : stateAfter.enemyTeam
+            const prevTeam = isAlly ? stateBefore.myTeam : stateBefore.enemyTeam
+            const activeIndices = isAlly ? (stateAfter.activeSlots?.myTeam || []) : (stateAfter.activeSlots?.opponentTeam || [])
+            
+            activeIndices.forEach(idx => {
+                if (idx !== null && idx !== undefined && team[idx] && prevTeam[idx]) {
+                    if (prevTeam[idx].hpPercent > 0 && team[idx].hpPercent === 0) {
+                        currentKOs.push({ 
+                            pokemon: team[idx], 
+                            isAlly, 
+                            causedByEntryHazards: isSwitch || (isPostMain && i > actions.length)
+                        })
+                    }
+                }
+            })
         }
-      })
 
-      // Check Enemy Team (Active Slots Only)
-      const enemyActiveIndices = stateAfter.activeSlots?.opponentTeam || [0]
-      enemyActiveIndices.forEach((idx) => {
-        if (idx === null || idx === undefined) return
-        const p = stateAfter.enemyTeam[idx]
-        const prevP = stateBefore.enemyTeam[idx]
-       
-        if (p && prevP && prevP.hpPercent > 0 && p.hpPercent === 0) {
-          currentKOs.push({ pokemon: p, isAlly: false })
+        checkTeam(true)
+        checkTeam(false)
+
+        if (currentKOs.length > 0) {
+            kos[i] = currentKOs
         }
-      })
-
-      if (currentKOs.length > 0) {
-        kos[actionIndex] = currentKOs
-      }
-    })
-
+    }
     return kos
-  }, [computedStates, actions, activeSlotsCount])
+  }, [computedStates, allActions, actions.length])
 
-  // 4. Helper to get the state visible to the user at a specific step (before the action occurs)
+  // 5. Extract Final State
+  const finalState = computedStates[computedStates.length - 1]
+
+  // 6. Compute specialized lists for backward compatibility / specific UI needs
+  const endOfTurnKOs = useMemo(() => {
+      const eotIndex = actions.length // Index of the synthetic EOT Action
+      const relevantKOs: { pokemon: Pokemon, isAlly: boolean, causedByEntryHazards?: boolean }[] = []
+      
+      // Collect KOs from EOT action onwards
+      for (let i = eotIndex; i < computedStates.length - 1; i++) {
+          const stepKOs = detectedKOs[i] || []
+          stepKOs.forEach(k => relevantKOs.push(k))
+      }
+      return relevantKOs
+  }, [detectedKOs, actions.length, computedStates.length])
+
+  // 7. Helpers for UI mapping
   const getStateAtAction = (index: number): BattleState => {
     if (index < 0) return computedStates[0]
     if (index >= computedStates.length) return computedStates[computedStates.length - 1]
     return computedStates[index]
   }
 
-  return {
-    computedStates,
-    detectedKOs,
-    getStateAtAction,
+  // Helper to get state specific to Post-Turn actions
+  const getPostTurnStateAt = (index: number) => {
+      const startOfPostTurnIdx = actions.length + 1
+      return getStateAtAction(startOfPostTurnIdx + index)
+  }
+
+  return { 
+      computedStates, 
+      detectedKOs, 
+      endOfTurnKOs, 
+      finalState, 
+      getStateAtAction,
+      getPostTurnStateAt 
   }
 }
