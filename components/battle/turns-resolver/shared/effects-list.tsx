@@ -68,7 +68,7 @@ export function EffectsList({
         <AddActionButton onClick={onAdd} label={addButtonLabel} />
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-3">
         {hpDeltas.length === 0 ? (
           <div className="text-[11px] text-muted-foreground italic pl-1">No effects</div>
         ) : (

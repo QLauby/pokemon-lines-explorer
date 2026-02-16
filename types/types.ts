@@ -77,6 +77,7 @@ export interface SlotReference {
 export type BattleDelta =
   | { type: "HP_RELATIVE"; target: SlotReference; amount: number }
   | { type: "SWITCH"; side: "my" | "opponent"; fromSlot: number; toSlot: number }
+  | { type: "PP_CHANGE"; target: SlotReference; moveName: string; amount: number }
 
 export type TurnActionType = "attack" | "switch" | "item" | "switch-after-ko"
 

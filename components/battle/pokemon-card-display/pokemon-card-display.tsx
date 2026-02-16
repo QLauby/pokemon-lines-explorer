@@ -58,39 +58,50 @@ export function PokemonCardDisplay({
           />
       </div>
 
-      <div className="px-1.5 py-1 flex flex-col min-w-0 pr-5">
-          <PokemonCardDisplayHeader pokemon={pokemon} />
-          <PokemonCardDisplayMeta pokemon={pokemon} />
-      </div>
-
-      <div className="px-1.5 space-y-1">
-        {!isKO && <PokemonCardDisplayStatus pokemon={pokemon} />}
-
-        {isExpanded && pokemon.customTags && pokemon.customTags.length > 0 && (
-            <div className="flex flex-wrap items-center">
-                <CustomTagsManager 
-                    tags={pokemon.customTags}
-                    onUpdateTags={() => {}}
-                    fontSize={8.5}
-                    label={null}
-                    readOnly={true}
-                />
-            </div>
-        )}
-
-        <HealthBarDisplay 
-            hpPercent={pokemon.hpPercent} 
-            showText={true} 
-            height={4} 
-        />
-      </div>
-
-      {isExpanded && (
-        <div className="px-1.5 pb-1.5 space-y-1.5">
-            <PokemonCardDisplayStats pokemon={pokemon} />
-            <PokemonCardDisplayAttacks pokemon={pokemon} />
+      <div className="p-1.5 flex flex-col min-w-0 space-y-1.5">
+        <div className="flex flex-col min-w-0 pr-5">
+            <PokemonCardDisplayHeader pokemon={pokemon} />
+            <PokemonCardDisplayMeta pokemon={pokemon} />
         </div>
-      )}
+
+        <div className="space-y-1">
+          {!isKO && <PokemonCardDisplayStatus pokemon={pokemon} />}
+
+          {isExpanded && pokemon.customTags && pokemon.customTags.length > 0 && (
+              <div className="flex flex-wrap items-center">
+                  <CustomTagsManager 
+                      tags={pokemon.customTags}
+                      onUpdateTags={() => {}}
+                      fontSize={8.5}
+                      label={null}
+                      readOnly={true}
+                  />
+              </div>
+          )}
+
+          <HealthBarDisplay 
+              hpPercent={pokemon.hpPercent} 
+              showText={true} 
+              height={4} 
+          />
+        </div>
+
+        {(() => {
+          const hasStats = pokemon.statsModifiers && Object.values(pokemon.statsModifiers).some(val => val !== 0)
+          const hasAttacks = pokemon.attacks && pokemon.attacks.length > 0
+          const hasContent = hasStats || hasAttacks
+
+          if (isExpanded && hasContent) {
+            return (
+              <div className="space-y-1.5">
+                  <PokemonCardDisplayStats pokemon={pokemon} />
+                  <PokemonCardDisplayAttacks pokemon={pokemon} />
+              </div>
+            )
+          }
+          return null
+        })()}
+      </div>
     </div>
   )
 }

@@ -391,6 +391,43 @@ export function TurnEditor({
     setter(newActions)
   }
 
+  const updateActionAttack = (index: number, attackName: string, moveName?: string, isPostTurn = false) => {
+    if (readOnly) return
+    const setter = isPostTurn ? setPostTurnActions : setActions
+    const list = isPostTurn ? postTurnActions : actions
+    const newActions = [...list]
+    const action = newActions[index]
+    
+    // Update metadata
+    const newMetadata = { ...action.metadata, attackName }
+    
+    // Handle PP Delta
+    let newDeltas = [...action.deltas]
+    
+    // 1. Remove existing PP_CHANGE deltas for this action (cleanup)
+    newDeltas = newDeltas.filter(d => d.type !== "PP_CHANGE")
+    
+    // 2. If a specific move is identified (Dropdown selection), add a PP decrement delta
+    if (moveName) {
+         // Create PP Delta: Decrement via -1
+         const ppDelta: BattleDelta = {
+             type: "PP_CHANGE",
+             target: action.actor,
+             moveName: moveName,
+             amount: -1
+         }
+         newDeltas.push(ppDelta)
+    }
+    
+    newActions[index] = {
+        ...action,
+        metadata: newMetadata,
+        deltas: newDeltas
+    }
+    
+    setter(newActions)
+  }
+
   /* --- Unified Delta Handlers --- */
 
   const addDeltaToAction = (actionIndex: number, isPostTurn = false) => {
@@ -642,6 +679,7 @@ export function TurnEditor({
                             onUpdateType={(type) => !readOnly && updateActionType(index, type)}
                             onUpdateTarget={(target) => !readOnly && updateActionTarget(index, target)}
                             onUpdateMetadata={(metadata) => !readOnly && updateActionMetadata(index, metadata)}
+                            onUpdateAttack={(name, moveId) => !readOnly && updateActionAttack(index, name, moveId)}
                             onAddHpChange={() => !readOnly && addDeltaToAction(index)}
                             onUpdateHpChange={(deltaIndex, field, value) => !readOnly && updateActionHpChange(index, deltaIndex, field, value)}
                             onRemoveHpChange={(deltaIndex) => !readOnly && removeActionDelta(index, deltaIndex)}
@@ -736,6 +774,7 @@ export function TurnEditor({
                                   onUpdateType={(type) => updateActionType(index, type, true)} 
                                   onUpdateTarget={(t) => updateActionTarget(index, t, true)}
                                   onUpdateMetadata={(metadata) => updateActionMetadata(index, metadata, true)}
+                                  onUpdateAttack={(name, moveId) => updateActionAttack(index, name, moveId, true)}
                                   onAddHpChange={() => addDeltaToAction(index, true)}
                                   onUpdateHpChange={(di, f, v) => updateActionHpChange(index, di, f, v, true)}
                                   onRemoveHpChange={(di) => removeActionDelta(index, di, true)}

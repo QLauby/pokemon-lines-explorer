@@ -89,13 +89,17 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
 
       // c. Apply to Session State
       if (type === 'CHANGE_DEPLOYMENT') {
-          const { newActiveSlots } = payload as { newActiveSlots: { myTeam: number[], opponentTeam: number[] } }
+          const { newActiveSlots, newBattleType } = payload as { 
+              newActiveSlots: { myTeam: number[], opponentTeam: number[] },
+              newBattleType?: "simple" | "double"
+          }
           
           onUpdateSession({
               initialState: {
                   ...session.initialState,
                   activeSlots: newActiveSlots
               },
+              battleType: newBattleType || session.battleType,
               nodes: finalNodes
           })
       } else if (type === 'DELETE_POKEMON') {

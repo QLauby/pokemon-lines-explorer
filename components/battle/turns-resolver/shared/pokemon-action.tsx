@@ -22,6 +22,7 @@ interface PokemonActionProps {
   onUpdateType: (type: TurnActionType) => void
   onUpdateTarget: (target: { side: "my" | "opponent", slotIndex: number } | undefined) => void
   onUpdateMetadata: (metadata: { itemName?: string; attackName?: string }) => void
+  onUpdateAttack: (attackName: string, moveName?: string) => void
   onAddHpChange: () => void
   onUpdateHpChange: (deltaIndex: number, field: "slot" | "value" | "isHealing", value: any) => void
   onRemoveHpChange: (deltaIndex: number) => void
@@ -46,6 +47,7 @@ export function PokemonAction({
   onUpdateType,
   onUpdateTarget,
   onUpdateMetadata,
+  onUpdateAttack,
   onAddHpChange,
   onUpdateHpChange,
   onRemoveHpChange,
@@ -342,9 +344,10 @@ export function PokemonAction({
               <div className="shrink-0 flex items-center min-w-0">
                 {/* ATTACK TARGETS */}
                 {action.type === "attack" && (
+                  <>
                     <select
                       className={cn(
-                          "h-6 w-[130px] text-[10px] font-medium bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate",
+                          "h-6 w-[100px] text-[10px] font-medium bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate",
                           borderColorClass
                       )}
                       value={action.target ? JSON.stringify(action.target) : ""}
@@ -361,6 +364,56 @@ export function PokemonAction({
                           </option>
                       ))}
                     </select>
+                    
+                    <span className="text-[10px] text-muted-foreground px-1">with</span>
+                  </>
+                )}
+
+                {/* ATTACK NAME INPUT / DROPDOWN */}
+                {action.type === "attack" && actor && (
+                   (() => {
+                       const moves = actor.pokemon.attacks || []
+                       const hasMoves = moves.length > 0
+                       
+                       if (hasMoves) {
+                           return (
+                               <select
+                                 className={cn(
+                                     "h-6 w-[100px] text-[10px] bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate ml-1",
+                                     borderColorClass
+                                 )}
+                                 value={action.metadata?.attackName || ""}
+                                 onChange={(e) => {
+                                     const selectedName = e.target.value
+                                     // Verify it exists in moves to be safe
+                                     const move = moves.find(m => m.name === selectedName)
+                                     if (move) {
+                                         onUpdateAttack(move.name, move.name)
+                                     }
+                                 }}
+                               >
+                                 <option value="">Select Move...</option>
+                                 {moves.map(m => (
+                                     <option key={m.name} value={m.name}>
+                                         {m.name}
+                                     </option>
+                                 ))}
+                               </select>
+                           )
+                       } else {
+                           return (
+                               <input 
+                                  className={cn(
+                                      "h-6 w-[100px] text-[10px] bg-background/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring placeholder:italic ml-1",
+                                      borderColorClass
+                                  )}
+                                  placeholder="Move name..."
+                                  value={action.metadata?.attackName || ""}
+                                  onChange={(e) => onUpdateAttack(e.target.value)}
+                                />
+                           )
+                       }
+                   })()
                 )}
 
                 {/* SWITCH TARGETS */}

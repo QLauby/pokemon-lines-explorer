@@ -51,7 +51,7 @@ export function HpChangeRow({
   }, [])
 
   return (
-    <div className="flex gap-2 items-center mb-4 relative">
+    <div className="flex gap-2 items-center relative">
       {/* Custom Dropdown Selector */}
       <div className="relative flex-1 min-w-[200px]" ref={containerRef}>
         <button

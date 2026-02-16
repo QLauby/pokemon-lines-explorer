@@ -57,7 +57,7 @@ function InnerContent({
         while (newActiveSlots.myTeam.length < limit) newActiveSlots.myTeam.push(newActiveSlots.myTeam.length)
         while (newActiveSlots.opponentTeam.length < limit) newActiveSlots.opponentTeam.push(newActiveSlots.opponentTeam.length)
         
-        const isPending = requestModification('CHANGE_DEPLOYMENT', { newActiveSlots })
+        const isPending = requestModification('CHANGE_DEPLOYMENT', { newActiveSlots, newBattleType: type })
         if (isPending) {
              setters.setCurrentView('combat')
         }
@@ -117,7 +117,8 @@ function InnerContent({
         }
         
         const isPending = requestModification('CHANGE_DEPLOYMENT', { 
-            newActiveSlots: newActiveSlotsObject
+            newActiveSlots: newActiveSlotsObject,
+            newBattleType: state.battleType // Maintain current type for drag-drop flags
         })
         
         if (isPending) {

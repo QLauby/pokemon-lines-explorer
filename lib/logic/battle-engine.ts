@@ -144,6 +144,39 @@ export class BattleEngine {
         return newState
       }
 
+      case "PP_CHANGE": {
+        const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
+        
+        // Resolve battlefield slot to team index
+        const teamIndex = this.resolveSlotToTeamIndex(
+          newState, 
+          delta.target.side, 
+          delta.target.slotIndex
+        )
+        
+        if (teamIndex === null) return newState
+        
+        const targetPokemon = team[teamIndex]
+        
+        if (targetPokemon && targetPokemon.attacks) {
+            const attackIndex = targetPokemon.attacks.findIndex(a => a.name === delta.moveName)
+            if (attackIndex !== -1) {
+                const newAttacks = [...targetPokemon.attacks]
+                const attack = newAttacks[attackIndex]
+                newAttacks[attackIndex] = {
+                    ...attack,
+                    currentPP: Math.max(0, attack.currentPP + delta.amount)
+                }
+                
+                team[teamIndex] = {
+                    ...targetPokemon,
+                    attacks: newAttacks
+                }
+            }
+        }
+        return newState
+      }
+
       default:
         return state
     }
