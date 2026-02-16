@@ -96,7 +96,6 @@ export function TeamsView({
             size="lg"
             onClick={() => {
               onBattleTypeChange("simple")
-              onResetBattle()
             }}
             className="rounded-md text-base"
           >
@@ -107,7 +106,6 @@ export function TeamsView({
             size="lg"
             onClick={() => {
               onBattleTypeChange("double")
-              onResetBattle()
             }}
             className="rounded-md text-base"
           >

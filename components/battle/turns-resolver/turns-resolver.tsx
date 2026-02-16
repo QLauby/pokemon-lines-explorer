@@ -29,6 +29,7 @@ interface TurnsResolverProps {
   nextActivePokemon?: { pokemon: Pokemon; isAlly: boolean }[]
   nextBattleState?: BattleState
   initialBattleState?: BattleState
+  readOnly?: boolean
 }
 
 type Tab = "update" | "delete" | "next"

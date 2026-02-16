@@ -3,7 +3,6 @@
 import { useCallback, useEffect } from "react"
 
 import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
-import { showSuccessToast } from "@/lib/utils/toasts/toast-handler"
 import { BattleState, Pokemon, TreeNode, TurnData } from "@/types/types"
 import { TurnEditor } from "./shared/turn-editor"
 
@@ -45,7 +44,6 @@ export function UpdateCurrentTurn({
     if (!selectedNode) return
 
     onUpdateNode(selectedNodeId, { turnData })
-    showSuccessToast(`Tour ${selectedNode.turn} mis à jour`)
   }
 
   const handleTurnChange = useCallback((turnData: TurnData) => {
@@ -68,6 +66,7 @@ export function UpdateCurrentTurn({
       onChange={handleTurnChange}
       turnNumber={selectedNode.turn}
       battleFormat={battleType}
+      autoSave={true}
     />
   )
 }

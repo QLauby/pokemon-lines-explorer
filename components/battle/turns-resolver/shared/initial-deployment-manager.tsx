@@ -7,7 +7,7 @@ interface InitialDeploymentManagerProps {
   actions: TurnAction[]
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
-  activeSlots: number
+  activeSlots: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   onUpdateAction: (index: number, action: TurnAction) => void
 }
 
@@ -24,12 +24,25 @@ export function InitialDeploymentManager({
 
   const myEntering = deploymentActions
     .filter(a => a.actor.side === "my")
-    .map(a => ({ name: myTeam[a.actor.slotIndex]?.name, side: "my" as const }))
+    .map(a => {
+        // Resolve the team index from the mapping
+        const teamIndex = activeSlots.myTeam[a.actor.slotIndex]
+        return { 
+            name: (teamIndex !== undefined && teamIndex !== null) ? myTeam[teamIndex]?.name : "Unknown", 
+            side: "my" as const 
+        }
+    })
     .filter(p => p.name)
   
   const enemyEntering = deploymentActions
     .filter(a => a.actor.side === "opponent")
-    .map(a => ({ name: enemyTeam[a.actor.slotIndex]?.name, side: "opponent" as const }))
+    .map(a => {
+        const teamIndex = activeSlots.opponentTeam[a.actor.slotIndex]
+        return { 
+            name: (teamIndex !== undefined && teamIndex !== null) ? enemyTeam[teamIndex]?.name : "Unknown", 
+            side: "opponent" as const 
+        }
+    })
     .filter(p => p.name)
 
   const allEntering = [...myEntering, ...enemyEntering]
@@ -79,16 +92,24 @@ export function InitialDeploymentManager({
   // 3. Prepare Options (Sorted: My Team then Enemy Team)
   const options: { label: string; value: SlotReference; isAlly: boolean }[] = []
   
-  for (let i = 0; i < activeSlots; i++) {
-      const p = myTeam[i]
-      if (p) {
-          options.push({ label: p.name, value: { side: "my", slotIndex: i }, isAlly: true })
+  const myLimit = activeSlots.myTeam.length
+  for (let i = 0; i < myLimit; i++) {
+      const teamIndex = activeSlots.myTeam[i]
+      if (teamIndex !== undefined && teamIndex !== null) {
+          const p = myTeam[teamIndex]
+          if (p) {
+              options.push({ label: p.name, value: { side: "my", slotIndex: i }, isAlly: true })
+          }
       }
   }
-  for (let i = 0; i < activeSlots; i++) {
-      const p = enemyTeam[i]
-      if (p) {
-          options.push({ label: p.name, value: { side: "opponent", slotIndex: i }, isAlly: false })
+  const opponentLimit = activeSlots.opponentTeam.length
+  for (let i = 0; i < opponentLimit; i++) {
+      const teamIndex = activeSlots.opponentTeam[i]
+      if (teamIndex !== undefined && teamIndex !== null) {
+          const p = enemyTeam[teamIndex]
+          if (p) {
+              options.push({ label: p.name, value: { side: "opponent", slotIndex: i }, isAlly: false })
+          }
       }
   }
 

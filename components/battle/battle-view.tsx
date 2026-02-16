@@ -32,6 +32,7 @@ interface CombatViewProps {
   currentSession: CombatSession
   onCommit: (newSession: CombatSession) => void
   onCancel: () => void
+  readOnly?: boolean
 }
 
 
@@ -50,6 +51,7 @@ export function CombatView({
   currentSession,
   onCommit,
   onCancel,
+  readOnly = false,
 }: CombatViewProps) {
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([])
   const [preview, setPreview] = useState<{ mode: "add" | "update"; turnData: TurnData | null }>({ mode: "add", turnData: null })
@@ -112,14 +114,8 @@ export function CombatView({
      // 5. Rebuild Map for Display (using the layouted nodes)
      displayNodes = new Map(layoutedNodes.map(n => [n.id, n]))
   } 
-  // Case 2: Preview UPDATING the existing node
-  else if (preview.mode === "update" && preview.turnData && selectedNode) {
-      // We just replace the turnData in a copy of the nodes Map for the engine call
-      displayNodes = new Map(nodes)
-      const updatedNode = { ...selectedNode, turnData: preview.turnData }
-      displayNodes.set(selectedNodeId, updatedNode)
-      // targetNodeId remains selectedNodeId
-  }
+  // Case 2: Preview UPDATING - Removed (Updates are now live)
+  // else if (preview.mode === "update" && preview.turnData && selectedNode) { ... }
 
   // Compute Parent Active Pokemon AND Teams (for Update Mode)
   const parentState = useMemo(() => {
@@ -262,6 +258,7 @@ export function CombatView({
                     nextActivePokemon={nextActivePokemonList}
                     nextBattleState={selectedNodeState}
                     initialBattleState={parentState || currentSession.initialState}
+                    readOnly={readOnly}
                  />
               </div>
           </div>

@@ -24,6 +24,7 @@ interface TurnEditorProps {
   enemyTeam: Pokemon[]
   turnNumber: number
   battleFormat?: "simple" | "double"
+  autoSave?: boolean
 }
 
 export function TurnEditor({
@@ -38,21 +39,28 @@ export function TurnEditor({
   enemyTeam,
   turnNumber,
   battleFormat = "simple",
+  autoSave = false,
 }: TurnEditorProps) {
   const [actions, setActions] = useState<TurnAction[]>([])
   const [endOfTurnDeltas, setEndOfTurnDeltas] = useState<BattleDelta[]>([])
   const [postTurnActions, setPostTurnActions] = useState<TurnAction[]>([])
 
-  // Notify parent of changes
+  // Notify parent of changes & Auto-Save
   useEffect(() => {
-    if (onChange) {
-        onChange({
-            actions,
-            endOfTurnDeltas,
-            postTurnActions
-        })
+    const data = {
+        actions,
+        endOfTurnDeltas,
+        postTurnActions
     }
-  }, [actions, endOfTurnDeltas, postTurnActions, onChange])
+    
+    if (onChange) {
+        onChange(data)
+    }
+
+    if (autoSave && !readOnly) {
+        onSave(data)
+    }
+  }, [actions, endOfTurnDeltas, postTurnActions, onChange, autoSave, readOnly]) // onSave excluded to avoid loops if unstable reference
 
   // --- 1. Integration of the Brain (useTurnSimulation) ---
 
@@ -136,7 +144,16 @@ export function TurnEditor({
   // Initialize actions based on active pokemon or initial data
   useEffect(() => {
     if (initialTurnData && initialTurnData.actions.length > 0) {
-      setActions(JSON.parse(JSON.stringify(initialTurnData.actions)))
+      let loadedActions = JSON.parse(JSON.stringify(initialTurnData.actions))
+      
+      // Enforce Battle Format limit for Turn 0 to prevent loops/mismatches
+      if (turnNumber === 0) {
+          const limit = battleFormat === "double" ? 2 : 1
+          // Keep only actions where the slotIndex is valid for the current format
+          loadedActions = loadedActions.filter((a: TurnAction) => a.actor.slotIndex < limit)
+      }
+
+      setActions(loadedActions)
       setEndOfTurnDeltas(initialTurnData.endOfTurnDeltas ? JSON.parse(JSON.stringify(initialTurnData.endOfTurnDeltas)) : [])
       setPostTurnActions(initialTurnData.postTurnActions ? JSON.parse(JSON.stringify(initialTurnData.postTurnActions)) : [])
     } else {
@@ -149,7 +166,7 @@ export function TurnEditor({
         for (let i = 0; i < activeSlots; i++) {
             // My Side
             deploymentActions.push({
-                id: crypto.randomUUID(),
+                id: `deploy-my-${i}`,
                 type: "switch",
                 actor: { side: "my", slotIndex: i },
                 target: { side: "my", slotIndex: i }, // Self-Switch
@@ -158,7 +175,7 @@ export function TurnEditor({
             })
             // Opponent Side
             deploymentActions.push({
-                id: crypto.randomUUID(),
+                id: `deploy-opp-${i}`,
                 type: "switch",
                 actor: { side: "opponent", slotIndex: i },
                 target: { side: "opponent", slotIndex: i }, // Self-Switch
@@ -176,7 +193,7 @@ export function TurnEditor({
             const slotIndex = team.findIndex(p => p.id === ap.pokemon.id)
             
             return {
-                id: crypto.randomUUID(),
+                id: `default-${side}-${slotIndex}`,
                 actor: { side, slotIndex },
                 type: "attack",
                 deltas: [],
@@ -190,7 +207,7 @@ export function TurnEditor({
         setEndOfTurnDeltas(JSON.parse(JSON.stringify(initialTurnData.endOfTurnDeltas)))
       }
     }
-  }, [initialTurnData, turnNumber, battleFormat])
+  }, [turnNumber, battleFormat]) // Only re-initialize when turn or format changes, not when data updates from autoSave
 
   // --- Automatic Forced Switch Management ---
   useKoFusion({
@@ -585,7 +602,7 @@ export function TurnEditor({
             actions={actions}
             myTeam={myTeam}
             enemyTeam={enemyTeam}
-            activeSlots={battleFormat === "double" ? 2 : 1}
+            activeSlots={simulationState.activeSlots}
             onUpdateAction={(sliceIndex, newAction) => handleUpdateAction(sliceIndex, newAction)}
           />
         )}
@@ -741,14 +758,11 @@ export function TurnEditor({
           </div>
       )}
 
-      <Button onClick={handleSave} className="w-full h-12 text-lg font-bold shadow-md" disabled={readOnly}>
-        {saveLabel}
-      </Button>
+      {!autoSave && (
+        <Button onClick={handleSave} className="w-full h-12 text-lg font-bold shadow-md" disabled={readOnly}>
+            {saveLabel}
+        </Button>
+      )}
     </div>
   )
-}
-
-// Helper to extract active pokemon from a dynamic state
-const getActivePokemonHelper = (state: BattleState, battleFormat: "simple" | "double") => {
-    return [] 
 }
