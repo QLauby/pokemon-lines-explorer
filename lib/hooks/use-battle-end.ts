@@ -59,28 +59,28 @@ function findLastKO(
   let lastKO: { side: 'my' | 'opponent', actionIndex: number, deltaIndex: number } | null = null
   
   actions.forEach((action, actionIdx) => {
-    action.deltas?.forEach((delta, deltaIdx) => {
-      if (delta.type === 'HP_RELATIVE' && delta.target) {
-        const stateBefore = getStateAtAction(actionIdx)
-        const stateAfter = getStateAtAction(actionIdx + 1)
-        
-        const teamBefore = delta.target.side === 'my' ? stateBefore.myTeam : stateBefore.enemyTeam
-        const teamAfter = delta.target.side === 'my' ? stateAfter.myTeam : stateAfter.enemyTeam
-        
-        const pokemonBefore = teamBefore[delta.target.slotIndex]
-        const pokemonAfter = teamAfter[delta.target.slotIndex]
-        
-        // Check if this delta caused a KO
-        if (pokemonBefore && pokemonAfter && 
-            pokemonBefore.hpPercent > 0 && pokemonAfter.hpPercent === 0) {
+    action.effects?.forEach((effect) => {
+      effect.deltas.forEach((delta, deltaIdx) => {
+        if (delta.type === 'HP_RELATIVE' && delta.target) {
+          const stateBefore = getStateAtAction(actionIdx)
+          const stateAfter = getStateAtAction(actionIdx + 1)
           
-          // Update if this is the latest KO
-          if (!lastKO || actionIdx > lastKO.actionIndex || 
-              (actionIdx === lastKO.actionIndex && deltaIdx > lastKO.deltaIndex)) {
-            lastKO = { side: delta.target.side, actionIndex: actionIdx, deltaIndex: deltaIdx }
+          const teamBefore = delta.target.side === 'my' ? stateBefore.myTeam : stateBefore.enemyTeam
+          const teamAfter = delta.target.side === 'my' ? stateAfter.myTeam : stateAfter.enemyTeam
+          
+          const pokemonBefore = teamBefore[delta.target.slotIndex]
+          const pokemonAfter = teamAfter[delta.target.slotIndex]
+          
+          // Check if this delta caused a KO
+          if (pokemonBefore && pokemonAfter && 
+              pokemonBefore.hpPercent > 0 && pokemonAfter.hpPercent === 0) {
+            
+            // Update if this is the latest KO
+            // Iteration order determines "lateness" so we can just overwrite
+            lastKO = { side: delta.target.side, actionIndex: actionIdx, deltaIndex: deltaIdx } 
           }
         }
-      }
+      })
     })
   })
   

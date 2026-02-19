@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect } from "react"
 
@@ -7,10 +7,9 @@ import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Package, Repeat, S
 import { Button } from "@/components/ui/button"
 import { KO_BG_COLOR, KO_BORDEAUX } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils"
-import { Pokemon, SlotReference, TurnAction, TurnActionType } from "@/types/types"
+import { Effect, Pokemon, SlotReference, TurnAction, TurnActionType } from "@/types/types"
 
 import { EffectsList } from "./effects-list"
-import { SwitchEffects } from "./switch-effects"
 
 interface PokemonActionProps {
   action: TurnAction
@@ -23,13 +22,17 @@ interface PokemonActionProps {
   onUpdateTarget: (target: { side: "my" | "opponent", slotIndex: number } | undefined) => void
   onUpdateMetadata: (metadata: { itemName?: string; attackName?: string }) => void
   onUpdateAttack: (attackName: string, moveName?: string) => void
-  onAddHpChange: () => void
-  onUpdateHpChange: (deltaIndex: number, field: "slot" | "value" | "isHealing", value: any) => void
-  onRemoveHpChange: (deltaIndex: number) => void
-  onMoveHpChange: (fromIndex: number, toIndex: number) => void
+  
+  // New Effect Handlers
+  onAddEffect: () => void
+  onUpdateEffect: (index: number, newEffect: Effect) => void
+  onRemoveEffect: (index: number) => void
+  
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
   activeSlots: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
+  effectOptions: { label: string; value: SlotReference; isAlly: boolean }[] // Passed from parent
+  
   // Optional props for Forced Switch mode
   onDelete?: () => void
   canMoveUp?: boolean
@@ -48,13 +51,16 @@ export function PokemonAction({
   onUpdateTarget,
   onUpdateMetadata,
   onUpdateAttack,
-  onAddHpChange,
-  onUpdateHpChange,
-  onRemoveHpChange,
-  onMoveHpChange,
+  
+  onAddEffect,
+  onUpdateEffect,
+  onRemoveEffect,
+  
   myTeam,
   enemyTeam,
   activeSlots,
+  effectOptions,
+  
   onDelete,
   canMoveUp = true,
   canMoveDown = true,
@@ -144,7 +150,7 @@ export function PokemonAction({
       }
   }).filter((p): p is NonNullable<typeof p> => p !== null)
 
-  // Filter out KO'd Pokémon from available switch targets
+  // Filter out KO'd PokÃ©mon from available switch targets
   const availableBenchMembers = benchMembers.filter(member => member.pokemon.hpPercent > 0)
 
   const getActorName = () => {
@@ -156,62 +162,7 @@ export function PokemonAction({
       }
       return "UNKNOWN"
   }
-
-  const getSortedOptions = () => {
-      const opts: { label: string; value: SlotReference; isAlly: boolean }[] = []
-      
-      // 1. Determine Primary Reference
-      let refSide: "my" | "opponent"
-      let refSlotIndex: number
-      
-      if (action.target) {
-          refSide = action.target.side
-          refSlotIndex = action.target.slotIndex
-      } else {
-          refSide = action.actor.side
-          refSlotIndex = action.actor.slotIndex
-      }
-
-      const refTeam = refSide === "my" ? myTeam : enemyTeam
-      
-      // Look for the reference in our pre-calculated activeTargets which correctly maps slots to current Pokemon
-      const refTargetOption = activeTargets.find(t => t.side === refSide && t.slotIndex === refSlotIndex)
-      const refPokemon = refTargetOption ? { name: refTargetOption.label } : refTeam[refSlotIndex]
-
-      // A. The Reference
-      if (refPokemon) {
-          opts.push({
-              label: refPokemon.name,
-              value: { side: refSide, slotIndex: refSlotIndex },
-              isAlly: refSide === "my"
-          })
-      }
-
-      // B. Partners (Same Side)
-      activeTargets
-          .filter(t => t.side === refSide && t.value !== (refPokemon ? JSON.stringify({ side: refSide, slotIndex: refSlotIndex }) : ""))
-          .forEach(t => {
-              opts.push({
-                  label: t.label,
-                  value: { side: t.side, slotIndex: t.slotIndex },
-                  isAlly: t.isAlly
-              })
-          })
-
-      // C. Opposing Side
-      activeTargets
-          .filter(t => t.side !== refSide)
-          .forEach(t => {
-              opts.push({
-                  label: t.label,
-                  value: { side: t.side, slotIndex: t.slotIndex },
-                  isAlly: t.isAlly
-              })
-          })
-      
-      return opts
-  }
-
+  
   // Define Styles
   let containerStyle = {}
   let borderColorClass = isAlly ? "border-blue-200" : "border-red-200"
@@ -419,7 +370,7 @@ export function PokemonAction({
                 {/* SWITCH TARGETS */}
                 {(action.type === "switch" || action.type === "switch-after-ko") && (
                     availableBenchMembers.length === 0 && action.type === "switch-after-ko" ? (
-                        // No switch available for KO'd Pokémon
+                        // No switch available for KO'd PokÃ©mon
                         <div 
                           className={cn(
                               "h-6 w-[130px] text-[10px] font-medium bg-background/50 border rounded px-1.5 flex items-center text-muted-foreground italic",
@@ -489,28 +440,26 @@ export function PokemonAction({
             className="border-t border-dashed px-3 py-2 pb-3 bg-white/40"
             style={commonElementStyle}
         >
+           {/* Entry effects for switches, regular effects for attacks */}
            {action.type === "switch" || action.type === "switch-after-ko" ? (
-             <SwitchEffects
-               action={action}
-               activeSlots={activeSlots}
-               onAddEntryHpChange={onAddHpChange}
-               onUpdateHpChange={onUpdateHpChange}
-               onRemoveHpChange={onRemoveHpChange}
-               onMoveHpChange={onMoveHpChange}
-               myTeam={myTeam}
-               enemyTeam={enemyTeam}
-             />
+               <EffectsList 
+                   title="Entry Effects"
+                   effects={action.effects}
+                   options={effectOptions}
+                   onAdd={onAddEffect}
+                   onUpdate={onUpdateEffect}
+                   onRemove={onRemoveEffect}
+               />
            ) : (
              <>
                 <EffectsList 
-                    title="Effects"
-                    deltas={action.deltas}
-                    options={getSortedOptions()}
-                    onAdd={onAddHpChange}
-                    onUpdate={(idx, field, val) => onUpdateHpChange(idx, field, val)}
-                    onRemove={onRemoveHpChange}
-                    addButtonLabel="Add Effect"
-                />
+                     title="Effects"
+                     effects={action.effects}
+                     options={effectOptions}
+                     onAdd={onAddEffect}
+                     onUpdate={onUpdateEffect}
+                     onRemove={onRemoveEffect}
+                 />
              </>
            )}
         </div>

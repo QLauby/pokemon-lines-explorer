@@ -166,7 +166,7 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
       value={{
         originalSession: session,
         pendingModification,
-        setPendingModification: () => {}, // Internal use mostly
+        setPendingModification,
         requestModification,
         confirmModification,
         cancelModification,

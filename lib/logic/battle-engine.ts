@@ -25,25 +25,36 @@ export class BattleEngine {
       if (node.turnData) {
         // 1. Process Ordered Actions
         for (const action of node.turnData.actions) {
-            
-            const effectiveDeltas: BattleDelta[] = action.deltas || []
-            for (const delta of effectiveDeltas) {
+            // 1. Action-level deltas first (SWITCH, PP_CHANGE)
+            for (const delta of (action.actionDeltas || [])) {
                 currentState = this.applyDelta(currentState, delta)
+            }
+            // 2. User effects (HP_RELATIVE etc.)
+            for (const effect of (action.effects || [])) {
+                for (const delta of effect.deltas) {
+                    currentState = this.applyDelta(currentState, delta)
+                }
             }
         }
         
         // 2. Process End of Turn
-        const eotDeltas = node.turnData.endOfTurnDeltas || []
-        for (const delta of eotDeltas) {
-             currentState = this.applyDelta(currentState, delta)
+        const eotEffects = node.turnData.endOfTurnEffects || []
+        for (const effect of eotEffects) {
+             for (const delta of effect.deltas) {
+                 currentState = this.applyDelta(currentState, delta)
+             }
         }
 
         // 3. Process Post-Turn Actions (Switches after KO)
         const postActions = node.turnData.postTurnActions || []
         for (const action of postActions) {
-            const effectiveDeltas: BattleDelta[] = action.deltas || []
-            for (const delta of effectiveDeltas) {
+            for (const delta of (action.actionDeltas || [])) {
                 currentState = this.applyDelta(currentState, delta)
+            }
+            for (const effect of (action.effects || [])) {
+                for (const delta of effect.deltas) {
+                    currentState = this.applyDelta(currentState, delta)
+                }
             }
         }
       }
@@ -110,11 +121,19 @@ export class BattleEngine {
         const targetPokemon = team[teamIndex]
         
         if (targetPokemon) {
-             const newPokemon = { 
-                 ...targetPokemon, 
-                 hpPercent: Math.max(0, Math.min(100, targetPokemon.hpPercent + delta.amount)) 
+             const newHp = Math.max(0, Math.min(100, targetPokemon.hpPercent + delta.amount))
+             team[teamIndex] = { ...targetPokemon, hpPercent: newHp }
+
+             // If the Pokémon just fainted, remove it from the battlefield slot.
+             if (newHp === 0) {
+               const slots = delta.target.side === "my"
+                 ? newState.activeSlots.myTeam
+                 : newState.activeSlots.opponentTeam
+               const battlefieldSlot = delta.target.slotIndex
+               if (battlefieldSlot < slots.length) {
+                 slots[battlefieldSlot] = null
+               }
              }
-             team[teamIndex] = newPokemon
         }
         return newState
       }
@@ -127,18 +146,25 @@ export class BattleEngine {
         }
         newState.activeSlots = newActiveSlots
 
-        // 2. Identify which side to update
+        // newActiveSlots is already assigned to newState.activeSlots at line 139
         const slotsToUpdate = delta.side === "my" ? newActiveSlots.myTeam : newActiveSlots.opponentTeam
         
-        // 3. Find the loop index where "fromSlot" is currently active
-        const activePointerIndex = slotsToUpdate.indexOf(delta.fromSlot)
+        // 3. Find where to apply the switch
+        let activePointerIndex = -1
+        
+        if (delta.slotIndex !== undefined) {
+             // Use explicit battlefield slot if provided
+             activePointerIndex = delta.slotIndex
+        } else {
+             // Fallback: Find the loop index where "fromSlot" is currently active
+             activePointerIndex = slotsToUpdate.indexOf(delta.fromSlot)
+        }
 
-        if (activePointerIndex !== -1) {
+        if (activePointerIndex !== -1 && activePointerIndex < slotsToUpdate.length) {
              // 4. Update the pointer to point to the new Pokemon (delta.toSlot)
              slotsToUpdate[activePointerIndex] = delta.toSlot === -1 ? null : delta.toSlot
-             // console.log("BattleEngine: Switch Successful", { from: delta.fromSlot, to: delta.toSlot, newSlots: slotsToUpdate })
         } else {
-             // console.warn("BattleEngine: Switch Failed - fromSlot not found in active slots", { fromSlot: delta.fromSlot, activeSlots: slotsToUpdate })
+             // console.warn("BattleEngine: Switch Failed - target slot not found", { delta, activeSlots: slotsToUpdate })
         }
 
         return newState
@@ -200,18 +226,24 @@ export class BattleEngine {
         // 1. Create a deep copy of currentState to nextState
         let nextState = JSON.parse(JSON.stringify(currentState)) as BattleState
 
-        // Validation for switch-after-ko: Skip if actor is not KO
+        // Validation for switch-after-ko: Skip if the battlefield slot still has a living pokemon.
+        // After our HP_RELATIVE fix, a KO'd pokemon's slot is set to null automatically,
+        // so a null slot means the pokemon fainted and the switch-in should proceed.
         if (action.type === 'switch-after-ko') {
              const actorSide = action.actor?.side
-             const actorSlotIndex = action.actor?.slotIndex
-             if (actorSide && actorSlotIndex !== undefined) {
-                 const team = actorSide === 'my' ? currentState.myTeam : currentState.enemyTeam
-                 const actor = team[actorSlotIndex]
-                 if (actor && actor.hpPercent > 0) {
-                     // Actor is alive, so this switch-after-ko is invalid/stale.
-                     // Treat as no-op.
-                     states.push(currentState) // Push duplicate state to keep index alignment
-                     continue 
+             const battlefieldSlot = action.actor?.slotIndex
+             if (actorSide !== undefined && battlefieldSlot !== undefined) {
+                 const slots = actorSide === 'my'
+                   ? currentState.activeSlots?.myTeam
+                   : currentState.activeSlots?.opponentTeam
+                 const teamIndex = slots?.[battlefieldSlot] ?? null
+                 if (teamIndex !== null) {
+                     // Slot is occupied by a living pokemon — this switch-after-ko is stale
+                     const team = actorSide === 'my' ? currentState.myTeam : currentState.enemyTeam
+                     if (team[teamIndex] && team[teamIndex].hpPercent > 0) {
+                         states.push(currentState)
+                         continue
+                     }
                  }
              }
         }
@@ -219,9 +251,13 @@ export class BattleEngine {
         // 2. State mutations (HP changes, switches) are handled via deltas.
 
         // 3. Apply Deltas: Continue applying deltas via this.applyDelta
-        const deltas = action.deltas || []
-        for (const delta of deltas) {
+        for (const delta of (action.actionDeltas || [])) {
             nextState = this.applyDelta(nextState, delta)
+        }
+        for (const effect of (action.effects || [])) {
+            for (const delta of effect.deltas) {
+                nextState = this.applyDelta(nextState, delta)
+            }
         }
         
         currentState = nextState

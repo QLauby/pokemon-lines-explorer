@@ -67,7 +67,8 @@ export function sanitizeTreeForModification(
                     type: "switch",
                     actor: { side: "my", slotIndex: i },
                     target: { side: "my", slotIndex: i },
-                    deltas: [],
+                    actionDeltas: [],
+                    effects: [],
                     isCollapsed: true
                 })
             }
@@ -80,7 +81,8 @@ export function sanitizeTreeForModification(
                     type: "switch",
                     actor: { side: "opponent", slotIndex: i },
                     target: { side: "opponent", slotIndex: i },
-                    deltas: [],
+                    actionDeltas: [],
+                    effects: [],
                     isCollapsed: true
                 })
             }
@@ -112,25 +114,31 @@ export function sanitizeTreeForModification(
                 shiftRef(action.actor)
                 shiftRef(action.target)
                 
-                action.deltas.forEach(delta => {
-                    if (delta.type === 'HP_RELATIVE' && typeof delta.target === 'object') {
-                         shiftRef(delta.target as IndexRef)
-                    }
-                    if (delta.type === 'SWITCH') {
-                         if (isMyTeam && action.actor.side === 'my' && delta.fromSlot > originalIndex) delta.fromSlot--
-                         if (!isMyTeam && action.actor.side === 'opponent' && delta.fromSlot > originalIndex) delta.fromSlot--
-                         
-                         if (isMyTeam && action.actor.side === 'my' && delta.toSlot > originalIndex) delta.toSlot--
-                         if (!isMyTeam && action.actor.side === 'opponent' && delta.toSlot > originalIndex) delta.toSlot--
-                    }
+                action.effects.forEach(effect => {
+                    shiftRef(effect.target)
+                    effect.deltas.forEach(delta => {
+                        if (delta.type === 'HP_RELATIVE' && typeof delta.target === 'object') {
+                             shiftRef(delta.target as IndexRef)
+                        }
+                        if (delta.type === 'SWITCH') {
+                             if (isMyTeam && action.actor.side === 'my' && delta.fromSlot > originalIndex) delta.fromSlot--
+                             if (!isMyTeam && action.actor.side === 'opponent' && delta.fromSlot > originalIndex) delta.fromSlot--
+                             
+                             if (isMyTeam && action.actor.side === 'my' && delta.toSlot > originalIndex) delta.toSlot--
+                             if (!isMyTeam && action.actor.side === 'opponent' && delta.toSlot > originalIndex) delta.toSlot--
+                        }
+                    })
                 })
             })
             
             // 2. Remap End Of Turn Deltas
-            newNode.turnData.endOfTurnDeltas.forEach(delta => {
-                 if (delta.type === 'HP_RELATIVE' && typeof delta.target === 'object') {
-                     shiftRef(delta.target as IndexRef)
-                 }
+            newNode.turnData.endOfTurnEffects.forEach(effect => {
+                 shiftRef(effect.target)
+                 effect.deltas.forEach(delta => {
+                     if (delta.type === 'HP_RELATIVE' && typeof delta.target === 'object') {
+                         shiftRef(delta.target as IndexRef)
+                     }
+                 })
             })
             
             // 3. Remap Post Turn Actions
@@ -138,10 +146,13 @@ export function sanitizeTreeForModification(
                 newNode.turnData.postTurnActions.forEach(action => {
                     shiftRef(action.actor)
                     shiftRef(action.target)
-                    action.deltas.forEach(delta => {
-                        if (delta.type === 'HP_RELATIVE' && typeof delta.target === 'object') {
-                             shiftRef(delta.target as IndexRef)
-                        }
+                    action.effects.forEach(effect => {
+                        shiftRef(effect.target)
+                        effect.deltas.forEach(delta => {
+                            if (delta.type === 'HP_RELATIVE' && typeof delta.target === 'object') {
+                                 shiftRef(delta.target as IndexRef)
+                            }
+                        })
                     })
                 })
             }

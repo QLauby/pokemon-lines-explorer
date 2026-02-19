@@ -31,15 +31,15 @@ export interface Pokemon {
   hpPercent: number
   attacks: Attack[]
   status: PokemonStatus
+  sleepCounter?: number
+  showSleepCounter?: boolean
   confusion: boolean
+  confusionCounter?: number
+  showConfusionCounter?: boolean
   love: boolean
   heldItem: boolean
   isMega?: boolean
   customTags?: string[]
-  sleepCounter?: number
-  confusionCounter?: number
-  showSleepCounter?: boolean
-  showConfusionCounter?: boolean
   statsModifiers?: StatsModifiers;
 }
 
@@ -76,29 +76,38 @@ export interface SlotReference {
 // Delta Definitions
 export type BattleDelta =
   | { type: "HP_RELATIVE"; target: SlotReference; amount: number }
-  | { type: "SWITCH"; side: "my" | "opponent"; fromSlot: number; toSlot: number }
+  | { type: "SWITCH"; side: "my" | "opponent"; fromSlot: number; toSlot: number; slotIndex?: number }
   | { type: "PP_CHANGE"; target: SlotReference; moveName: string; amount: number }
 
 export type TurnActionType = "attack" | "switch" | "item" | "switch-after-ko"
+
+export type EffectType = "hp-change" | "status-change" | "stats-modifier"
+
+export interface Effect {
+  target: SlotReference
+  type: EffectType
+  deltas: BattleDelta[]
+}
 
 export interface TurnAction {
   id: string
   actor: SlotReference
   type: TurnActionType
   target?: SlotReference 
-  deltas: BattleDelta[]
+  actionDeltas: BattleDelta[]
+  effects: Effect[]
   isCollapsed?: boolean 
+  // Flag indicating the switch-after-ko was created by fusing (deleting) an action
+  fusedFrom?: boolean
   metadata?: {
     itemName?: string
     attackName?: string
-    // Flag indicating this switch-after-ko was created by fusing (deleting) an action
-    fusedFrom?: boolean
   }
 }
 
 export interface TurnData {
   actions: TurnAction[]
-  endOfTurnDeltas: BattleDelta[]
+  endOfTurnEffects: Effect[]
   postTurnActions?: TurnAction[]
 }
 

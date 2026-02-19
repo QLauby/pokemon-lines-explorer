@@ -7,7 +7,7 @@ interface UseCorruptionResolutionProps {
 }
 
 export function useCorruptionResolution({ onCommit, onCancel }: UseCorruptionResolutionProps) {
-  const { pendingSession, corruptedNodeIds, reset } = useCorruptionHandler()
+  const { originalSession: pendingSession, corruptedNodeIds, cancelModification: reset } = useCorruptionHandler()
 
   const confirmCorruption = () => {
     // 1. Clone session (shallow clone of session, but we need to modify nodes array and objects)
@@ -48,7 +48,7 @@ export function useCorruptionResolution({ onCommit, onCancel }: UseCorruptionRes
        // Reset root children
        rootNode.children = []
        // Reset root data (Turn 0 reset)
-       rootNode.turnData = { actions: [], endOfTurnDeltas: [] }
+       rootNode.turnData = { actions: [], endOfTurnEffects: [] }
        // Set nodes to just root
        newSession.nodes = [rootNode]
     } else {

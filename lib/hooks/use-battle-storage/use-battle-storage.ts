@@ -60,7 +60,7 @@ export function useBattleStorage() {
       initialState: {
         myTeam: [],
         enemyTeam: [],
-        activeStarters: { myTeam: [0, 1], opponentTeam: [0, 1] },
+        activeSlots: { myTeam: [0, 1], opponentTeam: [0, 1] },
         battlefieldState: { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } },
       },
       nodes: [{
@@ -68,7 +68,7 @@ export function useBattleStorage() {
         description: "État Initial",
         probability: 100,
         cumulativeProbability: 100,
-        turnData: { actions: [], endOfTurnDeltas: [] },
+        turnData: { actions: [], endOfTurnEffects: [] },
         children: [],
         parentId: undefined,
         createdAt: Date.now(),

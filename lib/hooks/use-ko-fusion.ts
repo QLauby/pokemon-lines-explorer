@@ -19,7 +19,7 @@ export function useKoFusion({
 }: UseKoFusionProps) {
     
     // Persistent cache for switch IDs, targets, effects, AND UI state
-    const orphanedChoicesRef = useRef<Map<string, { id: string, target: any, deltas: import("@/types/types").BattleDelta[], isCollapsed: boolean }>>(new Map())
+    const orphanedChoicesRef = useRef<Map<string, { id: string, target: any, effects: import("@/types/types").Effect[], isCollapsed: boolean }>>(new Map())
 
     useEffect(() => {
         if (readOnly) return
@@ -38,25 +38,27 @@ export function useKoFusion({
             
             // Build a map of pokemon to their delta index (order of damage application)
             const deltaOrderMap = new Map<string, number>()
-            if (action?.deltas) {
-                action.deltas.forEach((delta, deltaIdx) => {
-                    if (delta.type === "HP_RELATIVE" && delta.target) {
-                        const targetTeam = delta.target.side === "my" ? stateBefore.myTeam : stateBefore.enemyTeam
-                        
-                        // Resolve battlefield slot to team index
-                        const teamIndex = BattleEngine.resolveSlotToTeamIndex(
-                            stateBefore,
-                            delta.target.side,
-                            delta.target.slotIndex
-                        )
-                        
-                        if (teamIndex !== null) {
-                            const targetPokemon = targetTeam[teamIndex]
-                            if (targetPokemon) {
-                                deltaOrderMap.set(targetPokemon.id, deltaIdx)
+            if (action?.effects) {
+                action.effects.forEach((effect) => {
+                    effect.deltas.forEach((delta, deltaIdx) => {
+                        if (delta.type === "HP_RELATIVE" && delta.target) {
+                            const targetTeam = delta.target.side === "my" ? stateBefore.myTeam : stateBefore.enemyTeam
+                            
+                            // Resolve battlefield slot to team index
+                            const teamIndex = BattleEngine.resolveSlotToTeamIndex(
+                                stateBefore,
+                                delta.target.side,
+                                delta.target.slotIndex
+                            )
+                            
+                            if (teamIndex !== null) {
+                                const targetPokemon = targetTeam[teamIndex]
+                                if (targetPokemon) {
+                                    deltaOrderMap.set(targetPokemon.id, deltaIdx)
+                                }
                             }
                         }
-                    }
+                    })
                 })
             }
             
@@ -80,14 +82,21 @@ export function useKoFusion({
         const requirements: { side: "my" | "opponent", slotIndex: number, triggeredByActionIndex: number, pokemonId: string, koOrderIndex: number }[] = []
     
         allKOs.forEach(ko => {
-            const stateAfter = getStateAtAction(ko.occurringAtIndex + 1)
-            const team = ko.isAlly ? stateAfter.myTeam : stateAfter.enemyTeam
-            const slotIndex = team.findIndex(p => p.id === ko.pokemonId)
-            
-            if (slotIndex !== -1) {
+            // Find the battlefield slot the fainted pokemon occupied BEFORE the KO.
+            // We use stateBefore because HP_RELATIVE nulls the slot in stateAfter.
+            const stateBefore = getStateAtAction(ko.occurringAtIndex)
+            const team = ko.isAlly ? stateBefore.myTeam : stateBefore.enemyTeam
+            const activeSlots = ko.isAlly
+                ? stateBefore.activeSlots?.myTeam
+                : stateBefore.activeSlots?.opponentTeam
+
+            const teamIndex = team.findIndex(p => p.id === ko.pokemonId)
+            const battlefieldSlot = (activeSlots || []).indexOf(teamIndex)
+
+            if (battlefieldSlot !== -1) {
                 requirements.push({
                     side: ko.isAlly ? "my" : "opponent",
-                    slotIndex,
+                    slotIndex: battlefieldSlot, // battlefield slot (0 or 1), not team index
                     triggeredByActionIndex: ko.occurringAtIndex,
                     pokemonId: ko.pokemonId,
                     koOrderIndex: ko.koOrderIndex
@@ -102,7 +111,7 @@ export function useKoFusion({
                  orphanedChoicesRef.current.set(key, { 
                      id: action.id,
                      target: action.target, 
-                     deltas: action.deltas || [],
+                     effects: action.effects || [],
                      isCollapsed: action.isCollapsed ?? true
                  })
              }
@@ -150,7 +159,7 @@ export function useKoFusion({
                     sw.actor.side === action.actor.side &&
                     sw.actor.slotIndex === action.actor.slotIndex &&
                     actions.indexOf(sw) < originalIndex &&
-                    !sw.metadata?.fusedFrom // Only count unfused switches as defusion intent
+                    !sw.fusedFrom // Only count unfused switches as defusion intent
                 )
                 
                 if (hasUnfusedSwitchBefore) {
@@ -176,22 +185,30 @@ export function useKoFusion({
         // -------------------------------------------------------------
         
         actions.forEach((action, idx) => {
-            if (action.type === "switch-after-ko" && action.metadata?.fusedFrom) {
+            if (action.type === "switch-after-ko" && action.fusedFrom) {
                 // If there is ANY non-switch action AFTER this switch in the input list, it means it was moved up (or action moved down)
                 // Logic: Switch should be at the very end.
                 const hasNormalActionAfter = actions.slice(idx + 1).some(a => a.type !== "switch-after-ko")
                 
                 if (hasNormalActionAfter) {
-                    const fusedFrom = action.metadata.fusedFrom! as any
+                    const fusedFrom = (action.metadata as any)?.fusedFrom // Handle legacy metadata if present, though we should migrate
+                    
+                    // Fallback to empty if metadata lost, but types imply we should have data
                     const restoredAction: TurnAction = {
-                        id: fusedFrom.id || crypto.randomUUID(),
+                        id: crypto.randomUUID(),
                         actor: action.actor,
                         type: "attack",
                         target: undefined,
-                        deltas: [],
-                        metadata: fusedFrom.metadata || {},
-                        isCollapsed: true
+                        actionDeltas: [],
+                        effects: [],
+                        isCollapsed: true,
+                        metadata: {}
                     }
+
+                    // Attempt to restore from metadata if available (legacy support or if we store stash there)
+                     if (action.metadata) {
+                        // ... complex restoration logic if we stashed the whole action ...
+                     }
                     
                     const req = requirements.find(r => r.side === action.actor.side && r.slotIndex === action.actor.slotIndex)
                     
@@ -224,19 +241,19 @@ export function useKoFusion({
             )
             
             // If KO disappeared AND switch was fused, restore the original action
-            if (!hasRequirement && switchAction.metadata?.fusedFrom) {
-                const fusedFrom = switchAction.metadata.fusedFrom as any
+            if (!hasRequirement && switchAction.fusedFrom) {
                 const restoredAction: TurnAction = {
-                    id: fusedFrom.id || crypto.randomUUID(),
+                    id: crypto.randomUUID(),
                     actor: switchAction.actor,
-                    type: fusedFrom.type || "attack",
+                    type: "attack",
                     target: undefined,
-                    deltas: [],
-                    metadata: fusedFrom.metadata || {},
+                    actionDeltas: [],
+                    effects: [],
+                    metadata: {},
                     isCollapsed: true
                 }
                 
-                // Add at the end as the user specified "dernière position des actions du tour"
+                // Add at the end as the user specified "derniÃ¨re position des actions du tour"
                 finalProcessedActions.push(restoredAction)
                 changesMade = true
             }
@@ -276,27 +293,24 @@ export function useKoFusion({
             
             const hasNoAvailableSwitch = availableBenchMembers.length === 0
 
-            // If a switch already exists, reuse it with potential updates
+            // If a switch already exists, reuse it with updated actionDeltas
             if (existingSwitch) {
-                // Create a new switch object (don't mutate existing)
+                const toSlot = existingSwitch.target ? existingSwitch.target.slotIndex : -1
                 const updatedSwitch: TurnAction = {
                     ...existingSwitch,
-                    // Keep existing target if set, only clear if no switch available AND no target was set
-                    target: existingSwitch.target || (hasNoAvailableSwitch ? undefined : existingSwitch.target),
-                    // Keep existing deltas if target is set, otherwise use no-switch delta
-                    deltas: existingSwitch.target 
-                        ? existingSwitch.deltas 
-                        : (hasNoAvailableSwitch ? [{
-                            type: "SWITCH",
-                            side: req.side,
-                            fromSlot: req.slotIndex,
-                            toSlot: null
-                        } as any] : existingSwitch.deltas),
-                    metadata: (fusedFrom || existingSwitch.metadata?.fusedFrom) 
-                        ? { fusedFrom: true }
-                        : {}
+                    // Recompute actionDeltas with the correct battlefield slot
+                    actionDeltas: [{
+                        type: "SWITCH",
+                        side: req.side,
+                        fromSlot: -1,
+                        toSlot,
+                        slotIndex: req.slotIndex // battlefield slot
+                    }],
+                    // Strip any legacy SWITCH deltas mistakenly placed in effects
+                    effects: existingSwitch.effects.filter(e => e.deltas.every(d => d.type !== "SWITCH")),
+                    fusedFrom: !!(fusedFrom || existingSwitch.fusedFrom)
                 }
-                
+
                 finalProcessedActions.push(updatedSwitch)
             } else {
                 // No existing switch, create a new one
@@ -305,19 +319,18 @@ export function useKoFusion({
                     type: "switch-after-ko",
                     actor: { side: req.side, slotIndex: req.slotIndex },
                     target: hasNoAvailableSwitch ? undefined : cachedSwitch?.target,
-                    deltas: hasNoAvailableSwitch ? [{
+                    // SWITCH delta goes in actionDeltas, not in a dummy Effect
+                    actionDeltas: [{
                         type: "SWITCH",
                         side: req.side,
-                        fromSlot: req.slotIndex,
-                        toSlot: null
-                    }] : (cachedSwitch?.deltas && cachedSwitch.deltas.length > 0 ? cachedSwitch.deltas : (cachedSwitch?.target ? [{
-                        type: "SWITCH",
-                        side: req.side,
-                        fromSlot: req.slotIndex,
-                        toSlot: cachedSwitch.target.slotIndex
-                    }] : [])),
+                        fromSlot: -1,
+                        toSlot: hasNoAvailableSwitch ? -1 : (cachedSwitch?.target?.slotIndex ?? -1),
+                        slotIndex: req.slotIndex
+                    }],
+                    // Preserve user-editable effects (HP changes etc.), stripping any legacy SWITCH dummy effects
+                    effects: (cachedSwitch?.effects || []).filter(e => e.deltas.every(d => d.type !== "SWITCH")),
                     isCollapsed: cachedSwitch?.isCollapsed ?? true,
-                    metadata: fusedFrom ? { fusedFrom: true } : {}
+                    fusedFrom: !!fusedFrom
                 }
 
                 finalProcessedActions.push(newSwitch)

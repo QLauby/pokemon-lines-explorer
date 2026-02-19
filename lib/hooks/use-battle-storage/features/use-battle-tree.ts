@@ -36,7 +36,7 @@ export function useBattleTree({
                  description: "État Initial",
                  probability: 100,
                  cumulativeProbability: 100,
-                 turnData: { actions: [], endOfTurnDeltas: [] },
+                 turnData: { actions: [], endOfTurnEffects: [] },
                  children: [],
                  parentId: undefined,
                  createdAt: Date.now(),
@@ -184,7 +184,7 @@ export function useBattleTree({
             n.id === targetNode.id ? { 
                 ...n, 
                 children: [],
-                turnData: { actions: [], endOfTurnDeltas: [] }
+                turnData: { actions: [], endOfTurnEffects: [] }
             } : n
         )
     }
@@ -219,7 +219,7 @@ export function useBattleTree({
                 description: "État Initial",
                 probability: 100,
                 cumulativeProbability: 100,
-                turnData: { actions: [], endOfTurnDeltas: [] },
+                turnData: { actions: [], endOfTurnEffects: [] },
                 children: [],
                 parentId: undefined,
                 createdAt: Date.now(),

@@ -1,96 +1,68 @@
-import { Plus } from "lucide-react"
-
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
-import { BattleDelta, SlotReference } from "@/types/types"
-import { HpChangeRow } from "./hp-change-row"
-
-function AddActionButton({ 
-  onClick, 
-  label = "Add", 
-  className,
-  disabled 
-}: {
-  onClick: () => void
-  label?: string
-  className?: string
-  disabled?: boolean
-}) {
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className={cn(
-        "h-5 px-1.5 text-[10px] hover:bg-background/80", 
-        className
-      )}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      <Plus className="h-2.5 w-2.5 mr-1" /> 
-      {label}
-    </Button>
-  )
-}
-
+import { Effect, SlotReference } from "@/types/types"
+import { Plus } from "lucide-react"
+import { EffectSelection } from "./effect-selection"
 
 interface EffectsListProps {
   title?: string
-  deltas: BattleDelta[]
+  effects: Effect[]
   options: { label: string; value: SlotReference; isAlly: boolean }[]
   onAdd: () => void
-  onUpdate: (index: number, field: "slot" | "value" | "isHealing", value: any) => void
+  onUpdate: (index: number, newEffect: Effect) => void
   onRemove: (index: number) => void
-  addButtonLabel?: string
+  readOnly?: boolean
 }
 
 export function EffectsList({
   title = "Effects",
-  deltas,
+  effects,
   options,
   onAdd,
   onUpdate,
   onRemove,
-  addButtonLabel = "Add"
+  readOnly
 }: EffectsListProps) {
-  const hpDeltas = deltas
-    .map((d: BattleDelta, i: number) => ({ delta: d, originalIndex: i }))
-    .filter((item): item is { delta: Extract<BattleDelta, { type: "HP_RELATIVE" }>; originalIndex: number } => 
-      item.delta.type === "HP_RELATIVE"
-    )
-
+  
   return (
-    <>
-      <div className="flex items-center justify-between mb-2">
+    <div className="flex flex-col gap-2">
+       {/* Header row: title + add button */}
+      <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
           {title}
         </span>
-        <AddActionButton onClick={onAdd} label={addButtonLabel} />
-      </div>
-
-      <div className="space-y-3">
-        {hpDeltas.length === 0 ? (
-          <div className="text-[11px] text-muted-foreground italic pl-1">No effects</div>
-        ) : (
-          hpDeltas.map(({ delta, originalIndex }, index) => {
-            const absValue = Math.abs(delta.amount)
-            const isHealing = delta.amount > 0 || (delta.amount === 0 && !Object.is(delta.amount, -0))
-
-            return (
-              <HpChangeRow
-                key={`${originalIndex}-${delta.target.side}-${delta.target.slotIndex}`}
-                target={delta.target}
-                value={absValue}
-                isHealing={isHealing}
-                options={options}
-                onUpdate={(field, val) => onUpdate(originalIndex, field, val)}
-                onRemove={() => onRemove(originalIndex)}
-                autoFocus={index === hpDeltas.length - 1}
-              />
-            )
-          })
+        {!readOnly && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-5 text-[10px] gap-0.5 px-1.5"
+            onClick={onAdd}
+            disabled={options.length === 0}
+          >
+            <Plus className="h-3 w-3" />
+            Add
+          </Button>
         )}
       </div>
-    </>
+
+      {/* Effects List */}
+      {effects.length === 0 ? (
+        <div className="text-[11px] text-muted-foreground italic pl-1 border-l-2 py-1">
+           No effects active
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {effects.map((effect, index) => (
+            <EffectSelection
+              key={`effect-${index}`}
+              effect={effect}
+              options={options}
+              onUpdate={(newEffect) => onUpdate(index, newEffect)}
+              onRemove={() => onRemove(index)}
+              readOnly={readOnly}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

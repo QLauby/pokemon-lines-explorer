@@ -68,6 +68,7 @@ export function SetNextTurn({
     const { getStateAtAction } = useTurnSimulation({
       initialState: initialBattleState,
       actions: selectedNode?.turnData?.actions || [],
+      endOfTurnEffects: selectedNode?.turnData?.endOfTurnEffects || [],
       myTeam,
       enemyTeam,
       activeSlotsCount: battleType === "double" ? 2 : 1

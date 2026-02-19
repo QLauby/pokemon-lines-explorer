@@ -1,11 +1,11 @@
-import { BattleDelta, BattleState, Pokemon, TurnAction } from "@/types/types"
+import { BattleState, Effect, Pokemon, TurnAction } from "@/types/types"
 import { useMemo } from "react"
 import { BattleEngine } from "../logic/battle-engine"
 
 interface UseTurnSimulationProps {
   initialState: BattleState | undefined
   actions: TurnAction[]
-  endOfTurnDeltas: BattleDelta[]
+  endOfTurnEffects: Effect[]
   postTurnActions?: TurnAction[]
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
@@ -21,7 +21,7 @@ export interface KODetected {
 export function useTurnSimulation({
   initialState,
   actions,
-  endOfTurnDeltas,
+  endOfTurnEffects,
   postTurnActions,
   myTeam,
   enemyTeam,
@@ -55,12 +55,13 @@ export function useTurnSimulation({
           type: "simulated-turn-end" as any, 
           actor: { side: "my", slotIndex: -1 },
           target: undefined,
-          deltas: endOfTurnDeltas || [],
+          actionDeltas: [],
+          effects: endOfTurnEffects || [],
           isCollapsed: true
       }
 
       return [...actions, eotAction, ...(postTurnActions || [])]
-  }, [actions, endOfTurnDeltas, postTurnActions])
+  }, [actions, endOfTurnEffects, postTurnActions])
 
   // 3. Compute the full sequence of states
   const computedStates = useMemo(() => {
@@ -87,7 +88,7 @@ export function useTurnSimulation({
         const checkTeam = (isAlly: boolean) => {
             const team = isAlly ? stateAfter.myTeam : stateAfter.enemyTeam
             const prevTeam = isAlly ? stateBefore.myTeam : stateBefore.enemyTeam
-            const activeIndices = isAlly ? (stateAfter.activeSlots?.myTeam || []) : (stateAfter.activeSlots?.opponentTeam || [])
+            const activeIndices = isAlly ? (stateBefore.activeSlots?.myTeam || []) : (stateBefore.activeSlots?.opponentTeam || [])
             
             activeIndices.forEach(idx => {
                 if (idx !== null && idx !== undefined && team[idx] && prevTeam[idx]) {

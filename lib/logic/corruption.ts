@@ -18,14 +18,14 @@ function isSlotInvolved(node: TreeNode, isMyTeam: boolean, slotIndex: number): b
     const actionsCorrupted = node.turnData.actions.some(action => {
         if (isMatch(action.actor)) return true
         if (isMatch(action.target)) return true
-        if (action.deltas.some(d => d.type === 'HP_RELATIVE' && typeof d.target === 'object' && isMatch(d.target))) return true
+        if (action.effects.some(e => e.deltas.some(d => d.type === 'HP_RELATIVE' && typeof d.target === 'object' && isMatch(d.target)))) return true
         return false
     })
     if (actionsCorrupted) return true
     
     // 2. Check End of Turn Deltas
-    const eotCorrupted = node.turnData.endOfTurnDeltas.some(delta => {
-        return delta.type === 'HP_RELATIVE' && typeof delta.target === 'object' && isMatch(delta.target)
+    const eotCorrupted = node.turnData.endOfTurnEffects.some(effect => {
+        return effect.deltas.some(d => d.type === 'HP_RELATIVE' && typeof d.target === 'object' && isMatch(d.target))
     })
     if (eotCorrupted) return true
 
@@ -52,8 +52,8 @@ function getCorruptionCriteria(type: ModificationType): CorruptionCriteria {
             return (node: TreeNode) => {
                 // Turn 0: Only corrupted if it has deltas (actual gameplay logic)
                 if (node.turn === 0) {
-                    const hasActionDeltas = node.turnData.actions.some(a => a.deltas.length > 0)
-                    const hasEndOfTurnDeltas = node.turnData.endOfTurnDeltas.length > 0
+                    const hasActionDeltas = node.turnData.actions.some(a => a.effects.some(e => e.deltas.length > 0))
+                    const hasEndOfTurnDeltas = node.turnData.endOfTurnEffects.length > 0
                     return hasActionDeltas || hasEndOfTurnDeltas
                 }
                 

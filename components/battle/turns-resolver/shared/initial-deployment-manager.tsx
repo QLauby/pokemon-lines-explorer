@@ -1,6 +1,6 @@
 "use client"
 
-import { BattleDelta, Pokemon, SlotReference, TurnAction } from "@/types/types"
+import { Effect, Pokemon, SlotReference, TurnAction } from "@/types/types"
 import { EffectsList } from "./effects-list"
 
 interface InitialDeploymentManagerProps {
@@ -76,18 +76,18 @@ export function InitialDeploymentManager({
     return <span>&quot;<i>{elements}</i>&quot;</span>
   }
 
-  // 2. Flatten deltas for the unified ConsequencesList (Only for deployment actions)
-  const flattenedDeltasWithMeta = actions.flatMap((action, actionIndex) => {
+  // 2. Flatten effects for the unified ConsequencesList (Only for deployment actions)
+  const flattenedEffectsWithMeta = actions.flatMap((action, actionIndex) => {
     if (action.type === "switch-after-ko") return []
     
-    return action.deltas.map((delta, deltaIndex) => ({
-      delta,
+    return action.effects.map((effect, effectIndex) => ({
+      effect,
       actionIndex,
-      deltaIndex
+      effectIndex
     }))
   })
 
-  const flattenedDeltas = flattenedDeltasWithMeta.map(item => item.delta)
+  const flattenedEffects = flattenedEffectsWithMeta.map(item => item.effect)
 
   // 3. Prepare Options (Sorted: My Team then Enemy Team)
   const options: { label: string; value: SlotReference; isAlly: boolean }[] = []
@@ -115,60 +115,58 @@ export function InitialDeploymentManager({
 
   // 4. Handlers
   const handleAdd = () => {
-    const firstAction = actions[0]
-    if (!firstAction) return
+    if (options.length === 0) return
 
-    const newDelta: BattleDelta = {
-      type: "HP_RELATIVE",
-      target: firstAction.actor, 
-      amount: -0,
+    // Default target: first available option
+    const defaultTarget = options[0].value
+
+    // Determine which action this effect belongs to
+    const targetActionIndex = actions.findIndex(a => 
+        a.type !== 'switch-after-ko' && 
+        a.actor.side === defaultTarget.side && 
+        a.actor.slotIndex === defaultTarget.slotIndex
+    )
+
+    // Fallback: Add to first action if exact match not found
+    const actionIndex = targetActionIndex !== -1 ? targetActionIndex : 0
+    const action = actions[actionIndex]
+    if (!action) return
+
+    const newEffect: Effect = {
+      type: "hp-change",
+      target: defaultTarget,
+      deltas: [{
+          type: "HP_RELATIVE",
+          target: defaultTarget,
+          amount: 0
+      }]
     }
 
-    onUpdateAction(0, {
-      ...firstAction,
-      deltas: [...firstAction.deltas, newDelta]
+    onUpdateAction(actionIndex, {
+      ...action,
+      effects: [...action.effects, newEffect]
     })
   }
 
-  const handleUpdate = (
-    flatIndex: number, 
-    field: "slot" | "value" | "isHealing", 
-    value: any
-  ) => {
-    const meta = flattenedDeltasWithMeta[flatIndex]
+  const handleUpdate = (flatIndex: number, newEffect: Effect) => {
+    const meta = flattenedEffectsWithMeta[flatIndex]
     if (!meta) return
 
     const action = actions[meta.actionIndex]
-    const newDeltas = [...action.deltas]
-    const delta = { ...newDeltas[meta.deltaIndex] } as BattleDelta
+    const newEffects = [...action.effects]
+    newEffects[meta.effectIndex] = newEffect
 
-    if (delta.type !== "HP_RELATIVE") return
-
-    if (field === "slot" && value && typeof value === "object" && "side" in value) {
-        delta.target = value
-    }
-
-    if (field === "value" || field === "isHealing") {
-        const currentAmount = Math.abs(delta.amount)
-        const isHealing = field === "isHealing" 
-            ? (value as boolean) 
-            : (delta.amount > 0 || (delta.amount === 0 && !Object.is(delta.amount, -0)))
-        const amountVal = field === "value" ? (value as number) : currentAmount
-        delta.amount = isHealing ? amountVal : -amountVal
-    }
-
-    newDeltas[meta.deltaIndex] = delta
-    onUpdateAction(meta.actionIndex, { ...action, deltas: newDeltas })
+    onUpdateAction(meta.actionIndex, { ...action, effects: newEffects })
   }
 
   const handleRemove = (flatIndex: number) => {
-    const meta = flattenedDeltasWithMeta[flatIndex]
+    const meta = flattenedEffectsWithMeta[flatIndex]
     if (!meta) return
 
     const action = actions[meta.actionIndex]
-    const newDeltas = action.deltas.filter((_, i) => i !== meta.deltaIndex)
+    const newEffects = action.effects.filter((_, i) => i !== meta.effectIndex)
     
-    onUpdateAction(meta.actionIndex, { ...action, deltas: newDeltas })
+    onUpdateAction(meta.actionIndex, { ...action, effects: newEffects })
   }
 
   return (
@@ -180,12 +178,11 @@ export function InitialDeploymentManager({
       <div className="pt-1">
         <EffectsList
           title="Entry effects"
-          deltas={flattenedDeltas}
+          effects={flattenedEffects}
           options={options}
           onAdd={handleAdd}
           onUpdate={handleUpdate}
           onRemove={handleRemove}
-          addButtonLabel="Add Effect"
         />
       </div>
     </div>

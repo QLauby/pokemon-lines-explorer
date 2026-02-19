@@ -63,12 +63,11 @@ export function usePostTurnSwitches({
           id: crypto.randomUUID(),
           type: "switch-after-ko",
           actor: { side: koSide, slotIndex: teamIndex },
-          target: undefined, // No target initially
-          deltas: [], // No deltas initially (or maybe entry hazards for the incoming?)
+          target: undefined,
+          actionDeltas: [],
+          effects: [],
           isCollapsed: true,
-          metadata: {
-              // Mark as post-turn if needed, but the list itself is context enough
-          }
+          metadata: {}
         }
         nextActions.push(newAction)
         changed = true
@@ -78,5 +77,5 @@ export function usePostTurnSwitches({
     if (changed) {
       onUpdatePostTurnActions(nextActions)
     }
-  }, [endOfTurnKOs, postTurnActions, myTeam, enemyTeam]) // JSON.stringify? Refs?
+  }, [endOfTurnKOs, postTurnActions, myTeam, enemyTeam])
 }

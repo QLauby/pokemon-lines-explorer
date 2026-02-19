@@ -68,12 +68,12 @@ export function CombatView({
         .slice(0, limit)
         .filter((idx: number | null): idx is number => idx !== null)
         .map((idx: number) => ({ pokemon: myTeam[idx], isAlly: true }))
-        .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon),
+        .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon && item.pokemon.hpPercent > 0),
       ...(activeSlots?.opponentTeam || [])
         .slice(0, limit)
         .filter((idx: number | null): idx is number => idx !== null)
         .map((idx: number) => ({ pokemon: enemyTeam[idx], isAlly: false }))
-        .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon)
+        .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon && item.pokemon.hpPercent > 0)
     ]
   }, [activeSlots, myTeam, enemyTeam, currentSession.battleType])
 
@@ -147,12 +147,12 @@ export function CombatView({
          .slice(0, limit)
          .filter((idx: number | null): idx is number => idx !== null)
          .map((idx: number) => ({ pokemon: parentState.myTeam[idx], isAlly: true }))
-         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon),
+         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon && item.pokemon.hpPercent > 0),
        ...(parentState.activeSlots?.opponentTeam || [])
          .slice(0, limit)
          .filter((idx: number | null): idx is number => idx !== null)
          .map((idx: number) => ({ pokemon: parentState.enemyTeam[idx], isAlly: false }))
-         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon)
+         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon && item.pokemon.hpPercent > 0)
      ]
   }, [parentState, currentSession.battleType, activePokemonList])
 
@@ -185,12 +185,12 @@ export function CombatView({
          .slice(0, limit)
          .filter((idx: number | null): idx is number => idx !== null)
          .map((idx: number) => ({ pokemon: selectedNodeState.myTeam[idx], isAlly: true }))
-         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon),
+         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon && item.pokemon.hpPercent > 0),
        ...(selectedNodeState.activeSlots?.opponentTeam || [])
          .slice(0, limit)
          .filter((idx: number | null): idx is number => idx !== null)
          .map((idx: number) => ({ pokemon: selectedNodeState.enemyTeam[idx], isAlly: false }))
-         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon)
+         .filter((item: { pokemon: Pokemon | undefined; isAlly: boolean }): item is { pokemon: Pokemon; isAlly: boolean } => !!item.pokemon && item.pokemon.hpPercent > 0)
      ]
   }, [selectedNodeState, currentSession.battleType])
 
