@@ -1,13 +1,13 @@
 ﻿"use client"
 
-import { useEffect } from "react"
-
 import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Package, Repeat, Swords } from "lucide-react"
+import { useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
 import { KO_BG_COLOR, KO_BORDEAUX } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils"
-import { Effect, Pokemon, SlotReference, TurnAction, TurnActionType } from "@/types/types"
+import { getPokemonHpFromState } from "@/lib/utils/turn-logic-helpers"
+import { BattleState, Effect, Pokemon, SlotReference, TurnAction, TurnActionType } from "@/types/types"
 
 import { EffectsList } from "./effects-list"
 
@@ -181,7 +181,7 @@ export function PokemonAction({
 
 
   
-  const commonElementStyle = isSwitchAfterKo 
+   const commonElementStyle = isSwitchAfterKo 
     ? { borderColor: KO_BORDEAUX } 
     : { borderColor: isAlly ? "#dbeafe" : "#fee2e2" } // Matches border-blue-100 / border-red-100
 
@@ -449,6 +449,7 @@ export function PokemonAction({
                    onAdd={onAddEffect}
                    onUpdate={onUpdateEffect}
                    onRemove={onRemoveEffect}
+                   getPokemonHp={(side, slotIndex) => getPokemonHpFromState({ activeSlots, myTeam, enemyTeam } as unknown as BattleState, side, slotIndex)}
                />
            ) : (
              <>
@@ -459,6 +460,7 @@ export function PokemonAction({
                      onAdd={onAddEffect}
                      onUpdate={onUpdateEffect}
                      onRemove={onRemoveEffect}
+                     getPokemonHp={(side, slotIndex) => getPokemonHpFromState({ activeSlots, myTeam, enemyTeam } as unknown as BattleState, side, slotIndex)}
                  />
              </>
            )}

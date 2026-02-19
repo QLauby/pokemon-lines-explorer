@@ -11,6 +11,7 @@ interface EffectsListProps {
   onUpdate: (index: number, newEffect: Effect) => void
   onRemove: (index: number) => void
   readOnly?: boolean
+  getPokemonHp?: (side: "my" | "opponent", slotIndex: number) => number | undefined
 }
 
 export function EffectsList({
@@ -20,7 +21,8 @@ export function EffectsList({
   onAdd,
   onUpdate,
   onRemove,
-  readOnly
+  readOnly,
+  getPokemonHp
 }: EffectsListProps) {
   
   return (
@@ -59,6 +61,7 @@ export function EffectsList({
               onUpdate={(newEffect) => onUpdate(index, newEffect)}
               onRemove={() => onRemove(index)}
               readOnly={readOnly}
+              getPokemonHp={getPokemonHp}
             />
           ))}
         </div>

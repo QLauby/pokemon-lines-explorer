@@ -1,6 +1,7 @@
 "use client"
 
-import { Effect, Pokemon, SlotReference, TurnAction } from "@/types/types"
+import { getPokemonHpFromState } from "@/lib/utils/turn-logic-helpers"
+import { BattleState, Effect, Pokemon, SlotReference, TurnAction } from "@/types/types"
 import { EffectsList } from "./effects-list"
 
 interface InitialDeploymentManagerProps {
@@ -183,6 +184,7 @@ export function InitialDeploymentManager({
           onAdd={handleAdd}
           onUpdate={handleUpdate}
           onRemove={handleRemove}
+          getPokemonHp={(side, slotIndex) => getPokemonHpFromState({ activeSlots, myTeam, enemyTeam } as unknown as BattleState, side, slotIndex)}
         />
       </div>
     </div>

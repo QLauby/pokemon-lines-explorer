@@ -83,7 +83,6 @@ export function useKoFusion({
     
         allKOs.forEach(ko => {
             // Find the battlefield slot the fainted pokemon occupied BEFORE the KO.
-            // We use stateBefore because HP_RELATIVE nulls the slot in stateAfter.
             const stateBefore = getStateAtAction(ko.occurringAtIndex)
             const team = ko.isAlly ? stateBefore.myTeam : stateBefore.enemyTeam
             const activeSlots = ko.isAlly

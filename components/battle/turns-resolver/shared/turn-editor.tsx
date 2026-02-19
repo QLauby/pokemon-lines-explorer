@@ -13,7 +13,7 @@ import { InitialDeploymentManager } from "./initial-deployment-manager"
 
 import { useTurnEditorState } from "@/lib/hooks/use-turn-editor-state"
 import { useTurnInitialization } from "@/lib/hooks/use-turn-initialization"
-import { buildFallbackSimulationState, generateEffectOptions, patchSimulationState } from "@/lib/utils/turn-logic-helpers"
+import { buildFallbackSimulationState, generateEffectOptions, getPokemonHpFromState, patchSimulationState } from "@/lib/utils/turn-logic-helpers"
 import { ActionItem } from "./action-item"
 
 interface TurnEditorProps {
@@ -180,6 +180,7 @@ export function TurnEditor({
             onUpdate={!readOnly ? updateEndOfTurnEffect : () => {}}
             onRemove={!readOnly ? removeEndOfTurnEffect : () => {}}
             readOnly={readOnly}
+            getPokemonHp={(side, slotIndex) => getPokemonHpFromState(eotState, side, slotIndex)}
           />
         </div>
       )}

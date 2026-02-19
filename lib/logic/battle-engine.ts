@@ -227,8 +227,6 @@ export class BattleEngine {
         let nextState = JSON.parse(JSON.stringify(currentState)) as BattleState
 
         // Validation for switch-after-ko: Skip if the battlefield slot still has a living pokemon.
-        // After our HP_RELATIVE fix, a KO'd pokemon's slot is set to null automatically,
-        // so a null slot means the pokemon fainted and the switch-in should proceed.
         if (action.type === 'switch-after-ko') {
              const actorSide = action.actor?.side
              const battlefieldSlot = action.actor?.slotIndex

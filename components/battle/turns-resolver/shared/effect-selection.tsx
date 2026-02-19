@@ -12,6 +12,7 @@ interface EffectSelectionProps {
     onUpdate: (newEffect: Effect) => void
     onRemove: () => void
     readOnly?: boolean
+    getPokemonHp?: (side: "my" | "opponent", slotIndex: number) => number | undefined
 }
 
 const EFFECT_TYPE_LABELS: Record<EffectType, string> = {
@@ -25,7 +26,8 @@ export function EffectSelection({
     options,
     onUpdate,
     onRemove,
-    readOnly
+    readOnly,
+    getPokemonHp
 }: EffectSelectionProps) {
     
     const targetOption = options.find(o => 
@@ -59,6 +61,8 @@ export function EffectSelection({
                 : []
         })
     }
+
+    const initialHp = getPokemonHp?.(effect.target.side, effect.target.slotIndex)
 
     return (
         <div className={cn(
@@ -125,6 +129,7 @@ export function EffectSelection({
                         effect={effect}
                         onUpdate={onUpdate}
                         readOnly={readOnly}
+                        initialHp={initialHp}
                     />
                 )}
                 {effect.type === "status-change" && (

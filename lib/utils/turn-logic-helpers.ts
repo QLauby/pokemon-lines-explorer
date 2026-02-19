@@ -175,3 +175,25 @@ export function buildFallbackSimulationState(
     },
   } as unknown as BattleState
 }
+
+/**
+ * Resolves the HP percentage of a Pokémon from the BattleState based on side and slot index.
+ * Used to provide context-aware HP information for effects visualization.
+ */
+export function getPokemonHpFromState(
+    state: BattleState,
+    side: "my" | "opponent",
+    slotIndex: number
+): number | undefined {
+    const isMySide = side === "my"
+    // Safe access to activeSlots in case they are malformed or missing
+    const slots = isMySide ? state.activeSlots?.myTeam : state.activeSlots?.opponentTeam
+    const team = isMySide ? state.myTeam : state.enemyTeam
+    
+    if (!slots || !team) return undefined
+
+    const teamIndex = slots[slotIndex]
+    if (teamIndex === null || teamIndex === undefined) return undefined
+    
+    return team[teamIndex]?.hpPercent
+}
