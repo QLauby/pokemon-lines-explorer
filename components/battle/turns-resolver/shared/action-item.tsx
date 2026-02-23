@@ -11,6 +11,7 @@
  * Then renders the <PokemonAction> card with that context.
  */
 
+import { BattleEngine } from "@/lib/logic/battle-engine"
 import { generateEffectOptions, getActivePokemonFromState } from "@/lib/utils/turn-logic-helpers"
 import { BattleState, Effect, TurnAction, TurnActionType } from "@/types/types"
 import { PokemonAction } from "./pokemon-action"
@@ -40,6 +41,7 @@ interface ActionItemProps {
   // Movement capabilities from parent
   canMoveUp: boolean
   canMoveDown: boolean
+  hpMode?: "percent" | "hp"
 }
 
 export function ActionItem({
@@ -63,6 +65,7 @@ export function ActionItem({
   onDelete,
   canMoveUp,
   canMoveDown,
+  hpMode = "percent",
 }: ActionItemProps) {
   // Skip non-KO-switch actions during the deployment turn
   if (isDeployment && action.type !== "switch-after-ko") return null
@@ -78,18 +81,34 @@ export function ActionItem({
           (action.type === "switch-after-ko" && ap.slotIndex === action.target?.slotIndex))
     ) || dynamicActivePokemon.find(ap => (ap.isAlly ? "my" : "opponent") === action.actor.side)
 
-  const actorObj = actorEntry
+  let actorObj = actorEntry
     ? { pokemon: actorEntry.pokemon, isAlly: actorEntry.isAlly }
     : undefined
 
+  // Fallback: If this is a switch-after-ko, the Pokemon is likely already removed from activeSlots (it's dead).
+  if (action.type === "switch-after-ko" && action.faintedPokemonId) {
+      const isAlly = action.actor.side === "my"
+      const team = isAlly ? stateBeforeAction.myTeam : stateBeforeAction.enemyTeam
+      const faintedPokemon = team.find(p => p.id === action.faintedPokemonId)
+      if (faintedPokemon) {
+          actorObj = { pokemon: faintedPokemon, isAlly }
+      }
+  }
   // Defusion is available when a fused switch-after-ko can be moved before its KO trigger
   const canDefuse =
     action.type === "switch-after-ko" &&
-    (!!(action.metadata as any)?.fusedFrom || !!action.fusedFrom)
+    (!!(action.metadata as any)?.fusedFrom || !!action.triggeredByKO)
 
-  // Effects targeting: use the post-switch state for switches so the incoming Pokémon is visible
-  const isSwitchAction = action.type === "switch" || action.type === "switch-after-ko"
-  const effectOptions = generateEffectOptions(isSwitchAction ? stateAfterAction : stateBeforeAction)
+  // Calculate the intermediate state *after* actionDeltas (like switches) but *before* user effects.
+  let effectState = stateBeforeAction
+  if (action.actionDeltas) {
+      for (const delta of action.actionDeltas) {
+          effectState = BattleEngine.applyDelta(effectState, delta)
+      }
+  }
+
+  // Effects targeting: use the post-actionDeltas state so the incoming Pokémon is visible
+  const effectOptions = generateEffectOptions(effectState)
 
   return (
     <div key={action.id} className="space-y-2">
@@ -116,6 +135,8 @@ export function ActionItem({
           canMoveDown={!readOnly && canMoveDown}
           canDefuse={!readOnly && canDefuse}
           effectOptions={effectOptions}
+          hpMode={hpMode}
+          baseState={effectState}
         />
       </div>
     </div>

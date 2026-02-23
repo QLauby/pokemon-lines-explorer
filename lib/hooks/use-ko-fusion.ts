@@ -82,15 +82,36 @@ export function useKoFusion({
         const requirements: { side: "my" | "opponent", slotIndex: number, triggeredByActionIndex: number, pokemonId: string, koOrderIndex: number }[] = []
     
         allKOs.forEach(ko => {
-            // Find the battlefield slot the fainted pokemon occupied BEFORE the KO.
-            const stateBefore = getStateAtAction(ko.occurringAtIndex)
-            const team = ko.isAlly ? stateBefore.myTeam : stateBefore.enemyTeam
+            // Find the battlefield slot the fainted pokemon occupied AFTER the KO action.
+            // Using stateAfter ensures we correctly find Pokémon that were just switched in and died to hazards.
+            const stateAfter = getStateAtAction(ko.occurringAtIndex + 1)
+            const team = ko.isAlly ? stateAfter.myTeam : stateAfter.enemyTeam
             const activeSlots = ko.isAlly
-                ? stateBefore.activeSlots?.myTeam
-                : stateBefore.activeSlots?.opponentTeam
+                ? stateAfter.activeSlots?.myTeam
+                : stateAfter.activeSlots?.opponentTeam
 
             const teamIndex = team.findIndex(p => p.id === ko.pokemonId)
-            const battlefieldSlot = (activeSlots || []).indexOf(teamIndex)
+            let battlefieldSlot = (activeSlots || []).indexOf(teamIndex)
+
+            // Fallback 1: If it's technically completely removed from active slots right after KO
+            // (e.g. some instant resolution), we look at where it WAS before the KO action.
+            if (battlefieldSlot === -1) {
+                const stateBefore = getStateAtAction(ko.occurringAtIndex)
+                const activeBefore = ko.isAlly ? stateBefore.activeSlots?.myTeam : stateBefore.activeSlots?.opponentTeam
+                battlefieldSlot = (activeBefore || []).indexOf(teamIndex)
+            }
+
+            // Fallback 2: "Dead on Arrival". The Pokémon was not on the field before the action (was on bench),
+            // but entered during a Switch action and died instantly to Entry Hazards, so it's not on the field after either.
+            if (battlefieldSlot === -1) {
+                const action = actions[ko.occurringAtIndex]
+                if (action && (action.type === "switch" || action.type === "switch-after-ko")) {
+                    const actionIsAlly = action.actor.side === "my"
+                    if (ko.isAlly === actionIsAlly) {
+                        battlefieldSlot = action.actor.slotIndex
+                    }
+                }
+            }
 
             if (battlefieldSlot !== -1) {
                 requirements.push({
@@ -158,7 +179,7 @@ export function useKoFusion({
                     sw.actor.side === action.actor.side &&
                     sw.actor.slotIndex === action.actor.slotIndex &&
                     actions.indexOf(sw) < originalIndex &&
-                    !sw.fusedFrom // Only count unfused switches as defusion intent
+                    !sw.triggeredByKO // Only count unfused switches as defusion intent
                 )
                 
                 if (hasUnfusedSwitchBefore) {
@@ -170,7 +191,7 @@ export function useKoFusion({
                     
                     // Mark requirement as fused
                     const reqAny = req as any
-                    reqAny._fusedFrom = true
+                    reqAny._triggeredByKO = true
                     
                     changesMade = true
                 }
@@ -184,13 +205,13 @@ export function useKoFusion({
         // -------------------------------------------------------------
         
         actions.forEach((action, idx) => {
-            if (action.type === "switch-after-ko" && action.fusedFrom) {
+            if (action.type === "switch-after-ko" && action.triggeredByKO) {
                 // If there is ANY non-switch action AFTER this switch in the input list, it means it was moved up (or action moved down)
                 // Logic: Switch should be at the very end.
                 const hasNormalActionAfter = actions.slice(idx + 1).some(a => a.type !== "switch-after-ko")
                 
                 if (hasNormalActionAfter) {
-                    const fusedFrom = (action.metadata as any)?.fusedFrom // Handle legacy metadata if present, though we should migrate
+                    const triggeredByKO = (action.metadata as any)?.fusedFrom // Handle legacy metadata if present, though we should migrate
                     
                     // Fallback to empty if metadata lost, but types imply we should have data
                     const restoredAction: TurnAction = {
@@ -240,7 +261,7 @@ export function useKoFusion({
             )
             
             // If KO disappeared AND switch was fused, restore the original action
-            if (!hasRequirement && switchAction.fusedFrom) {
+            if (!hasRequirement && switchAction.triggeredByKO) {
                 const restoredAction: TurnAction = {
                     id: crypto.randomUUID(),
                     actor: switchAction.actor,
@@ -270,7 +291,7 @@ export function useKoFusion({
             const key = `${req.side}-${req.slotIndex}`
             const cachedSwitch = orphanedChoices.get(key)
             
-            const fusedFrom = (req as any)._fusedFrom
+            const triggeredByKO = (req as any)._triggeredByKO
             
             // Check for ANY existing switch (fused or unfused) for this side/slot
             const existingSwitch = inputSwitchActions.find(a => 
@@ -307,7 +328,8 @@ export function useKoFusion({
                     }],
                     // Strip any legacy SWITCH deltas mistakenly placed in effects
                     effects: existingSwitch.effects.filter(e => e.deltas.every(d => d.type !== "SWITCH")),
-                    fusedFrom: !!(fusedFrom || existingSwitch.fusedFrom)
+                    triggeredByKO: !!(triggeredByKO || existingSwitch.triggeredByKO),
+                    faintedPokemonId: req.pokemonId
                 }
 
                 finalProcessedActions.push(updatedSwitch)
@@ -329,13 +351,14 @@ export function useKoFusion({
                     // Preserve user-editable effects (HP changes etc.), stripping any legacy SWITCH dummy effects
                     effects: (cachedSwitch?.effects || []).filter(e => e.deltas.every(d => d.type !== "SWITCH")),
                     isCollapsed: cachedSwitch?.isCollapsed ?? true,
-                    fusedFrom: !!fusedFrom
+                    triggeredByKO: !!triggeredByKO,
+                    faintedPokemonId: req.pokemonId
                 }
 
                 finalProcessedActions.push(newSwitch)
                 
                 // Check for change: If we generated a switch that didn't exist or changed state
-                if (!existingSwitch && !cachedSwitch && !fusedFrom) {
+                if (!existingSwitch && !cachedSwitch && !triggeredByKO) {
                      // It's a "silent" update usually, but ensuring we trigger update if needed
                 }
             }
@@ -343,9 +366,11 @@ export function useKoFusion({
         
         // Final sanity check
         if (!changesMade) {
-            const inputIds = actions.map(a => a.id).join(",")
-            const outputIds = finalProcessedActions.map(a => a.id).join(",")
-            if (inputIds !== outputIds) changesMade = true
+            // Compare stringified representations to catch subtle mutations (like metadata.faintedPokemonId changing)
+            // that don't alter the length or IDs of the array but must trigger a re-render.
+            if (JSON.stringify(actions) !== JSON.stringify(finalProcessedActions)) {
+                changesMade = true
+            }
         }
 
         if (changesMade) {

@@ -1,5 +1,7 @@
 import { Button } from "@/components/ui/button"
-import { Effect, SlotReference } from "@/types/types"
+import { BattleEngine } from "@/lib/logic/battle-engine"
+import { getPokemonHpFromState } from "@/lib/utils/turn-logic-helpers"
+import { BattleState, Effect, SlotReference } from "@/types/types"
 import { Plus } from "lucide-react"
 import { EffectSelection } from "./effect-selection"
 
@@ -11,7 +13,8 @@ interface EffectsListProps {
   onUpdate: (index: number, newEffect: Effect) => void
   onRemove: (index: number) => void
   readOnly?: boolean
-  getPokemonHp?: (side: "my" | "opponent", slotIndex: number) => number | undefined
+  baseState?: BattleState
+  hpMode?: "percent" | "hp"
 }
 
 export function EffectsList({
@@ -22,9 +25,22 @@ export function EffectsList({
   onUpdate,
   onRemove,
   readOnly,
-  getPokemonHp
+  baseState,
+  hpMode = "percent"
 }: EffectsListProps) {
   
+  // Create an array of state snapshots, one BEFORE each effect
+  let currentState = baseState;
+  const effectStates = effects.map(effect => {
+      const stateBeforeThisEffect = currentState;
+      if (currentState) {
+          for(const delta of effect.deltas) {
+              currentState = BattleEngine.applyDelta(currentState, delta)
+          }
+      }
+      return stateBeforeThisEffect;
+  });
+
   return (
     <div className="flex flex-col gap-2">
        {/* Header row: title + add button */}
@@ -61,7 +77,12 @@ export function EffectsList({
               onUpdate={(newEffect) => onUpdate(index, newEffect)}
               onRemove={() => onRemove(index)}
               readOnly={readOnly}
-              getPokemonHp={getPokemonHp}
+              getPokemonHp={(side, slotIndex) => {
+                  const stateForThisEffect = effectStates[index] || baseState
+                  if (!stateForThisEffect) return undefined
+                  return getPokemonHpFromState(stateForThisEffect, side, slotIndex)
+              }}
+              hpMode={hpMode}
             />
           ))}
         </div>

@@ -21,6 +21,7 @@ interface SetNextTurnProps {
   battleType: "simple" | "double"
   currentBattleState?: BattleState
   initialBattleState?: BattleState
+  hpMode?: "percent" | "hp"
 }
 
 
@@ -35,6 +36,7 @@ export function SetNextTurn({
   battleType,
   currentBattleState,
   initialBattleState,
+  hpMode = "percent",
 }: SetNextTurnProps) {
   const { isCorrupted } = useCorruptionHandler()
 
@@ -122,6 +124,7 @@ export function SetNextTurn({
       enemyTeam={enemyTeam}
       turnNumber={nextTurnNumber}
       battleFormat={battleType}
+      hpMode={hpMode}
     />
   )
 }

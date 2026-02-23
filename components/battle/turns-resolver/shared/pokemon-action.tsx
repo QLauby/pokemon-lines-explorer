@@ -6,7 +6,6 @@ import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { KO_BG_COLOR, KO_BORDEAUX } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils"
-import { getPokemonHpFromState } from "@/lib/utils/turn-logic-helpers"
 import { BattleState, Effect, Pokemon, SlotReference, TurnAction, TurnActionType } from "@/types/types"
 
 import { EffectsList } from "./effects-list"
@@ -38,6 +37,8 @@ interface PokemonActionProps {
   canMoveUp?: boolean
   canMoveDown?: boolean
   canDefuse?: boolean
+  hpMode?: "percent" | "hp"
+  baseState?: BattleState
 }
 
 export function PokemonAction({
@@ -65,6 +66,8 @@ export function PokemonAction({
   canMoveUp = true,
   canMoveDown = true,
   canDefuse = false,
+  hpMode = "percent",
+  baseState,
 }: PokemonActionProps) {
   const isAlly = action.actor.side === "my"
   const isSwitchAfterKo = action.type === "switch-after-ko"
@@ -449,7 +452,8 @@ export function PokemonAction({
                    onAdd={onAddEffect}
                    onUpdate={onUpdateEffect}
                    onRemove={onRemoveEffect}
-                   getPokemonHp={(side, slotIndex) => getPokemonHpFromState({ activeSlots, myTeam, enemyTeam } as unknown as BattleState, side, slotIndex)}
+                   baseState={baseState || ({ activeSlots, myTeam, enemyTeam } as unknown as BattleState)}
+                   hpMode={hpMode}
                />
            ) : (
              <>
@@ -460,7 +464,8 @@ export function PokemonAction({
                      onAdd={onAddEffect}
                      onUpdate={onUpdateEffect}
                      onRemove={onRemoveEffect}
-                     getPokemonHp={(side, slotIndex) => getPokemonHpFromState({ activeSlots, myTeam, enemyTeam } as unknown as BattleState, side, slotIndex)}
+                     baseState={baseState || ({ activeSlots, myTeam, enemyTeam } as unknown as BattleState)}
+                     hpMode={hpMode}
                  />
              </>
            )}

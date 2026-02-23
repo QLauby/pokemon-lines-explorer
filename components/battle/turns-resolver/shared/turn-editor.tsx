@@ -13,7 +13,7 @@ import { InitialDeploymentManager } from "./initial-deployment-manager"
 
 import { useTurnEditorState } from "@/lib/hooks/use-turn-editor-state"
 import { useTurnInitialization } from "@/lib/hooks/use-turn-initialization"
-import { buildFallbackSimulationState, generateEffectOptions, getPokemonHpFromState, patchSimulationState } from "@/lib/utils/turn-logic-helpers"
+import { buildFallbackSimulationState, generateEffectOptions, patchSimulationState } from "@/lib/utils/turn-logic-helpers"
 import { ActionItem } from "./action-item"
 
 interface TurnEditorProps {
@@ -29,6 +29,7 @@ interface TurnEditorProps {
   turnNumber: number
   battleFormat?: "simple" | "double"
   autoSave?: boolean
+  hpMode?: "percent" | "hp"
 }
 
 export function TurnEditor({
@@ -44,6 +45,7 @@ export function TurnEditor({
   turnNumber,
   battleFormat = "simple",
   autoSave = false,
+  hpMode = "percent",
 }: TurnEditorProps) {
 
   // ── State & Handlers ─────────────────────────────────────────
@@ -57,7 +59,7 @@ export function TurnEditor({
     handleDeleteAction, handleUpdateAction,
     addEffectToAction, updateEffectInAction, removeEffectFromAction,
     addEndOfTurnEffect, updateEndOfTurnEffect, removeEndOfTurnEffect,
-  } = useTurnEditorState(readOnly)
+  } = useTurnEditorState(readOnly, hpMode)
 
   // ── Simulation State ─────────────────────────────────────────
   const simulationState = useMemo(() => {
@@ -99,6 +101,7 @@ export function TurnEditor({
     setActions,
     setEndOfTurnEffects,
     setPostTurnActions,
+    hpMode,
   })
 
   // ── KO Fusion (Automatic Forced Switch Management) ────────────
@@ -128,6 +131,7 @@ export function TurnEditor({
             enemyTeam={enemyTeam}
             activeSlots={simulationState.activeSlots}
             onUpdateAction={handleUpdateAction}
+            hpMode={hpMode}
           />
         )}
 
@@ -162,6 +166,7 @@ export function TurnEditor({
               onDelete={() => handleDeleteAction(index)}
               canMoveUp={canMoveActionUp(index)}
               canMoveDown={canMoveActionDown(index)}
+              hpMode={hpMode}
             />
           ))}
         </div>
@@ -180,7 +185,8 @@ export function TurnEditor({
             onUpdate={!readOnly ? updateEndOfTurnEffect : () => {}}
             onRemove={!readOnly ? removeEndOfTurnEffect : () => {}}
             readOnly={readOnly}
-            getPokemonHp={(side, slotIndex) => getPokemonHpFromState(eotState, side, slotIndex)}
+            baseState={eotState}
+            hpMode={hpMode}
           />
         </div>
       )}

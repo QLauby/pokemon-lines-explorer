@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { cn } from "@/lib/utils/cn"
 import { darkenColor, getTextColorForBackground, lightenColor } from "@/lib/utils/colors-utils"
+import { floatToFraction } from "@/lib/utils/math-utils"
 
 
 interface EditableTextProps {
@@ -46,6 +47,8 @@ interface EditableTextProps {
   lightTextColor?: string
   transitionDuration?: string
   readOnly?: boolean
+  rawEquationString?: string
+  onEquationChange?: (eq: string | undefined) => void
 }
 
 const DEFAULT_TEXT_IF_VOID = "Click to edit ..."
@@ -56,7 +59,7 @@ const DEFAULT_TRANSITION_DURATION = "0.8s"
 
 const evaluateExpression = (expr: string): number | null => {
   if (typeof expr !== "string") return null
-  const allowed = /^[0-9+\-*/()\\s.,%]+$/
+  const allowed = /^[0-9+*/()\s.,%-]+$/
   if (!allowed.test(expr)) return null
   let transformed = expr.replace(/,/g, ".")
   transformed = transformed.replace(/(\\d+(?:\\.\\d+)?)%/g, "($1/100)")
@@ -69,6 +72,8 @@ const evaluateExpression = (expr: string): number | null => {
     return null
   }
 }
+
+
 
 export function EditableText({
   value,
@@ -107,6 +112,8 @@ export function EditableText({
   lightTextColor = DEFAULT_LIGHT_TEXT_COLOR,
   transitionDuration = DEFAULT_TRANSITION_DURATION,
   readOnly = false,
+  rawEquationString,
+  onEquationChange,
 }: EditableTextProps) {
   // 1. Hook State
   const [isEditing, setIsEditing] = useState(false)
@@ -186,7 +193,16 @@ export function EditableText({
 
   const effectiveType = type === "number" ? "text" : type
   const effectiveInputMode = type === "number" ? "decimal" : undefined
-  const effectivePattern = type === "number" ? "[0-9.,+-]*" : undefined
+  let effectivePattern = undefined
+  if (type === "number") {
+    if (resolvedNumberMode === "integer") {
+      effectivePattern = "[0-9+-]*"
+    } else if (resolvedNumberMode === "percent") {
+      effectivePattern = "[0-9.,+*/()=\\s-]*"
+    } else {
+      effectivePattern = "[0-9.,+-]*"
+    }
+  }
 
   // Calculate display text for render
   let displayText = value === "" ? defaultValue || resolvedPlaceholder : value
@@ -353,7 +369,17 @@ export function EditableText({
     if (placeholderFirst || emptyInputAtFocus) {
       initialValue = ""
     } else {
-      initialValue = type === "number" && (value === "" || value == null) ? resolvedDefault : value
+      if (rawEquationString) {
+          initialValue = rawEquationString
+      } else {
+          initialValue = type === "number" && (value === "" || value == null) ? resolvedDefault : value
+          if (resolvedNumberMode === "percent" && initialValue !== "") {
+              const num = Number(initialValue.replace(",", "."))
+              if (!isNaN(num)) {
+                  initialValue = String(Math.round(num * 100 * 10) / 10).replace(".", ",")
+              }
+          }
+      }
     }
 
     if (!autoWidth && editWidth !== undefined && editWidth !== width) {
@@ -400,15 +426,25 @@ export function EditableText({
         } else {
           numericValue = Number(current.replace(",", ".").trim())
         }
-        if (!Number.isFinite(numericValue)) {
+        if (numericValue === null || !Number.isFinite(numericValue)) {
           final = prevValueRef.current
         } else {
+          if (resolvedNumberMode === "percent" && !current.trim().startsWith("=") && Number.isFinite(numericValue)) {
+            numericValue = numericValue / 100
+          }
+          
           let clamped = numericValue as number
           if (resolvedNumberMode === "integer") clamped = Math.trunc(clamped)
           if (typeof resolvedMin === "number" && clamped < resolvedMin) clamped = resolvedMin
           const curMax = dynamicMax ? dynamicMax() : resolvedMax
           if (typeof curMax === "number" && clamped > curMax) clamped = curMax
           final = String(clamped)
+          
+          if (current.trim().startsWith("=") && onEquationChange) {
+              onEquationChange("= " + floatToFraction(clamped))
+          } else if (onEquationChange) {
+              onEquationChange(undefined)
+          }
         }
       } else {
         final = current
@@ -502,7 +538,19 @@ export function EditableText({
         <Input
           ref={inputRef}
           value={editingValue}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditingValue(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              let val = e.target.value;
+              if (type === "number") {
+                  if (resolvedNumberMode === "integer") {
+                      val = val.replace(/[^0-9+-]/g, "");
+                  } else if (resolvedNumberMode === "percent") {
+                      val = val.replace(/[^0-9.,+*/()=\s-]/g, "");
+                  } else {
+                      val = val.replace(/[^0-9.,+-]/g, "");
+                  }
+              }
+              setEditingValue(val)
+          }}
           onBlur={finishEditing}
           onKeyDown={handleKeyDown}
           onClick={handleInputClick}

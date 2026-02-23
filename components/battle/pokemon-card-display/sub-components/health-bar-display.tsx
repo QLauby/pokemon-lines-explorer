@@ -4,6 +4,9 @@ import { cn } from "@/lib/utils/cn"
 
 interface HealthBarDisplayProps {
   hpPercent: number
+  hpMode?: "percent" | "hp"
+  hpMax?: number
+  hpCurrent?: number
   showText?: boolean
   className?: string
   height?: number
@@ -11,6 +14,9 @@ interface HealthBarDisplayProps {
 
 export function HealthBarDisplay({ 
   hpPercent, 
+  hpMode = "percent",
+  hpMax = 100,
+  hpCurrent,
   showText = true, 
   className,
   height = 6 
@@ -33,10 +39,14 @@ export function HealthBarDisplay({
       </div>
       {showText && (
         <span className={cn(
-            "text-[9px] font-bold w-[28px] text-right",
-            hpPercent === 0 ? "text-gray-400" : "text-gray-700" 
+            "text-[9px] font-bold text-right shrink-0",
+            hpPercent === 0 ? "text-gray-400" : "text-gray-700",
+            hpMode === "hp" ? "w-[42px]" : "w-[28px]"
         )}>
-          {Math.round(hpPercent)}%
+          {hpMode === "hp" && hpCurrent !== undefined
+            ? `${hpCurrent}/${hpMax}`
+            : `${Math.round(hpPercent)}%`
+          }
         </span>
       )}
     </div>

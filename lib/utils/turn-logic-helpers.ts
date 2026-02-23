@@ -4,7 +4,7 @@
  * These functions are stateless and have no React dependencies.
  */
 
-import { BattleState } from "@/types/types";
+import { BattleState, PokemonHpInfo } from "@/types/types";
 
 export type EffectOption = {
   label: string
@@ -176,17 +176,18 @@ export function buildFallbackSimulationState(
   } as unknown as BattleState
 }
 
+
+
 /**
- * Resolves the HP percentage of a Pokémon from the BattleState based on side and slot index.
- * Used to provide context-aware HP information for effects visualization.
+ * Resolves the HP info of a Pokémon from the BattleState based on side and slot index.
+ * Returns {hpPercent, hpMax, hpCurrent} — or undefined if the slot is empty.
  */
 export function getPokemonHpFromState(
     state: BattleState,
     side: "my" | "opponent",
     slotIndex: number
-): number | undefined {
+): PokemonHpInfo | undefined {
     const isMySide = side === "my"
-    // Safe access to activeSlots in case they are malformed or missing
     const slots = isMySide ? state.activeSlots?.myTeam : state.activeSlots?.opponentTeam
     const team = isMySide ? state.myTeam : state.enemyTeam
     
@@ -195,5 +196,12 @@ export function getPokemonHpFromState(
     const teamIndex = slots[slotIndex]
     if (teamIndex === null || teamIndex === undefined) return undefined
     
-    return team[teamIndex]?.hpPercent
+    const pokemon = team[teamIndex]
+    if (!pokemon) return undefined
+
+    const hpMax = pokemon.hpMax ?? 100
+    const hpPercent = pokemon.hpPercent
+    const hpCurrent = pokemon.hpCurrent ?? Math.round(hpPercent * hpMax / 100)
+
+    return { hpPercent, hpMax, hpCurrent }
 }

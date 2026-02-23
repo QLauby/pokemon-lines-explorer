@@ -46,6 +46,7 @@ interface TeamSectionProps {
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
   getTeamCounterDisplay: (teamLength: number) => string
   isStarterPokemon: (pokemon: Pokemon, index: number, isMyTeam: boolean) => boolean
+  hpMode?: "percent" | "hp"
 }
 
 
@@ -72,6 +73,7 @@ export function TeamSection({
   getDefaultPokemonName,
   getTeamCounterDisplay,
   isStarterPokemon,
+  hpMode = "percent",
 }: TeamSectionProps) {
 
   return (
@@ -112,6 +114,7 @@ export function TeamSection({
                 onFlagClick={onFlagClick}
                 getSlotForPokemon={getSlotForPokemon}
                 getDefaultPokemonName={getDefaultPokemonName}
+                hpMode={hpMode}
               />
             )
           })}

@@ -224,6 +224,7 @@ export function CombatView({
                      activeSlots={currentBattleState.activeSlots}
                      battlefieldState={currentBattleState.battlefieldState}
                      battleType={currentSession.battleType}
+                     hpMode={currentSession.hpMode}
                   />
               </div>
           </div>
@@ -259,6 +260,7 @@ export function CombatView({
                     nextBattleState={selectedNodeState}
                     initialBattleState={parentState || currentSession.initialState}
                     readOnly={readOnly}
+                    hpMode={currentSession.hpMode}
                  />
               </div>
           </div>

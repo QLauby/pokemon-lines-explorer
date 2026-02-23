@@ -12,6 +12,7 @@ interface CurrentStateProps {
   activeSlots?: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   battlefieldState?: BattlefieldState
   battleType?: "simple" | "double"
+  hpMode?: "percent" | "hp"
 }
 
 export function CurrentState({ 
@@ -20,7 +21,8 @@ export function CurrentState({
   enemyTeam, 
   activeSlots,
   battlefieldState, 
-  battleType = "simple" 
+  battleType = "simple",
+  hpMode = "percent" 
 }: CurrentStateProps) {
   
   const activeCount = battleType === "double" ? 2 : 1
@@ -99,6 +101,7 @@ export function CurrentState({
                         pokemon={pokemon}
                         mode="deployed"
                         isMyTeam={true}
+                        hpMode={hpMode}
                         className={cn(battleType === "simple" && "w-[calc(50%-4px)]")}
                     />
                 ))}
@@ -141,6 +144,7 @@ export function CurrentState({
                         pokemon={pokemon}
                         mode="deployed"
                         isMyTeam={false}
+                        hpMode={hpMode}
                         className={cn(battleType === "simple" && "w-[calc(50%-4px)]")}
                     />
                 ))}
@@ -169,6 +173,7 @@ export function CurrentState({
                                 pokemon={cleanForBench(pokemon)} 
                                 mode="compact"
                                 isMyTeam={true}
+                                hpMode={hpMode}
                              />
                         </div>
                     )
@@ -188,6 +193,7 @@ export function CurrentState({
                                 pokemon={cleanForBench(pokemon)} 
                                 mode="compact"
                                 isMyTeam={false}
+                                hpMode={hpMode}
                              />
                         </div>
                     )

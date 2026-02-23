@@ -9,7 +9,7 @@
 import { Effect, SlotReference, TurnAction, TurnActionType } from "@/types/types"
 import { useState } from "react"
 
-export function useTurnEditorState(readOnly: boolean) {
+export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" = "percent") {
   const [actions, setActions] = useState<TurnAction[]>([])
   const [endOfTurnEffects, setEndOfTurnEffects] = useState<Effect[]>([])
   const [postTurnActions, setPostTurnActions] = useState<TurnAction[]>([])
@@ -28,7 +28,7 @@ export function useTurnEditorState(readOnly: boolean) {
     if (index === 0) return false
     const action = actions[index]
     if (action.type === "switch-after-ko") {
-      return !!(action.fusedFrom || (action.metadata as any)?.fusedFrom)
+      return !!(action.triggeredByKO || (action.metadata as any)?.fusedFrom)
     }
     return true
   }
@@ -58,10 +58,10 @@ export function useTurnEditorState(readOnly: boolean) {
     if (direction === "down" && !canMoveActionDown(index)) return
 
     const newActions = [...actions]
-    const isFused = actions[index].fusedFrom || (actions[index].metadata as any)?.fusedFrom
+    const isTriggeredByKO = actions[index].triggeredByKO || (actions[index].metadata as any)?.fusedFrom
 
     // DEFUSION PATH
-    if (direction === "up" && actions[index].type === "switch-after-ko" && isFused) {
+    if (direction === "up" && actions[index].type === "switch-after-ko" && isTriggeredByKO) {
       const fusedSwitch = actions[index]
 
       const restoredAction: TurnAction = {
@@ -78,7 +78,7 @@ export function useTurnEditorState(readOnly: boolean) {
       const unfusedSwitch: TurnAction = {
         ...fusedSwitch,
         metadata: {},
-        fusedFrom: false,
+        triggeredByKO: false,
       }
 
       // Find which action caused the KO for this slot
@@ -249,7 +249,7 @@ export function useTurnEditorState(readOnly: boolean) {
     const newEffect: Effect = {
       type: "hp-change",
       target: { ...defaultTarget },
-      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: 0 }],
+      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: 0, unit: hpMode }],
     }
 
     newActions[actionIndex] = { ...action, effects: [...action.effects, newEffect] }
@@ -289,7 +289,7 @@ export function useTurnEditorState(readOnly: boolean) {
     const newEffect: Effect = {
       type: "hp-change",
       target: { ...defaultTarget },
-      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: 0 }],
+      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: 0, unit: hpMode }],
     }
     setEndOfTurnEffects(prev => [...prev, newEffect])
   }

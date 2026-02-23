@@ -1,6 +1,6 @@
 "use client"
 
-import { CombatSession, TreeNode } from "@/types/types"
+import { CombatSession, Pokemon, TreeNode } from "@/types/types"
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react"
 import { detectCorruption } from "../../logic/corruption"
 import { ModificationType, pruneTree, sanitizeTreeForModification } from "../../logic/tree-cleaner"
@@ -83,17 +83,50 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
   const applyModification = (type: string, payload: any, currentNodes: TreeNode[]) => {
       let finalNodes = currentNodes
       
-      // a. Pruning (already handled if we passed pruned nodes, but for safe path currentNodes is full)
-      // b. Correction (Sanitize/Remap)
-      finalNodes = sanitizeTreeForModification(finalNodes, type as ModificationType, payload)
+      // a. Pruning: already done via currentNodes
+      // b. Sanitize
+      const enrichedPayload = type === 'CHANGE_HP_MODE'
+          ? { ...payload, initialState: session.initialState }
+          : payload
 
-      // c. Apply to Session State
-      if (type === 'CHANGE_DEPLOYMENT') {
+      finalNodes = sanitizeTreeForModification(finalNodes, type as ModificationType, enrichedPayload)
+
+      // c. Apply
+      if (type === 'CHANGE_HP_MODE') {
+          const { newHpMode } = payload as { newHpMode: "percent" | "hp" }
+
+          if (newHpMode === 'hp') {
+              // % → HP: sanitizeTree was a no-op on the tree.
+              const normalizeTeam = (team: Pokemon[]): Pokemon[] =>
+                  team.map(p => ({
+                      ...p,
+                      hpMax:     p.hpMax     ?? 100,
+                      hpCurrent: p.hpCurrent ?? (p.hpMax ?? 100),
+                  }))
+
+              onUpdateSession({
+                  hpMode: newHpMode,
+                  nodes:  finalNodes,
+                  initialState: {
+                      ...session.initialState,
+                      myTeam:    normalizeTeam(session.initialState.myTeam),
+                      enemyTeam: normalizeTeam(session.initialState.enemyTeam),
+                  },
+              })
+          } else {
+              // HP → %: sanitizeTree converted deltas using the existing hpMax values.
+              // No initialState change needed.
+              onUpdateSession({
+                  hpMode: newHpMode,
+                  nodes:  finalNodes,
+              })
+          }
+      } else if (type === 'CHANGE_DEPLOYMENT') {
           const { newActiveSlots, newBattleType } = payload as { 
               newActiveSlots: { myTeam: number[], opponentTeam: number[] },
               newBattleType?: "simple" | "double"
           }
-          
+
           onUpdateSession({
               initialState: {
                   ...session.initialState,
@@ -105,8 +138,8 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
       } else if (type === 'DELETE_POKEMON') {
           const { id, isMyTeam } = payload
           const currentTeam = isMyTeam ? session.initialState.myTeam : session.initialState.enemyTeam
-          const newTeam = currentTeam.filter(p => p.id !== id)
-          
+          const newTeam = currentTeam.filter((p: Pokemon) => p.id !== id)
+
           if (isMyTeam) {
               onUpdateSession({ 
                   initialState: { ...session.initialState, myTeam: newTeam },
@@ -119,6 +152,7 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
               })
           }
       }
+
       
       // Cleanup
       setPendingModification(null)

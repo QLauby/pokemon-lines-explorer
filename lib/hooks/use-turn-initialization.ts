@@ -22,6 +22,7 @@ interface UseTurnInitializationProps {
   setActions: Dispatch<SetStateAction<TurnAction[]>>
   setEndOfTurnEffects: Dispatch<SetStateAction<Effect[]>>
   setPostTurnActions: Dispatch<SetStateAction<TurnAction[]>>
+  hpMode?: "percent" | "hp"
 }
 
 export function useTurnInitialization({
@@ -34,6 +35,7 @@ export function useTurnInitialization({
   setActions,
   setEndOfTurnEffects,
   setPostTurnActions,
+  hpMode,
 }: UseTurnInitializationProps) {
   useEffect(() => {
     // ── Case 1: Load existing data ──────────────────────────────
@@ -122,7 +124,6 @@ export function useTurnInitialization({
           : []
       )
     }
-  // Only re-initialize when the turn number or format changes, not on every save
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turnNumber, battleFormat])
+  // Only re-initialize when the turn number, format, or hpMode changes, not on every save
+  }, [turnNumber, battleFormat, hpMode])
 }

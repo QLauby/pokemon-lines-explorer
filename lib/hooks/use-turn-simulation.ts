@@ -88,13 +88,14 @@ export function useTurnSimulation({
         const checkTeam = (isAlly: boolean) => {
             const team = isAlly ? stateAfter.myTeam : stateAfter.enemyTeam
             const prevTeam = isAlly ? stateBefore.myTeam : stateBefore.enemyTeam
-            const activeIndices = isAlly ? (stateBefore.activeSlots?.myTeam || []) : (stateBefore.activeSlots?.opponentTeam || [])
             
-            activeIndices.forEach(idx => {
-                if (idx !== null && idx !== undefined && team[idx] && prevTeam[idx]) {
-                    if (prevTeam[idx].hpPercent > 0 && team[idx].hpPercent === 0) {
+            // Iterate the entire team to detect any HP dropping to 0
+            team.forEach((p_after, idx) => {
+                const p_before = prevTeam[idx]
+                if (p_before && p_after) {
+                    if (p_before.hpPercent > 0 && p_after.hpPercent === 0) {
                         currentKOs.push({ 
-                            pokemon: team[idx], 
+                            pokemon: p_after, 
                             isAlly, 
                             causedByEntryHazards: isSwitch || (isPostMain && i > actions.length)
                         })

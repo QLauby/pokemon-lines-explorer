@@ -63,6 +63,12 @@ function InnerContent({
         }
     }
 
+    const handleTryChangeHpMode = (mode: 'percent' | 'hp') => {
+        if (mode === state.hpMode) return
+        // Routes through the corruption pipeline:
+        requestModification('CHANGE_HP_MODE', { newHpMode: mode })
+    }
+
     const handleRemovePokemon = (id: string, isMyTeam: boolean) => {
         const team = isMyTeam ? state.myTeam : state.enemyTeam
         const originalIndex = team.findIndex(p => p.id === id)
@@ -131,9 +137,11 @@ function InnerContent({
           <AppHeader
             currentView={state.currentView}
             battleType={state.battleType}
+            hpMode={state.hpMode}
             battleStarted={state.battleStarted}
             onViewChange={setters.setCurrentView}
             onBattleTypeChange={handleTryChangeBattleType}
+            onHpModeChange={handleTryChangeHpMode}
             onResetBattle={actions.resetBattleIfNeeded}
             navigationDisabled={isCorrupted}
           />
@@ -170,6 +178,7 @@ function InnerContent({
               onUpdateBattlefieldTags={actions.updateBattlefieldTags}
               onUpdatePlayerSideTags={actions.updatePlayerSideTags}
               onUpdateOpponentSideTags={actions.updateOpponentSideTags}
+              hpMode={state.hpMode}
             />
     
           ) : (

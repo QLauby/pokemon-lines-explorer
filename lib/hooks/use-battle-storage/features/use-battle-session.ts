@@ -31,6 +31,10 @@ export function useBattleSession() {
       if(currentSession) saveSession({ ...currentSession, battleType: type })
   }
 
+  const setHpMode = (mode: "percent" | "hp") => {
+      if(currentSession) saveSession({ ...currentSession, hpMode: mode })
+  }
+
   const updateInitialState = (updates: Partial<BattleState>) => {
     if (!currentSession) return
     const newSession = {
@@ -51,6 +55,7 @@ export function useBattleSession() {
     saveSession,
     createSession,
     setBattleType,
+    setHpMode,
     updateInitialState
   }
 }

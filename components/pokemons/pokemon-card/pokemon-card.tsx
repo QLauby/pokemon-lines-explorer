@@ -52,6 +52,7 @@ interface PokemonCardProps {
   readOnly?: boolean
   isExpanded?: boolean
   onToggleExpansion?: () => void
+  hpMode?: "percent" | "hp"
 }
 
 export function PokemonCard({
@@ -78,6 +79,7 @@ export function PokemonCard({
   readOnly = false,
   isExpanded = false,
   onToggleExpansion,
+  hpMode = "percent",
 }: PokemonCardProps) {
   // Use passed prop if available, otherwise local state (fallback)
   const [localExpanded, setLocalExpanded] = useState(false)
@@ -299,7 +301,13 @@ export function PokemonCard({
         )}
         
         <div className="py-1.5">
-          <HealthBar pokemon={pokemon} isMyTeam={isMyTeam} onUpdate={onUpdateHealth} editable={true} />
+          <HealthBar
+            pokemon={pokemon}
+            isMyTeam={isMyTeam}
+            onHpChange={(updated, side) => onUpdatePokemon(updated, side)}
+            hpMode={hpMode}
+            editable={!readOnly}
+          />
         </div>
         
         {isCardExpanded && (

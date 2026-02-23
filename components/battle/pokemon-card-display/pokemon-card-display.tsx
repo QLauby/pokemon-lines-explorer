@@ -20,16 +20,20 @@ interface PokemonCardDisplayProps {
   mode: "deployed" | "compact"
   isMyTeam: boolean
   className?: string
+  hpMode?: "percent" | "hp"
 }
 
 export function PokemonCardDisplay({ 
   pokemon, 
   mode, 
   isMyTeam, 
-  className 
+  className,
+  hpMode = "percent" 
 }: PokemonCardDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(mode === "deployed")
   const isKO = pokemon.hpPercent === 0
+  const hpMax = pokemon.hpMax ?? 100
+  const hpCurrent = pokemon.hpCurrent ?? Math.round(pokemon.hpPercent * hpMax / 100)
 
   return (
     <div 
@@ -81,6 +85,9 @@ export function PokemonCardDisplay({
 
           <HealthBarDisplay 
               hpPercent={pokemon.hpPercent} 
+              hpMode={hpMode}
+              hpMax={hpMax}
+              hpCurrent={hpCurrent}
               showText={true} 
               height={4} 
           />

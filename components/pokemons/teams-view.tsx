@@ -1,7 +1,6 @@
 "use client"
 
 
-import { Button } from "@/components/ui/button"
 import { PokemonStatus } from "@/lib/constants/logos-constants"
 import { Pokemon } from "@/types/types"
 
@@ -52,6 +51,7 @@ interface TeamsViewProps {
   onUpdateBattlefieldTags: (tags: string[]) => void
   onUpdatePlayerSideTags: (tags: string[]) => void
   onUpdateOpponentSideTags: (tags: string[]) => void
+  hpMode?: "percent" | "hp"
 }
 
 export function TeamsView({
@@ -85,35 +85,11 @@ export function TeamsView({
   onUpdateBattlefieldTags,
   onUpdatePlayerSideTags,
   onUpdateOpponentSideTags,
+  hpMode = "percent",
 }: TeamsViewProps) {
 
   return (
     <>
-      <div className="mb-6 flex justify-center">
-        <div className="flex gap-2">
-          <Button
-            variant={battleType === "simple" ? "default" : "ghost"}
-            size="lg"
-            onClick={() => {
-              onBattleTypeChange("simple")
-            }}
-            className="rounded-md text-base"
-          >
-            Single battle
-          </Button>
-          <Button
-            variant={battleType === "double" ? "default" : "ghost"}
-            size="lg"
-            onClick={() => {
-              onBattleTypeChange("double")
-            }}
-            className="rounded-md text-base"
-          >
-            Double battle
-          </Button>
-        </div>
-      </div>
-
       <BattlefieldZone
         battlefieldTags={battlefieldTags}
         playerSideTags={playerSideTags}
@@ -147,6 +123,7 @@ export function TeamsView({
           getDefaultPokemonName={getDefaultPokemonName}
           getTeamCounterDisplay={getTeamCounterDisplay}
           isStarterPokemon={isStarterPokemon}
+          hpMode={hpMode}
         />
 
         <TeamSection
@@ -172,6 +149,7 @@ export function TeamsView({
           getDefaultPokemonName={getDefaultPokemonName}
           getTeamCounterDisplay={getTeamCounterDisplay}
           isStarterPokemon={isStarterPokemon}
+          hpMode={hpMode}
         />
       </div>
     </>

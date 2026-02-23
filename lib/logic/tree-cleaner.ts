@@ -1,4 +1,6 @@
-import { TreeNode, TurnAction } from "@/types/types"
+import { resolveHpMaxFromState } from "@/lib/utils/hp-utils"
+import { BattleState, TreeNode, TurnAction } from "@/types/types"
+import { traverseTreeWithState } from "./tree-traversal"
 
 /**
  * Removes the specified nodes and all their descendants from the tree.
@@ -35,7 +37,7 @@ export function pruneTree(
   return nodes.filter(n => !nodesToRemove.has(n.id))
 }
 
-export type ModificationType = 'DELETE_POKEMON' | 'CHANGE_DEPLOYMENT'
+export type ModificationType = 'DELETE_POKEMON' | 'CHANGE_DEPLOYMENT' | 'CHANGE_HP_MODE'
 
 export interface IndexRef {
     side: 'my' | 'opponent'
@@ -161,5 +163,28 @@ export function sanitizeTreeForModification(
         })
     }
     
+    if (type === 'CHANGE_HP_MODE') {
+        const { newHpMode, initialState } = payload as { newHpMode: "percent" | "hp"; initialState: BattleState }
+
+        if (newHpMode === "hp") return nodes
+
+        // Deep copy nodes to mutate them safely in place during traversal
+        const clonedNodes = JSON.parse(JSON.stringify(nodes)) as TreeNode[]
+
+        traverseTreeWithState(clonedNodes, initialState, {
+            onBeforeDelta: (delta, currentState) => {
+                if (delta.type === 'HP_RELATIVE' && delta.unit === 'hp') {
+                    // Critical fix: We use currentState, not initialState, to get the HP Max
+                    const hpMax = resolveHpMaxFromState(currentState, delta.target)
+                    // Preserve sign; no rounding here — the stored value is the precise %
+                    delta.amount = (delta.amount / hpMax) * 100
+                    delta.unit = 'percent'
+                }
+            }
+        })
+
+        return clonedNodes
+    }
+
     return nodes
 }

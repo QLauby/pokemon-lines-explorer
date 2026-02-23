@@ -1,3 +1,4 @@
+import { convertHpDeltaToPercent, getEffectiveHpMax, recalcHpCurrent } from "@/lib/utils/hp-utils"
 import { BattleDelta, BattleState, StatsModifiers, TreeNode } from "@/types/types"
 
 export class BattleEngine {
@@ -106,7 +107,6 @@ export class BattleEngine {
         const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
         
         // Resolve battlefield slot to team index
-        // This ensures we hit whoever is CURRENTLY in this battlefield position
         const teamIndex = this.resolveSlotToTeamIndex(
           newState, 
           delta.target.side, 
@@ -114,18 +114,25 @@ export class BattleEngine {
         )
         
         if (teamIndex === null) {
-          // No Pokemon in this battlefield slot, skip damage application
           return newState
         }
         
         const targetPokemon = team[teamIndex]
         
         if (targetPokemon) {
-             const newHp = Math.max(0, Math.min(100, targetPokemon.hpPercent + delta.amount))
-             team[teamIndex] = { ...targetPokemon, hpPercent: newHp }
+             // --- Unit handling ---
+             const hpMax = getEffectiveHpMax(targetPokemon)
+             const deltaPercent = (delta.unit === "hp")
+               ? convertHpDeltaToPercent(delta.amount, hpMax)
+               : delta.amount
+
+             const newHpPercent = Math.max(0, Math.min(100, targetPokemon.hpPercent + deltaPercent))
+             // Maintain invariant: hpCurrent = round(hpPercent * hpMax / 100)
+             const newHpCurrent = recalcHpCurrent(newHpPercent, hpMax)
+             team[teamIndex] = { ...targetPokemon, hpPercent: newHpPercent, hpCurrent: newHpCurrent }
 
              // If the Pokémon just fainted, remove it from the battlefield slot.
-             if (newHp === 0) {
+             if (newHpPercent === 0) {
                const slots = delta.target.side === "my"
                  ? newState.activeSlots.myTeam
                  : newState.activeSlots.opponentTeam

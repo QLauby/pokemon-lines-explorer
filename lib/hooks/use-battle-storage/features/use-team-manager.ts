@@ -1,3 +1,4 @@
+import { updatePokemonHpPercent } from "@/lib/utils/hp-utils"
 import { BattleState, Pokemon } from "@/types/types"
 import { useState } from "react"
 import { BattleEngine } from "../../../logic/battle-engine"
@@ -46,6 +47,8 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
       heldItemName: defaultItemName,
       abilityName: defaultAbilityName,
       hpPercent: 100,
+      hpMax: 100,
+      hpCurrent: 100,
       attacks: [],
       status: null,
       confusion: false,
@@ -101,7 +104,7 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
   const setPokemonHealth = (id: string, isMyTeam: boolean, newHP: number) => {
      const team = isMyTeam ? myTeam : enemyTeam
      const pokemon = team.find((p: Pokemon) => p.id === id)
-     if (pokemon) updatePokemon({ ...pokemon, hpPercent: newHP }, isMyTeam)
+     if (pokemon) updatePokemon(updatePokemonHpPercent(pokemon, newHP), isMyTeam)
   }
 
   const setPokemonStatus = (id: string, isMyTeam: boolean, updates: any) => {

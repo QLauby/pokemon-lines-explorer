@@ -30,6 +30,7 @@ interface TurnsResolverProps {
   nextBattleState?: BattleState
   initialBattleState?: BattleState
   readOnly?: boolean
+  hpMode?: "percent" | "hp"
 }
 
 type Tab = "update" | "delete" | "next"
@@ -56,6 +57,7 @@ export function TurnsResolver({
   nextActivePokemon,
   nextBattleState,
   initialBattleState,
+  hpMode = "percent",
 }: TurnsResolverProps) {
   const [activeTab, setActiveTab] = useState<Tab>("next")
   const selectedNode = nodes.get(selectedNodeId)
@@ -129,6 +131,7 @@ export function TurnsResolver({
                  enemyTeam={updateParentEnemyTeam || enemyTeam}
                  onChange={onPreviewChange}
                  battleType={battleType}
+                 hpMode={hpMode}
                />
           )}
          {activeTab === "delete" && (
@@ -151,6 +154,7 @@ export function TurnsResolver({
                 battleType={battleType}
                 currentBattleState={nextBattleState}
                 initialBattleState={initialBattleState}
+                hpMode={hpMode}
             />
          )}
        </div>

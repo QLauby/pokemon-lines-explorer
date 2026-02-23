@@ -1,6 +1,5 @@
 "use client"
 
-import { getPokemonHpFromState } from "@/lib/utils/turn-logic-helpers"
 import { BattleState, Effect, Pokemon, SlotReference, TurnAction } from "@/types/types"
 import { EffectsList } from "./effects-list"
 
@@ -10,6 +9,7 @@ interface InitialDeploymentManagerProps {
   enemyTeam: Pokemon[]
   activeSlots: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   onUpdateAction: (index: number, action: TurnAction) => void
+  hpMode?: "percent" | "hp"
 }
 
 export function InitialDeploymentManager({
@@ -18,6 +18,7 @@ export function InitialDeploymentManager({
   enemyTeam,
   activeSlots,
   onUpdateAction,
+  hpMode = "percent",
 }: InitialDeploymentManagerProps) {
   
   // 1. Collect entering pokemon info for the title (Only initial deployments)
@@ -139,7 +140,8 @@ export function InitialDeploymentManager({
       deltas: [{
           type: "HP_RELATIVE",
           target: defaultTarget,
-          amount: 0
+          amount: 0,
+          unit: hpMode
       }]
     }
 
@@ -178,13 +180,14 @@ export function InitialDeploymentManager({
       
       <div className="pt-1">
         <EffectsList
-          title="Entry effects"
-          effects={flattenedEffects}
-          options={options}
-          onAdd={handleAdd}
-          onUpdate={handleUpdate}
-          onRemove={handleRemove}
-          getPokemonHp={(side, slotIndex) => getPokemonHpFromState({ activeSlots, myTeam, enemyTeam } as unknown as BattleState, side, slotIndex)}
+          title="Pre-Battle Entry Effects"
+          effects={flattenedEffects} 
+          options={options} 
+          onAdd={handleAdd} 
+          onUpdate={handleUpdate} 
+          onRemove={handleRemove} 
+          baseState={{ activeSlots, myTeam, enemyTeam } as unknown as BattleState}
+          hpMode={hpMode}
         />
       </div>
     </div>

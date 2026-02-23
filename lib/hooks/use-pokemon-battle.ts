@@ -17,6 +17,7 @@ export function usePokemonBattle() {
       sessions,
       createSession,
       setBattleType,
+      setHpMode,
       updateInitialState,
       saveSession
   } = useBattleSession()
@@ -102,6 +103,7 @@ export function usePokemonBattle() {
     state: {
         currentView,
         battleType: currentSession?.battleType || "simple",
+        hpMode: (currentSession?.hpMode ?? "percent") as "percent" | "hp",
         myTeam: currentState.myTeam,
         enemyTeam: currentState.enemyTeam,
         nodes: new Map((currentSession?.nodes || []).map((n: TreeNode) => [n.id, n])),
@@ -119,6 +121,7 @@ export function usePokemonBattle() {
     setters: {
         setCurrentView,
         setBattleType,
+        setHpMode,
         setNewMyPokemonName: teamManager.setNewMyPokemonName,
         setNewOpponentPokemonName: teamManager.setNewOpponentPokemonName,
         setSelectedNodeId: battleTree.setSelectedNodeId,

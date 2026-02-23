@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Effect, EffectType, SlotReference } from "@/types/types"
+import { Effect, EffectType, PokemonHpInfo, SlotReference } from "@/types/types"
 import { Trash2 } from "lucide-react"
 import { HpChangeEffect } from "./hp-change-effect"
 
@@ -12,7 +12,8 @@ interface EffectSelectionProps {
     onUpdate: (newEffect: Effect) => void
     onRemove: () => void
     readOnly?: boolean
-    getPokemonHp?: (side: "my" | "opponent", slotIndex: number) => number | undefined
+    getPokemonHp?: (side: "my" | "opponent", slotIndex: number) => PokemonHpInfo | undefined
+    hpMode?: "percent" | "hp"
 }
 
 const EFFECT_TYPE_LABELS: Record<EffectType, string> = {
@@ -27,7 +28,8 @@ export function EffectSelection({
     onUpdate,
     onRemove,
     readOnly,
-    getPokemonHp
+    getPokemonHp,
+    hpMode = "percent"
 }: EffectSelectionProps) {
     
     const targetOption = options.find(o => 
@@ -57,12 +59,12 @@ export function EffectSelection({
             ...effect,
             type: newType,
             deltas: newType === "hp-change" 
-                ? [{ type: "HP_RELATIVE", target: effect.target, amount: 0 }] 
+                ? [{ type: "HP_RELATIVE", target: effect.target, amount: 0, unit: hpMode }] 
                 : []
         })
     }
 
-    const initialHp = getPokemonHp?.(effect.target.side, effect.target.slotIndex)
+    const pokemonHpInfo = getPokemonHp?.(effect.target.side, effect.target.slotIndex)
 
     return (
         <div className={cn(
@@ -129,7 +131,10 @@ export function EffectSelection({
                         effect={effect}
                         onUpdate={onUpdate}
                         readOnly={readOnly}
-                        initialHp={initialHp}
+                        initialHp={pokemonHpInfo?.hpPercent}
+                        initialHpMax={pokemonHpInfo?.hpMax}
+                        initialHpCurrent={pokemonHpInfo?.hpCurrent}
+                        hpMode={hpMode}
                     />
                 )}
                 {effect.type === "status-change" && (

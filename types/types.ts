@@ -20,7 +20,14 @@ export interface StatsModifiers {
   crit: number;
 }
 
-export interface Pokemon {
+export type PokemonHpInfo = {
+  hpPercent: number
+  hpMax?: number
+  hpCurrent?: number
+  rawHpExpression?: string
+}
+
+export interface Pokemon extends PokemonHpInfo {
   id: string
   name: string
   types: PokemonType[]
@@ -28,7 +35,7 @@ export interface Pokemon {
   heldItemName?: string
   abilityName?: string
   isTerastallized?: boolean
-  hpPercent: number
+  // hpPercent, hpMax, hpCurrent inherited from PokemonHpInfo
   attacks: Attack[]
   status: PokemonStatus
   sleepCounter?: number
@@ -75,7 +82,7 @@ export interface SlotReference {
 
 // Delta Definitions
 export type BattleDelta =
-  | { type: "HP_RELATIVE"; target: SlotReference; amount: number }
+  | { type: "HP_RELATIVE"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string }
   | { type: "SWITCH"; side: "my" | "opponent"; fromSlot: number; toSlot: number; slotIndex?: number }
   | { type: "PP_CHANGE"; target: SlotReference; moveName: string; amount: number }
 
@@ -97,8 +104,10 @@ export interface TurnAction {
   actionDeltas: BattleDelta[]
   effects: Effect[]
   isCollapsed?: boolean 
-  // Flag indicating the switch-after-ko was created by fusing (deleting) an action
-  fusedFrom?: boolean
+  // Flag indicating the switch-after-ko was created by a KO trigger
+  triggeredByKO?: boolean
+  // ID of the Pokemon that fainted, triggering this switch-after-ko
+  faintedPokemonId?: string
   metadata?: {
     itemName?: string
     attackName?: string
@@ -124,6 +133,7 @@ export interface CombatSession {
   id: string
   name: string
   battleType: "simple" | "double"
+  hpMode?: "percent" | "hp"  // Default: "percent"
   initialState: BattleState
   nodes: TreeNode[]
   lastSelectedNodeId?: string
