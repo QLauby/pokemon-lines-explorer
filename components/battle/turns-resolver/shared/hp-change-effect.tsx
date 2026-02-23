@@ -3,7 +3,7 @@
 import { EditableText } from "@/components/shared/editable-text"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { convertAmountLocalToggle } from "@/lib/utils/hp-utils"
+import { convertAmountLocalToggle, convertPercentDeltaToHp } from "@/lib/utils/hp-utils"
 import { floatToFraction } from "@/lib/utils/math-utils"
 import { Effect } from "@/types/types"
 import React from "react"
@@ -31,18 +31,31 @@ export function HpChangeEffect({
 }: HpChangeEffectProps) {
     const delta = effect.deltas[0]
 
-    if (!delta || delta.type !== "HP_RELATIVE") {
+    if (!delta || (delta.type !== "HP_RELATIVE" && delta.type !== "HP_SET")) {
         return <div className="text-red-500 text-xs">Invalid Effect State</div>
     }
 
-    // ── Damage / Healing toggle state ────────────────────────────────────────
-    const [isHealingUI, setIsHealingUI] = React.useState(delta.amount > 0)
+    type HpModeUI = "damage" | "heal" | "set"
+
+    // ── Mode toggle state ───────────────────────────────────────────────
+    const [modeUI, setModeUI] = React.useState<HpModeUI>(
+        delta.type === "HP_SET" ? "set" : (delta.amount > 0 ? "heal" : "damage")
+    )
 
     React.useEffect(() => {
-        if (delta.amount !== 0) setIsHealingUI(delta.amount > 0)
-    }, [delta.amount])
+        if (delta.type === "HP_SET") {
+            setModeUI("set")
+        } else if (delta.amount !== 0) {
+            setModeUI(delta.amount > 0 ? "heal" : "damage")
+        }
+    }, [delta.type, delta.amount])
 
-    const isHealing = delta.amount !== 0 ? delta.amount > 0 : isHealingUI
+    const currentMode: HpModeUI = delta.type === "HP_SET" 
+        ? "set" 
+        : (delta.amount !== 0 ? (delta.amount > 0 ? "heal" : "damage") : (modeUI === "set" ? "damage" : modeUI))
+
+    // Fallback for visualization before Phase 3 (we treat set like damage by default to avoid breaking)
+    const isHealing = currentMode === "heal"
 
     // ── Local unit toggle (%/HP on this single effect) ───────────────────────
     const isLockedToPercent = hpMode === "percent"
@@ -54,14 +67,15 @@ export function HpChangeEffect({
         const newUnit = effectiveUnit === "percent" ? "hp" : "percent"
         const hpMax = initialHpMax ?? 100
         const converted = convertAmountLocalToggle(Math.abs(delta.amount), effectiveUnit, hpMax)
-        const newAmount = isHealing ? converted : -converted
+        const newAmount = currentMode === "damage" ? -converted : Math.abs(converted)
         let newEq = undefined;
         if (newUnit === "percent") {
             newEq = "= " + floatToFraction(Math.abs(delta.amount) / hpMax);
         }
+        
         onUpdate({
             ...effect,
-            deltas: [{ ...delta, amount: newAmount, unit: newUnit, rawAmountExpression: newEq }]
+            deltas: [{ ...delta, amount: newAmount, unit: newUnit, rawAmountExpression: newEq } as any]
         })
     }
 
@@ -72,21 +86,29 @@ export function HpChangeEffect({
     const handleAmountChange = (valStr: string) => {
         let val = parseFloat(valStr) || 0;
         if (effectiveUnit === "percent") val = val * 100;
-        const newAmount = isHealing ? val : -val
+        const newAmount = currentMode === "damage" ? -Math.abs(val) : Math.abs(val)
         onUpdate({
             ...effect,
-            deltas: [{ ...delta, amount: newAmount, unit: effectiveUnit, rawAmountExpression: equationRef.current }]
+            deltas: [{ ...delta, amount: newAmount, unit: effectiveUnit, rawAmountExpression: equationRef.current } as any]
         })
     }
 
     const handleModeToggle = () => {
-        const newIsHealing = !isHealing
-        setIsHealingUI(newIsHealing)
-        if (currentAmount !== 0) {
-            const newAmount = newIsHealing ? currentAmount : -currentAmount
+        const nextMode: Record<HpModeUI, HpModeUI> = {
+            "damage": "heal",
+            "heal": "set",
+            "set": "damage"
+        }
+        const newMode = nextMode[currentMode]
+        setModeUI(newMode)
+
+        const newType = newMode === "set" ? "HP_SET" : "HP_RELATIVE"
+        const newAmount = newMode === "damage" ? -currentAmount : currentAmount
+
+        if (currentAmount !== 0 || newType !== delta.type) {
             onUpdate({
                 ...effect,
-                deltas: [{ ...delta, amount: newAmount, unit: effectiveUnit }]
+                deltas: [{ ...delta, type: newType, amount: newAmount, unit: effectiveUnit } as any]
             })
         }
     }
@@ -115,13 +137,51 @@ export function HpChangeEffect({
     let barContent = null
 
     if (initialHp !== undefined) {
-        if (!isHealing) {
-            const startHp = initialHp
-            const rawDamagePct = toPercent(currentAmount)
-            const damagePct = Math.min(startHp, rawDamagePct) // Limit visual damage to remaining HP
-            const endHp = startHp - damagePct
-            const damage = damagePct
+        const startHp = initialHp
+        const maxHp = initialHpMax ?? 100
+        const actualStartHp = initialHpCurrent ?? Math.round((startHp / 100) * maxHp)
 
+        let isEffectivelyHealing = currentMode === "heal";
+        let endHp = 0;
+        let diffPct = 0;
+        let actualEndHp = 0;
+        let actualDiff = 0;
+
+        if (currentMode === "set") {
+            let targetHp = effectiveUnit === "hp" ? currentAmount : Math.round((currentAmount / 100) * maxHp)
+            actualEndHp = Math.max(0, Math.min(maxHp, targetHp))
+            endHp = (actualEndHp / maxHp) * 100
+
+            if (actualEndHp >= actualStartHp) {
+                isEffectivelyHealing = true;
+                actualDiff = actualEndHp - actualStartHp
+                diffPct = endHp - startHp
+            } else {
+                isEffectivelyHealing = false;
+                actualDiff = actualStartHp - actualEndHp
+                diffPct = startHp - endHp
+            }
+        } else if (currentMode === "heal") {
+            const rawHealedPct = toPercent(currentAmount)
+            const healedPct = Math.min(100 - startHp, rawHealedPct) 
+            endHp = startHp + healedPct
+            diffPct = healedPct
+
+            const rawHealedFloor = effectiveUnit === "hp" ? currentAmount : Math.abs(convertPercentDeltaToHp(currentAmount, maxHp))
+            actualDiff = Math.min(maxHp - actualStartHp, rawHealedFloor)
+            actualEndHp = actualStartHp + actualDiff
+        } else {
+            const rawDamagePct = toPercent(currentAmount)
+            const damagePct = Math.min(startHp, rawDamagePct) 
+            endHp = startHp - damagePct
+            diffPct = damagePct
+
+            const rawDamageFloor = effectiveUnit === "hp" ? currentAmount : Math.abs(convertPercentDeltaToHp(currentAmount, maxHp))
+            actualDiff = Math.min(actualStartHp, rawDamageFloor)
+            actualEndHp = actualStartHp - actualDiff
+        }
+
+        if (!isEffectivelyHealing) {
             barContent = (
                 <>
                     <div
@@ -129,26 +189,20 @@ export function HpChangeEffect({
                         style={{ width: `${endHp}%` }}
                     >
                         {endHp > 10 && (hpMode === "hp"
-                            ? `${Math.round((endHp / 100) * (initialHpMax ?? 100))}`
+                            ? `${actualEndHp}`
                             : `${endHp.toFixed(0)}%`)}
                     </div>
                     <div
                         className="absolute top-0 h-full bg-red-500/50 transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white"
-                        style={{ left: `${endHp}%`, width: `${damage}%` }}
+                        style={{ left: `${endHp}%`, width: `${diffPct}%` }}
                     >
-                        {damage > 5 && (hpMode === "hp"
-                            ? `-${Math.round((damage / 100) * (initialHpMax ?? 100))}`
-                            : `-${damage.toFixed(0)}%`)}
+                        {diffPct > 5 && (hpMode === "hp"
+                            ? `-${actualDiff}`
+                            : `-${diffPct.toFixed(0)}%`)}
                     </div>
                 </>
             )
         } else {
-            const startHp = initialHp
-            const rawHealedPct = toPercent(currentAmount)
-            const healedPct = Math.min(100 - startHp, rawHealedPct) // Limit visual heal to missing HP
-            const endHp = startHp + healedPct
-            const healed = healedPct
-
             barContent = (
                 <>
                     <div
@@ -156,16 +210,16 @@ export function HpChangeEffect({
                         style={{ width: `${startHp}%` }}
                     >
                         {startHp > 10 && (hpMode === "hp"
-                            ? `${Math.round((startHp / 100) * (initialHpMax ?? 100))}`
+                            ? `${actualStartHp}`
                             : `${startHp.toFixed(0)}%`)}
                     </div>
                     <div
                         className="absolute top-0 h-full bg-green-500/50 transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white"
-                        style={{ left: `${startHp}%`, width: `${healed}%` }}
+                        style={{ left: `${startHp}%`, width: `${diffPct}%` }}
                     >
-                        {healed > 5 && (hpMode === "hp"
-                            ? `+${Math.round((healed / 100) * (initialHpMax ?? 100))}`
-                            : `+${healed.toFixed(0)}%`)}
+                        {diffPct > 5 && (hpMode === "hp"
+                            ? `+${actualDiff}`
+                            : `+${diffPct.toFixed(0)}%`)}
                     </div>
                 </>
             )
@@ -176,7 +230,7 @@ export function HpChangeEffect({
             <div
                 className={cn(
                     "h-full transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white",
-                    isHealing ? "bg-green-500/50" : "bg-red-500/50"
+                    currentMode === "heal" ? "bg-green-500/50" : currentMode === "damage" ? "bg-red-500/50" : "bg-blue-500/50"
                 )}
                 style={{ width: `${percentage}%` }}
             >
@@ -201,15 +255,17 @@ export function HpChangeEffect({
                     size="icon"
                     className={cn(
                         "w-7 h-7 font-bold text-sm transition-all border",
-                        isHealing
+                        currentMode === "heal"
                             ? "bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                            : "bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                        : currentMode === "damage"
+                            ? "bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
+                            : "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
                     )}
                     onClick={handleModeToggle}
                     disabled={readOnly}
-                    title={isHealing ? "Switch to Damage" : "Switch to Healing"}
+                    title={currentMode === "heal" ? "Switch to Set (=)" : currentMode === "damage" ? "Switch to Healing (+)" : "Switch to Damage (-)"}
                 >
-                    {isHealing ? "+" : "−"}
+                    {currentMode === "heal" ? "+" : currentMode === "damage" ? "−" : "="}
                 </Button>
 
                 <EditableText

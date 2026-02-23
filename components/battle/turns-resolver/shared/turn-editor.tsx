@@ -19,7 +19,7 @@ import { ActionItem } from "./action-item"
 interface TurnEditorProps {
   initialTurnData?: TurnData
   initialBattleState?: BattleState | null
-  activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
+  activePokemon: { pokemon: Pokemon; isAlly: boolean; slotIndex?: number }[]
   onSave: (data: TurnData) => void
   saveLabel: string
   readOnly?: boolean

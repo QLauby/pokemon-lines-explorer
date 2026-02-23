@@ -16,7 +16,7 @@ interface UseTurnInitializationProps {
   initialTurnData?: TurnData
   turnNumber: number
   battleFormat: "simple" | "double"
-  initialActivePokemon: { pokemon: Pokemon | undefined; isAlly: boolean }[]
+  initialActivePokemon: { pokemon: Pokemon | undefined; isAlly: boolean; slotIndex?: number }[]
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
   setActions: Dispatch<SetStateAction<TurnAction[]>>
@@ -101,10 +101,9 @@ export function useTurnInitialization({
     }
 
     // ── Case 3: Turn 1+ — Default attack actions ───────────────
-    const resolvedActions: TurnAction[] = initialActivePokemon.map(ap => {
+    const resolvedActions: TurnAction[] = initialActivePokemon.map((ap, idx) => {
       const side: "my" | "opponent" = ap.isAlly ? "my" : "opponent"
-      const team = ap.isAlly ? myTeam : enemyTeam
-      const slotIndex = team.findIndex(p => p.id === ap.pokemon?.id)
+      const slotIndex = "slotIndex" in ap && typeof ap.slotIndex === "number" ? ap.slotIndex : (idx % (battleFormat === "double" ? 2 : 1))
 
       return {
         id: `default-${side}-${slotIndex}`,

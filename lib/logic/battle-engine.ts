@@ -1,4 +1,4 @@
-import { convertHpDeltaToPercent, getEffectiveHpMax, recalcHpCurrent } from "@/lib/utils/hp-utils"
+import { convertPercentDeltaToHp, getEffectiveHpMax, recalcHpPercent } from "@/lib/utils/hp-utils"
 import { BattleDelta, BattleState, StatsModifiers, TreeNode } from "@/types/types"
 
 export class BattleEngine {
@@ -103,7 +103,8 @@ export class BattleEngine {
     }
 
     switch (delta.type) {
-      case "HP_RELATIVE": {
+      case "HP_RELATIVE":
+      case "HP_SET": {
         const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
         
         // Resolve battlefield slot to team index
@@ -122,13 +123,31 @@ export class BattleEngine {
         if (targetPokemon) {
              // --- Unit handling ---
              const hpMax = getEffectiveHpMax(targetPokemon)
-             const deltaPercent = (delta.unit === "hp")
-               ? convertHpDeltaToPercent(delta.amount, hpMax)
-               : delta.amount
+             
+             let newHpCurrent: number;
 
-             const newHpPercent = Math.max(0, Math.min(100, targetPokemon.hpPercent + deltaPercent))
-             // Maintain invariant: hpCurrent = round(hpPercent * hpMax / 100)
-             const newHpCurrent = recalcHpCurrent(newHpPercent, hpMax)
+             if (delta.type === "HP_SET") {
+                 // 1. Calculate the exact targeted HP
+                 const targetHp = delta.unit === "hp" 
+                     ? delta.amount 
+                     : Math.round((delta.amount / 100) * hpMax)
+                     
+                 // 2. Bound it to max/min
+                 newHpCurrent = Math.max(0, Math.min(hpMax, targetHp))
+             } else {
+                 // 1. Calculate the exact HP change using Math.trunc for correct rounding (-12.5 -> -12)
+                 const deltaHp = delta.unit === "hp" 
+                     ? delta.amount 
+                     : convertPercentDeltaToHp(delta.amount, hpMax)
+                     
+                 // 2. Apply it to hpCurrent and bound it
+                 const currentHp = targetPokemon.hpCurrent ?? hpMax
+                 newHpCurrent = Math.max(0, Math.min(hpMax, currentHp + deltaHp))
+             }
+             
+             // 3. Recalculate percent strictly from the new current HP
+             const newHpPercent = recalcHpPercent(newHpCurrent, hpMax)
+             
              team[teamIndex] = { ...targetPokemon, hpPercent: newHpPercent, hpCurrent: newHpCurrent }
 
              // If the Pokémon just fainted, remove it from the battlefield slot.

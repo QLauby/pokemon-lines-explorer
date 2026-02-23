@@ -29,15 +29,11 @@ export function CurrentState({
 
   const myActive = (activeSlots?.myTeam || [0, 1])
     .slice(0, activeCount)
-    .filter((idx): idx is number => idx !== null)
-    .map(idx => myTeam[idx])
-    .filter(Boolean)
+    .map(idx => (idx !== null && idx !== undefined ? myTeam[idx] : null))
 
   const enemyActive = (activeSlots?.opponentTeam || [0, 1])
     .slice(0, activeCount)
-    .filter((idx): idx is number => idx !== null)
-    .map(idx => enemyTeam[idx])
-    .filter(Boolean)
+    .map(idx => (idx !== null && idx !== undefined ? enemyTeam[idx] : null))
 
   const cleanForBench = (p: Pokemon): Pokemon => ({
     ...p,
@@ -95,21 +91,25 @@ export function CurrentState({
                 "grid gap-2 items-start", 
                 battleType === "double" ? "grid-cols-2" : "grid-cols-1 justify-items-center"
              )}>
-                {myActive.map((pokemon) => (
-                    <PokemonCardDisplay 
-                        key={`active-${pokemon.id}`}
-                        pokemon={pokemon}
-                        mode="deployed"
-                        isMyTeam={true}
-                        hpMode={hpMode}
-                        className={cn(battleType === "simple" && "w-[calc(50%-4px)]")}
-                    />
+                {myActive.map((pokemon, slotIndex) => (
+                    pokemon ? (
+                        <PokemonCardDisplay 
+                            key={`active-${pokemon.id}`}
+                            pokemon={pokemon}
+                            mode="deployed"
+                            isMyTeam={true}
+                            hpMode={hpMode}
+                            className={cn(battleType === "simple" && "w-[calc(50%-4px)]")}
+                        />
+                    ) : (
+                        <div key={`empty-my-${slotIndex}`} className={cn(
+                            "w-full h-full min-h-[50px] rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-[10px] uppercase font-bold bg-gray-50/50",
+                            battleType === "simple" && "w-[calc(50%-4px)]"
+                        )}>
+                            Empty Slot
+                        </div>
+                    )
                 ))}
-                {myActive.length === 0 && (
-                    <div className="w-full h-16 rounded-lg border border-dashed border-gray-100 flex items-center justify-center text-gray-400 text-[9px] uppercase font-bold bg-gray-50/50">
-                        None active
-                    </div>
-                )}
              </div>
            </div>
 
@@ -138,21 +138,25 @@ export function CurrentState({
                 "grid gap-2 items-start", 
                 battleType === "double" ? "grid-cols-2" : "grid-cols-1 justify-items-center"
              )}>
-                {enemyActive.map((pokemon) => (
-                    <PokemonCardDisplay 
-                        key={`active-enemy-${pokemon.id}`}
-                        pokemon={pokemon}
-                        mode="deployed"
-                        isMyTeam={false}
-                        hpMode={hpMode}
-                        className={cn(battleType === "simple" && "w-[calc(50%-4px)]")}
-                    />
+                {enemyActive.map((pokemon, slotIndex) => (
+                    pokemon ? (
+                        <PokemonCardDisplay 
+                            key={`active-enemy-${pokemon.id}`}
+                            pokemon={pokemon}
+                            mode="deployed"
+                            isMyTeam={false}
+                            hpMode={hpMode}
+                            className={cn(battleType === "simple" && "w-[calc(50%-4px)]")}
+                        />
+                    ) : (
+                        <div key={`empty-enemy-${slotIndex}`} className={cn(
+                            "w-full h-full min-h-[64px] rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-[10px] uppercase font-bold bg-gray-50/50",
+                            battleType === "simple" && "w-[calc(50%-4px)]"
+                        )}>
+                            Empty Slot
+                        </div>
+                    )
                 ))}
-                {enemyActive.length === 0 && (
-                    <div className="w-full h-16 rounded-lg border border-dashed border-gray-100 flex items-center justify-center text-gray-400 text-[9px] uppercase font-bold bg-gray-50/50">
-                        None active
-                    </div>
-                )}
              </div>
            </div>
         </div>

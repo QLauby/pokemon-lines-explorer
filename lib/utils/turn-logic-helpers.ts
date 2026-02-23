@@ -34,20 +34,20 @@ export function getActivePokemonFromState(
 
   return [
     ...myActiveIndices
-      .filter((idx): idx is number => idx !== null && idx !== undefined)
-      .map(idx => {
+      .map((idx, battlefieldSlot) => {
+        if (idx === null || idx === undefined) return null;
         const pokemon = state.myTeam[idx]
         if (!pokemon) return null
-        return { pokemon, isAlly: true, slotIndex: idx }
+        return { pokemon, isAlly: true, slotIndex: battlefieldSlot }
       })
       .filter((p): p is NonNullable<typeof p> => p !== null),
 
     ...enemyActiveIndices
-      .filter((idx): idx is number => idx !== null && idx !== undefined)
-      .map(idx => {
+      .map((idx, battlefieldSlot) => {
+        if (idx === null || idx === undefined) return null;
         const pokemon = state.enemyTeam[idx]
         if (!pokemon) return null
-        return { pokemon, isAlly: false, slotIndex: idx }
+        return { pokemon, isAlly: false, slotIndex: battlefieldSlot }
       })
       .filter((p): p is NonNullable<typeof p> => p !== null),
   ]

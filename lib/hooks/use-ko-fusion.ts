@@ -126,8 +126,8 @@ export function useKoFusion({
     
         // 1. Update Persistent Cache with current known choices
         actions.forEach(action => {
-             if (action.type === "switch-after-ko") {
-                 const key = `${action.actor.side}-${action.actor.slotIndex}`
+             if (action.type === "switch-after-ko" && action.faintedPokemonId) {
+                 const key = action.faintedPokemonId
                  orphanedChoicesRef.current.set(key, { 
                      id: action.id,
                      target: action.target, 
@@ -256,8 +256,8 @@ export function useKoFusion({
         // Identify switches that no longer have a matching KO requirement
         inputSwitchActions.forEach(switchAction => {
             const hasRequirement = requirements.some(r => 
-                r.side === switchAction.actor.side && 
-                r.slotIndex === switchAction.actor.slotIndex
+                r.pokemonId === switchAction.faintedPokemonId ||
+                (r.side === switchAction.actor.side && r.slotIndex === switchAction.actor.slotIndex && !switchAction.faintedPokemonId)
             )
             
             // If KO disappeared AND switch was fused, restore the original action
@@ -288,15 +288,15 @@ export function useKoFusion({
         requirements.sort((a, b) => a.koOrderIndex - b.koOrderIndex)
 
         requirements.forEach(req => {
-            const key = `${req.side}-${req.slotIndex}`
+            const key = req.pokemonId
             const cachedSwitch = orphanedChoices.get(key)
             
             const triggeredByKO = (req as any)._triggeredByKO
             
-            // Check for ANY existing switch (fused or unfused) for this side/slot
+            // Check for ANY existing switch (fused or unfused) mapping to this exact KO, 
             const existingSwitch = inputSwitchActions.find(a => 
-                a.actor.side === req.side && 
-                a.actor.slotIndex === req.slotIndex
+                a.faintedPokemonId === req.pokemonId || 
+                (a.actor.side === req.side && a.actor.slotIndex === req.slotIndex && !a.faintedPokemonId)
             )
 
             // Check if there are available bench members for this switch
