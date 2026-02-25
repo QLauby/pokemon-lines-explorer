@@ -8,7 +8,7 @@ import { KO_BG_COLOR, KO_BORDEAUX } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils"
 import { BattleState, Effect, Pokemon, SlotReference, TurnAction, TurnActionType } from "@/types/types"
 
-import { EffectsList } from "./effects-list"
+import { EffectsList } from "../battle-effects/effects-list"
 
 interface PokemonActionProps {
   action: TurnAction

@@ -28,8 +28,8 @@ export function PokemonCardDisplayStatus({ pokemon }: PokemonCardDisplayStatusPr
     <div className="flex flex-wrap items-center gap-1.5">
        {statusInfos.map(info => {
            const counter = 
-              info.type === "sleep" ? pokemon.sleepCounter : 
-              info.type === "confusion" ? pokemon.confusionCounter : 
+              (info.type === "sleep" && pokemon.showSleepCounter) ? pokemon.sleepCounter : 
+              (info.type === "confusion" && pokemon.showConfusionCounter) ? pokemon.confusionCounter : 
               undefined;
 
            return (
@@ -45,7 +45,7 @@ export function PokemonCardDisplayStatus({ pokemon }: PokemonCardDisplayStatusPr
                       iconRatio={0.7}
                       readOnly={true}
                   />
-                  {counter !== undefined && counter > 0 && (
+                  {counter !== undefined && (
                       <div className="flex items-center">
                           <div 
                               className="font-medium text-gray-400 select-none flex items-center justify-center translate-y-[-0.5px]" 

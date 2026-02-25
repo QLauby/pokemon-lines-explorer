@@ -2,9 +2,10 @@
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Effect, EffectType, PokemonHpInfo, SlotReference } from "@/types/types"
+import { Effect, EffectType, Pokemon, PokemonHpInfo, SlotReference } from "@/types/types"
 import { Trash2 } from "lucide-react"
 import { HpChangeEffect } from "./hp-change-effect"
+import { StatusChangeEffect } from "./status-change-effect"
 
 interface EffectSelectionProps {
     effect: Effect
@@ -13,6 +14,7 @@ interface EffectSelectionProps {
     onRemove: () => void
     readOnly?: boolean
     getPokemonHp?: (side: "my" | "opponent", slotIndex: number) => PokemonHpInfo | undefined
+    getPokemon?: (side: "my" | "opponent", slotIndex: number) => Pokemon | undefined
     hpMode?: "percent" | "hp"
 }
 
@@ -29,6 +31,7 @@ export function EffectSelection({
     onRemove,
     readOnly,
     getPokemonHp,
+    getPokemon,
     hpMode = "percent"
 }: EffectSelectionProps) {
     
@@ -60,6 +63,8 @@ export function EffectSelection({
             type: newType,
             deltas: newType === "hp-change" 
                 ? [{ type: "HP_RELATIVE", target: effect.target, amount: 0, unit: hpMode }] 
+                : newType === "status-change"
+                ? [{ type: "STATUS_DELTAS", target: effect.target, operations: [] }]
                 : []
         })
     }
@@ -138,9 +143,12 @@ export function EffectSelection({
                     />
                 )}
                 {effect.type === "status-change" && (
-                    <div className="text-[11px] text-muted-foreground italic py-1">
-                        Status Change — bientôt disponible
-                    </div>
+                    <StatusChangeEffect
+                        effect={effect}
+                        onUpdate={onUpdate}
+                        readOnly={readOnly}
+                        initialPokemon={getPokemon?.(effect.target.side, effect.target.slotIndex)}
+                    />
                 )}
                 {effect.type === "stats-modifier" && (
                     <div className="text-[11px] text-muted-foreground italic py-1">

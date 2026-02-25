@@ -28,10 +28,12 @@ interface StatusSelectorProps {
     },
   ) => void
   readOnly?: boolean
+  showLabel?: boolean
+  centerItems?: boolean
 }
 
 
-export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false }: StatusSelectorProps) {
+export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, showLabel = true, centerItems = false }: StatusSelectorProps) {
   const showSleepCounter = pokemon.showSleepCounter
   const showConfusionCounter = pokemon.showConfusionCounter
   const [isCounterMounting, setIsCounterMounting] = useState(showSleepCounter)
@@ -134,8 +136,8 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false }
   const counterHeight = 22
 
   return (
-    <div className="flex items-center gap-1">
-      <span className="text-xs text-gray-600 mr-1">Statut :</span>
+    <div className={`flex items-center gap-1 flex-wrap ${centerItems ? "justify-center" : ""}`}>
+      {showLabel && <span className="text-xs text-gray-600 mr-1">Statut :</span>}
       {exclusiveStatuses.map(({ type, icon, activeColor, title }) => {
         if (type === "badly-poison") return null
 

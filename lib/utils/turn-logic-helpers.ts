@@ -205,3 +205,24 @@ export function getPokemonHpFromState(
 
     return { hpPercent, hpMax, hpCurrent }
 }
+
+/**
+ * Resolves a Pokémon from the BattleState based on side and slot index.
+ * Returns the full Pokemon object or undefined if the slot is empty.
+ */
+export function getPokemonFromState(
+    state: BattleState,
+    side: "my" | "opponent",
+    slotIndex: number
+): NonNullable<BattleState["myTeam"][number]> | undefined {
+    const isMySide = side === "my"
+    const slots = isMySide ? state.activeSlots?.myTeam : state.activeSlots?.opponentTeam
+    const team = isMySide ? state.myTeam : state.enemyTeam
+    
+    if (!slots || !team) return undefined
+
+    const teamIndex = slots[slotIndex]
+    if (teamIndex === null || teamIndex === undefined) return undefined
+    
+    return team[teamIndex]
+}

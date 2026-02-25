@@ -81,11 +81,18 @@ export interface SlotReference {
 }
 
 // Delta Definitions
+export type StatusOperation =
+  | { type: "ADD"; status: PokemonStatus | "confusion" | "love" }
+  | { type: "REMOVE"; status: PokemonStatus | "confusion" | "love" }
+  | { type: "COUNTER_RELATIVE"; status: "sleep" | "confusion"; amount: number }
+  | { type: "COUNTER_TOGGLE"; status: "sleep" | "confusion"; show: boolean }
+
 export type BattleDelta =
   | { type: "HP_RELATIVE"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string }
   | { type: "HP_SET"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string }
   | { type: "SWITCH"; side: "my" | "opponent"; fromSlot: number; toSlot: number; slotIndex?: number }
   | { type: "PP_CHANGE"; target: SlotReference; moveName: string; amount: number }
+  | { type: "STATUS_DELTAS"; target: SlotReference; operations: StatusOperation[] }
 
 export type TurnActionType = "attack" | "switch" | "item" | "switch-after-ko"
 

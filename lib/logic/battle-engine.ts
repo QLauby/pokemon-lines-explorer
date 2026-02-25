@@ -229,6 +229,62 @@ export class BattleEngine {
         return newState
       }
 
+      case "STATUS_DELTAS": {
+        const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
+        const teamIndex = this.resolveSlotToTeamIndex(
+          newState,
+          delta.target.side,
+          delta.target.slotIndex
+        )
+        
+        if (teamIndex === null) return newState
+        
+        const targetPokemon = { ...team[teamIndex] }
+        
+        if (targetPokemon) {
+            for (const op of delta.operations) {
+                switch (op.type) {
+                    case "ADD":
+                        if (op.status === "confusion" || op.status === "love") {
+                            targetPokemon[op.status] = true
+                        } else {
+                            targetPokemon.status = op.status
+                        }
+                        break
+                    case "REMOVE":
+                        if (op.status === "confusion" || op.status === "love") {
+                            targetPokemon[op.status] = false
+                        } else {
+                            targetPokemon.status = null
+                        }
+                        break
+                    case "COUNTER_RELATIVE": {
+                        const counterKey = op.status === "sleep" ? "sleepCounter" : "confusionCounter"
+                        const currentValue = targetPokemon[counterKey] ?? 0
+                        targetPokemon[counterKey] = currentValue + op.amount
+                        break
+                    }
+                    case "COUNTER_TOGGLE": {
+                        const showKey = op.status === "sleep" ? "showSleepCounter" : "showConfusionCounter"
+                        const counterKey = op.status === "sleep" ? "sleepCounter" : "confusionCounter"
+                        
+                        targetPokemon[showKey] = op.show
+                        
+                        // Safety: if we toggle ON and it's undefined, init to 0. If OFF, reset to undefined.
+                        if (op.show === true && targetPokemon[counterKey] === undefined) {
+                            targetPokemon[counterKey] = 0
+                        } else if (op.show === false) {
+                            targetPokemon[counterKey] = undefined
+                        }
+                        break
+                    }
+                }
+            }
+            team[teamIndex] = targetPokemon
+        }
+        return newState
+      }
+
       default:
         return state
     }

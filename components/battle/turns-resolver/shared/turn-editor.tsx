@@ -8,7 +8,7 @@ import { BattleState, Pokemon, TurnData } from "@/types/types"
 
 import { useKoFusion } from "@/lib/hooks/use-ko-fusion"
 import { usePostTurnSwitches } from "@/lib/hooks/use-post-turn-switches"
-import { EffectsList } from "./effects-list"
+import { EffectsList } from "../battle-effects/effects-list"
 import { InitialDeploymentManager } from "./initial-deployment-manager"
 
 import { useTurnEditorState } from "@/lib/hooks/use-turn-editor-state"

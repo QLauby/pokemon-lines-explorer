@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { BattleEngine } from "@/lib/logic/battle-engine"
-import { getPokemonHpFromState } from "@/lib/utils/turn-logic-helpers"
+import { getPokemonFromState, getPokemonHpFromState } from "@/lib/utils/turn-logic-helpers"
 import { BattleState, Effect, SlotReference } from "@/types/types"
 import { Plus } from "lucide-react"
 import { EffectSelection } from "./effect-selection"
@@ -81,6 +81,11 @@ export function EffectsList({
                   const stateForThisEffect = effectStates[index] || baseState
                   if (!stateForThisEffect) return undefined
                   return getPokemonHpFromState(stateForThisEffect, side, slotIndex)
+              }}
+              getPokemon={(side, slotIndex) => {
+                  const stateForThisEffect = effectStates[index] || baseState
+                  if (!stateForThisEffect) return undefined
+                  return getPokemonFromState(stateForThisEffect, side, slotIndex)
               }}
               hpMode={hpMode}
             />

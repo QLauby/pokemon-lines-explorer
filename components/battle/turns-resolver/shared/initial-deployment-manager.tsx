@@ -1,7 +1,7 @@
 "use client"
 
 import { BattleState, Effect, Pokemon, SlotReference, TurnAction } from "@/types/types"
-import { EffectsList } from "./effects-list"
+import { EffectsList } from "../battle-effects/effects-list"
 
 interface InitialDeploymentManagerProps {
   actions: TurnAction[]
