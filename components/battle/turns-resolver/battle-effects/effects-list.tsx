@@ -1,14 +1,16 @@
 import { Button } from "@/components/ui/button"
 import { BattleEngine } from "@/lib/logic/battle-engine"
-import { getPokemonFromState, getPokemonHpFromState } from "@/lib/utils/turn-logic-helpers"
-import { BattleState, Effect, SlotReference } from "@/types/types"
+import { getDynamicEffectTargets, getPokemonByTeamIndexFromState, getPokemonFromState, getPokemonHpByTeamIndexFromState, getPokemonHpFromState } from "@/lib/utils/turn-logic-helpers"
+import { BattleState, Effect, SlotReference, TurnAction } from "@/types/types"
 import { Plus } from "lucide-react"
 import { EffectSelection } from "./effect-selection"
 
 interface EffectsListProps {
   title?: string
   effects: Effect[]
-  options: { label: string; value: SlotReference; isAlly: boolean }[]
+  action?: TurnAction
+  options?: { label: string; value: SlotReference; isAlly: boolean }[]
+  actor?: { pokemon: { name: string, hpPercent?: number }, isAlly: boolean, teamIndex?: number }
   onAdd: () => void
   onUpdate: (index: number, newEffect: Effect) => void
   onRemove: (index: number) => void
@@ -20,7 +22,9 @@ interface EffectsListProps {
 export function EffectsList({
   title = "Effects",
   effects,
-  options,
+  action,
+  options = [],
+  actor,
   onAdd,
   onUpdate,
   onRemove,
@@ -69,12 +73,16 @@ export function EffectsList({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {effects.map((effect, index) => (
-            <EffectSelection
-              key={`effect-${index}`}
-              effect={effect}
-              options={options}
-              onUpdate={(newEffect) => onUpdate(index, newEffect)}
+          {effects.map((effect, index) => {
+            const stateForThisEffect = effectStates[index] || baseState
+            const dynamicOptions = stateForThisEffect ? getDynamicEffectTargets(action, effect.type, stateForThisEffect, actor) : options
+
+            return (
+              <EffectSelection
+                key={`effect-${index}`}
+                effect={effect}
+                options={dynamicOptions}
+                onUpdate={(newEffect) => onUpdate(index, newEffect)}
               onRemove={() => onRemove(index)}
               readOnly={readOnly}
               getPokemonHp={(side, slotIndex) => {
@@ -87,9 +95,20 @@ export function EffectsList({
                   if (!stateForThisEffect) return undefined
                   return getPokemonFromState(stateForThisEffect, side, slotIndex)
               }}
+              getPokemonHpByTeamIndex={(side, teamIndex) => {
+                  const stateForThisEffect = effectStates[index] || baseState
+                  if (!stateForThisEffect) return undefined
+                  return getPokemonHpByTeamIndexFromState(stateForThisEffect, side, teamIndex)
+              }}
+              getPokemonByTeamIndex={(side, teamIndex) => {
+                  const stateForThisEffect = effectStates[index] || baseState
+                  if (!stateForThisEffect) return undefined
+                  return getPokemonByTeamIndexFromState(stateForThisEffect, side, teamIndex)
+              }}
               hpMode={hpMode}
             />
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

@@ -15,6 +15,8 @@ interface EffectSelectionProps {
     readOnly?: boolean
     getPokemonHp?: (side: "my" | "opponent", slotIndex: number) => PokemonHpInfo | undefined
     getPokemon?: (side: "my" | "opponent", slotIndex: number) => Pokemon | undefined
+    getPokemonHpByTeamIndex?: (side: "my" | "opponent", teamIndex: number) => PokemonHpInfo | undefined
+    getPokemonByTeamIndex?: (side: "my" | "opponent", teamIndex: number) => Pokemon | undefined
     hpMode?: "percent" | "hp"
 }
 
@@ -32,19 +34,35 @@ export function EffectSelection({
     readOnly,
     getPokemonHp,
     getPokemon,
+    getPokemonHpByTeamIndex,
+    getPokemonByTeamIndex,
     hpMode = "percent"
 }: EffectSelectionProps) {
     
-    const targetOption = options.find(o => 
-        o.value.side === effect.target.side && 
-        o.value.slotIndex === effect.target.slotIndex
-    )
-    const isAlly = targetOption?.isAlly ?? (effect.target.side === "my")
+    const isSameTarget = (t1: SlotReference, t2: SlotReference) => {
+        if (t1.type === "field" && t2.type === "field") return t1.target === t2.target;
+        if (t1.type === "team_index" && t2.type === "team_index") return t1.side === t2.side && t1.teamIndex === t2.teamIndex;
+        
+        // Handle battlefield_slot (default if type is missing)
+        const type1 = t1.type || "battlefield_slot"
+        const type2 = t2.type || "battlefield_slot"
+        
+        if (type1 === "battlefield_slot" && type2 === "battlefield_slot") {
+            const side1 = "side" in t1 ? t1.side : null;
+            const side2 = "side" in t2 ? t2.side : null;
+            const slot1 = "slotIndex" in t1 ? t1.slotIndex : null;
+            const slot2 = "slotIndex" in t2 ? t2.slotIndex : null;
+            return side1 === side2 && slot1 === slot2;
+        }
+        return false;
+    }
+
+    const targetOption = options.find(o => isSameTarget(o.value, effect.target))
+    const isAlly = targetOption?.isAlly ?? ("side" in effect.target ? effect.target.side === "my" : false)
 
     const handleTargetChange = (value: string) => {
         if (!value) return
-        const [side, slotStr] = value.split(":")
-        const newTarget = { side: side as "my" | "opponent", slotIndex: parseInt(slotStr, 10) }
+        const newTarget = JSON.parse(value) as SlotReference
         onUpdate({
             ...effect,
             target: newTarget,
@@ -69,7 +87,39 @@ export function EffectSelection({
         })
     }
 
-    const pokemonHpInfo = getPokemonHp?.(effect.target.side, effect.target.slotIndex)
+    const getTargetPokemonHp = () => {
+        if (!getPokemonHp) return undefined;
+        if (effect.target.type === "field") return undefined;
+        if (effect.target.type === "team_index") {
+             if (!getPokemonHpByTeamIndex) return undefined;
+             const side = "side" in effect.target ? effect.target.side : undefined;
+             const teamIndex = "teamIndex" in effect.target ? effect.target.teamIndex : undefined;
+             if (side === undefined || teamIndex === undefined) return undefined;
+             return getPokemonHpByTeamIndex(side as "my" | "opponent", teamIndex);
+        }
+        const side = "side" in effect.target ? effect.target.side : undefined;
+        const slot = "slotIndex" in effect.target ? effect.target.slotIndex : undefined;
+        if (side === undefined || slot === undefined) return undefined;
+        return getPokemonHp(side as "my" | "opponent", slot);
+    }
+    
+    const getTargetPokemon = () => {
+        if (!getPokemon) return undefined;
+        if (effect.target.type === "field") return undefined;
+        if (effect.target.type === "team_index") {
+             if (!getPokemonByTeamIndex) return undefined;
+             const side = "side" in effect.target ? effect.target.side : undefined;
+             const teamIndex = "teamIndex" in effect.target ? effect.target.teamIndex : undefined;
+             if (side === undefined || teamIndex === undefined) return undefined;
+             return getPokemonByTeamIndex(side as "my" | "opponent", teamIndex);
+        }
+        const side = "side" in effect.target ? effect.target.side : undefined;
+        const slot = "slotIndex" in effect.target ? effect.target.slotIndex : undefined;
+        if (side === undefined || slot === undefined) return undefined;
+        return getPokemon(side as "my" | "opponent", slot);
+    }
+
+    const pokemonHpInfo = getTargetPokemonHp();
 
     return (
         <div className={cn(
@@ -81,30 +131,10 @@ export function EffectSelection({
                 "flex items-center gap-1.5 px-2 py-1",
                 isAlly ? "bg-blue-50/50" : "bg-red-50/50"
             )}>
-                {/* Target Dropdown */}
+                {/* Type Dropdown (Now first) */}
                 <select
                     className={cn(
-                        "h-6 text-[10px] font-medium bg-background/80 border rounded px-1 outline-none focus:ring-1 focus:ring-ring flex-1 min-w-0 truncate",
-                        isAlly ? "border-blue-200" : "border-red-200"
-                    )}
-                    value={`${effect.target.side}:${effect.target.slotIndex}`}
-                    onChange={(e) => handleTargetChange(e.target.value)}
-                    disabled={readOnly}
-                >
-                    {options.map((opt, idx) => (
-                        <option
-                            key={`${opt.value.side}-${opt.value.slotIndex}-${idx}`}
-                            value={`${opt.value.side}:${opt.value.slotIndex}`}
-                        >
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
-
-                {/* Type Dropdown */}
-                <select
-                    className={cn(
-                        "h-6 text-[10px] bg-background/80 border rounded px-1 outline-none focus:ring-1 focus:ring-ring shrink-0",
+                        "h-6 text-[10px] bg-background/80 border rounded px-1 outline-none focus:ring-1 focus:ring-ring flex-1 shrink-0",
                         isAlly ? "border-blue-200" : "border-red-200"
                     )}
                     value={effect.type}
@@ -113,6 +143,26 @@ export function EffectSelection({
                 >
                     {Object.entries(EFFECT_TYPE_LABELS).map(([value, label]) => (
                         <option key={value} value={value}>{label}</option>
+                    ))}
+                </select>
+
+                {/* Target Dropdown (Now second) */}
+                <select
+                    className={cn(
+                        "h-6 text-[10px] font-medium bg-background/80 border rounded px-1 outline-none focus:ring-1 focus:ring-ring flex-1 min-w-0 truncate",
+                        isAlly ? "border-blue-200" : "border-red-200"
+                    )}
+                    value={JSON.stringify(effect.target)}
+                    onChange={(e) => handleTargetChange(e.target.value)}
+                    disabled={readOnly}
+                >
+                    {options.map((opt, idx) => (
+                        <option
+                            key={`target-${idx}`}
+                            value={JSON.stringify(opt.value)}
+                        >
+                            {opt.label}
+                        </option>
                     ))}
                 </select>
 
@@ -147,7 +197,7 @@ export function EffectSelection({
                         effect={effect}
                         onUpdate={onUpdate}
                         readOnly={readOnly}
-                        initialPokemon={getPokemon?.(effect.target.side, effect.target.slotIndex)}
+                        initialPokemon={getTargetPokemon()}
                     />
                 )}
                 {effect.type === "stats-modifier" && (

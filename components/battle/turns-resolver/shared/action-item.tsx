@@ -13,7 +13,7 @@
 
 import { BattleEngine } from "@/lib/logic/battle-engine"
 import { generateEffectOptions, getActivePokemonFromState } from "@/lib/utils/turn-logic-helpers"
-import { BattleState, Effect, TurnAction, TurnActionType } from "@/types/types"
+import { BattleState, Effect, Pokemon, TurnAction, TurnActionType } from "@/types/types"
 import { PokemonAction } from "./pokemon-action"
 
 interface ActionItemProps {
@@ -81,8 +81,8 @@ export function ActionItem({
           (action.type === "switch-after-ko" && ap.slotIndex === action.target?.slotIndex))
     ) || dynamicActivePokemon.find(ap => (ap.isAlly ? "my" : "opponent") === action.actor.side)
 
-  let actorObj = actorEntry
-    ? { pokemon: actorEntry.pokemon, isAlly: actorEntry.isAlly }
+  let actorObj: { pokemon: Pokemon; isAlly: boolean; teamIndex?: number } | undefined = actorEntry
+    ? { pokemon: actorEntry.pokemon, isAlly: actorEntry.isAlly, teamIndex: actorEntry.teamIndex }
     : undefined
 
   // Fallback: If this is a switch-after-ko, the Pokemon is likely already removed from activeSlots (it's dead).
@@ -91,7 +91,8 @@ export function ActionItem({
       const team = isAlly ? stateBeforeAction.myTeam : stateBeforeAction.enemyTeam
       const faintedPokemon = team.find(p => p.id === action.faintedPokemonId)
       if (faintedPokemon) {
-          actorObj = { pokemon: faintedPokemon, isAlly }
+          const teamIndex = team.findIndex(p => p.id === action.faintedPokemonId)
+          actorObj = { pokemon: faintedPokemon, isAlly, teamIndex }
       }
   }
   // Defusion is available when a fused switch-after-ko can be moved before its KO trigger

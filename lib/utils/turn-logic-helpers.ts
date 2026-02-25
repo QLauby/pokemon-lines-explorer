@@ -4,11 +4,11 @@
  * These functions are stateless and have no React dependencies.
  */
 
-import { BattleState, PokemonHpInfo } from "@/types/types";
+import { BattleState, EffectType, PokemonHpInfo, SlotReference, TurnAction } from "@/types/types";
 
 export type EffectOption = {
   label: string
-  value: { side: "my" | "opponent"; slotIndex: number }
+  value: SlotReference
   isAlly: boolean
 }
 
@@ -16,6 +16,7 @@ export type ActivePokemonEntry = {
   pokemon: NonNullable<BattleState["myTeam"][number]>
   isAlly: boolean
   slotIndex: number
+  teamIndex: number
 }
 
 /**
@@ -38,7 +39,7 @@ export function getActivePokemonFromState(
         if (idx === null || idx === undefined) return null;
         const pokemon = state.myTeam[idx]
         if (!pokemon) return null
-        return { pokemon, isAlly: true, slotIndex: battlefieldSlot }
+        return { pokemon, isAlly: true, slotIndex: battlefieldSlot, teamIndex: idx }
       })
       .filter((p): p is NonNullable<typeof p> => p !== null),
 
@@ -47,7 +48,7 @@ export function getActivePokemonFromState(
         if (idx === null || idx === undefined) return null;
         const pokemon = state.enemyTeam[idx]
         if (!pokemon) return null
-        return { pokemon, isAlly: false, slotIndex: battlefieldSlot }
+        return { pokemon, isAlly: false, slotIndex: battlefieldSlot, teamIndex: idx }
       })
       .filter((p): p is NonNullable<typeof p> => p !== null),
   ]
@@ -66,7 +67,7 @@ export function generateEffectOptions(state: BattleState): EffectOption[] {
       if (pokemon.hpPercent > 0) {
         opts.push({
           label: pokemon.name,
-          value: { side: "my", slotIndex: battlefieldSlot },
+          value: { type: "battlefield_slot", side: "my", slotIndex: battlefieldSlot },
           isAlly: true,
         })
       }
@@ -79,7 +80,7 @@ export function generateEffectOptions(state: BattleState): EffectOption[] {
       if (pokemon.hpPercent > 0) {
         opts.push({
           label: pokemon.name,
-          value: { side: "opponent", slotIndex: battlefieldSlot },
+          value: { type: "battlefield_slot", side: "opponent", slotIndex: battlefieldSlot },
           isAlly: false,
         })
       }
@@ -87,6 +88,111 @@ export function generateEffectOptions(state: BattleState): EffectOption[] {
   })
 
   return opts
+}
+
+/**
+ * Generates dynamic target choices based on context (Turn Action vs End-of-Turn)
+ * and the chosen EffectType.
+ */
+export function getDynamicEffectTargets(
+  action: TurnAction | undefined, // undefined if it's an EndOfTurn effect
+  effectType: EffectType,
+  state: BattleState,
+  actorObj?: { pokemon: { name: string, hpPercent?: number }, isAlly: boolean, teamIndex?: number }
+): EffectOption[] {
+  // Base list of targets: Every active pokemon on the field.
+  const baseOptions = generateEffectOptions(state);
+
+  if (!action) {
+    // End-of-turn effects: for now, just the battlefield options
+    return baseOptions;
+  }
+
+  // If this is a status change applied via an ATTACK action:
+  if (action.type === "attack" && effectType === "status-change") {
+      const casterTeam = action.actor.side === "my" ? state.myTeam : state.enemyTeam;
+      const casterActiveSlots = action.actor.side === "my" ? state.activeSlots?.myTeam : state.activeSlots?.opponentTeam;
+      const activeIndices = casterActiveSlots || [];
+      const teamOptions: EffectOption[] = [];
+      
+      casterTeam.forEach((pokemon, teamIndex) => {
+          if (pokemon && pokemon.hpPercent > 0 && !activeIndices.includes(teamIndex)) {
+              teamOptions.push({
+                  label: `[Team] ${pokemon.name}`,
+                  value: { type: "team_index", side: action.actor.side, teamIndex, slotIndex: -1 },
+                  isAlly: action.actor.side === "my"
+              });
+          }
+      });
+      
+      return [...baseOptions, ...teamOptions];
+  }
+
+  // If this is a status change applied via a SWITCH:
+  if ((action.type === "switch" || action.type === "switch-after-ko") && effectType === "status-change") {
+      const switchInTarget = action.target; 
+      const options: EffectOption[] = [];
+
+      // 1. The Switch-In Pokemon (highest priority, should be first)
+      if (switchInTarget && switchInTarget.type !== "field" && switchInTarget.type !== "team_index") {
+          const side = switchInTarget.side;
+          const slot = (switchInTarget as any).slotIndex;
+          const activeSlots = side === "my" ? state.activeSlots.myTeam : state.activeSlots.opponentTeam;
+          const team = side === "my" ? state.myTeam : state.enemyTeam;
+          
+          let switchInIndex = switchInTarget.type === "battlefield_slot" ? activeSlots[slot] : null;
+
+          if (switchInTarget && side && slot !== undefined) {
+             const mon = team[slot];
+             if (mon && mon.hpPercent > 0) {
+                 options.push({
+                     label: `[In] ${mon.name}`,
+                     value: { type: "battlefield_slot", side: action.actor.side, slotIndex: "slotIndex" in action.actor ? action.actor.slotIndex : 0 },
+                     isAlly: action.actor.side === "my"
+                 });
+             }
+          }
+      }
+
+      // 2. The Switch-Out Pokemon (the actor)
+      const actorSide = action.actor.side;
+      const team = actorSide === "my" ? state.myTeam : state.enemyTeam;
+      const actorSlot = "slotIndex" in action.actor ? action.actor.slotIndex : 0;
+      
+      let outTeamIndex = -1;
+      if (actorObj?.teamIndex !== undefined) {
+          outTeamIndex = actorObj.teamIndex;
+      } else if (actorObj?.pokemon.name) {
+         outTeamIndex = team.findIndex(p => p.name === actorObj.pokemon.name);
+      } else {
+         const activeSlots = actorSide === "my" ? state.activeSlots.myTeam : state.activeSlots.opponentTeam;
+         if (activeSlots[actorSlot as number] !== undefined) {
+             outTeamIndex = activeSlots[actorSlot as number] as number;
+         }
+      }
+      
+      if (outTeamIndex !== -1 && team[outTeamIndex]) {
+          const mon = team[outTeamIndex];
+          if (mon.hpPercent > 0) {
+              options.push({
+                  label: `[Out] ${mon.name}`,
+                  value: { type: "team_index", side: actorSide, teamIndex: outTeamIndex, slotIndex: -1 },
+                  isAlly: actorSide === "my"
+              });
+          }
+      }
+
+      // 3. Other base options (the rest of the active battlefield)
+      const otherActive = baseOptions.filter(opt => {
+         if (opt.value.type === "battlefield_slot" && opt.value.side === actorSide && (opt.value as any).slotIndex === actorSlot) return false;
+         return true;
+      });
+
+      return [...options, ...otherActive];
+  }
+
+  // Default behaviour
+  return baseOptions;
 }
 
 /**
@@ -224,5 +330,42 @@ export function getPokemonFromState(
     const teamIndex = slots[slotIndex]
     if (teamIndex === null || teamIndex === undefined) return undefined
     
+    return team[teamIndex]
+}
+
+/**
+ * Resolves the HP info of a Pokémon directly from its team index.
+ * Useful for handling bench targets (team_index).
+ */
+export function getPokemonHpByTeamIndexFromState(
+    state: BattleState,
+    side: "my" | "opponent",
+    teamIndex: number
+): PokemonHpInfo | undefined {
+    const team = side === "my" ? state.myTeam : state.enemyTeam
+    if (!team) return undefined
+
+    const pokemon = team[teamIndex]
+    if (!pokemon) return undefined
+
+    const hpMax = pokemon.hpMax ?? 100
+    const hpPercent = pokemon.hpPercent
+    const hpCurrent = pokemon.hpCurrent ?? Math.round(hpPercent * hpMax / 100)
+
+    return { hpPercent, hpMax, hpCurrent }
+}
+
+/**
+ * Resolves a Pokémon directly from its team index.
+ * Useful for handling bench targets (team_index).
+ */
+export function getPokemonByTeamIndexFromState(
+    state: BattleState,
+    side: "my" | "opponent",
+    teamIndex: number
+): NonNullable<BattleState["myTeam"][number]> | undefined {
+    const team = side === "my" ? state.myTeam : state.enemyTeam
+    if (!team) return undefined
+
     return team[teamIndex]
 }

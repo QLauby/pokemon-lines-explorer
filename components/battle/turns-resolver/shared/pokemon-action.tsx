@@ -14,11 +14,11 @@ interface PokemonActionProps {
   action: TurnAction
   index: number
   totalActions: number
-  actor: { pokemon: Pokemon; isAlly: boolean } | undefined
+  actor: { pokemon: Pokemon; isAlly: boolean, teamIndex?: number } | undefined
   onMove: (direction: "up" | "down") => void
   onToggleCollapse: () => void
   onUpdateType: (type: TurnActionType) => void
-  onUpdateTarget: (target: { side: "my" | "opponent", slotIndex: number } | undefined) => void
+  onUpdateTarget: (target: SlotReference | undefined) => void
   onUpdateMetadata: (metadata: { itemName?: string; attackName?: string }) => void
   onUpdateAttack: (attackName: string, moveName?: string) => void
   
@@ -89,7 +89,7 @@ export function PokemonAction({
           if (pokemon.hpPercent > 0) {
               activeTargets.push({
                   label: pokemon.name,
-                  value: JSON.stringify({ side: "my", slotIndex: battlefieldSlotIndex }),
+                  value: JSON.stringify({ type: "battlefield_slot", side: "my", slotIndex: battlefieldSlotIndex }),
                   isAlly: true,
                   side: "my",
                   slotIndex: battlefieldSlotIndex
@@ -105,7 +105,7 @@ export function PokemonAction({
           if (pokemon.hpPercent > 0) {
               activeTargets.push({
                   label: pokemon.name,
-                  value: JSON.stringify({ side: "opponent", slotIndex: battlefieldSlotIndex }),
+                  value: JSON.stringify({ type: "battlefield_slot", side: "opponent", slotIndex: battlefieldSlotIndex }),
                   isAlly: false,
                   side: "opponent",
                   slotIndex: battlefieldSlotIndex
@@ -146,7 +146,7 @@ export function PokemonAction({
       
       return {
           label: p.name,
-          value: JSON.stringify({ side: isAlly ? "my" : "opponent", slotIndex: idx }),
+          value: JSON.stringify({ type: "battlefield_slot", side: isAlly ? "my" : "opponent", slotIndex: idx }),
           isAlly: isAlly,
           slotIndex: idx,
           pokemon: p
@@ -448,6 +448,8 @@ export function PokemonAction({
                <EffectsList 
                    title="Entry Effects"
                    effects={action.effects}
+                   action={action}
+                   actor={actor}
                    options={effectOptions}
                    onAdd={onAddEffect}
                    onUpdate={onUpdateEffect}
@@ -460,6 +462,8 @@ export function PokemonAction({
                 <EffectsList 
                      title="Effects"
                      effects={action.effects}
+                     action={action}
+                     actor={actor}
                      options={effectOptions}
                      onAdd={onAddEffect}
                      onUpdate={onUpdateEffect}

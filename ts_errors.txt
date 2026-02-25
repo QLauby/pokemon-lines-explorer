@@ -1,0 +1,2 @@
+﻿lib/hooks/use-ko-fusion.ts(48,60): error TS2551: Property 'resolveSlotToTeamIndex' does not exist on type 'typeof BattleEngine'. Did you mean 'resolveTargetToTeamIndex'?
+lib/logic/battle-engine.ts(75,25): error TS2339: Property 'target' does not exist on type 'BattleDelta'.

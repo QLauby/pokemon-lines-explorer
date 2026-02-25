@@ -75,9 +75,14 @@ export interface TreeNode {
   createdAt: number
 }
 
+export type TargetReferenceType = "battlefield_slot" | "team_index" | "field";
+
 export interface SlotReference {
-  side: "my" | "opponent"
-  slotIndex: number
+  type?: TargetReferenceType;
+  side: "my" | "opponent";
+  slotIndex: number; // For battlefield_slot
+  teamIndex?: number; // For team_index
+  target?: "my_side" | "opponent_side" | "global"; // For field
 }
 
 // Delta Definitions

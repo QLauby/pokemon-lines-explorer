@@ -1,5 +1,5 @@
 import { convertPercentDeltaToHp, getEffectiveHpMax, recalcHpPercent } from "@/lib/utils/hp-utils"
-import { BattleDelta, BattleState, StatsModifiers, TreeNode } from "@/types/types"
+import { BattleDelta, BattleState, SlotReference, StatsModifiers, TreeNode } from "@/types/types"
 
 export class BattleEngine {
   static computeState(initialState: BattleState, nodes: Map<string, TreeNode>, targetNodeId: string): BattleState {
@@ -90,6 +90,43 @@ export class BattleEngine {
     return activeSlots[battlefieldSlot] ?? null
   }
 
+  /**
+   * Resolves a polymorphic TargetReference (SlotReference) to the actual team index.
+   * If type is 'battlefield_slot', it looks up the active position.
+   * If type is 'team_index', it returns the teamIndex directly.
+   * If type is 'field', it returns null (not a Pokemon target).
+   */
+  static resolveTargetToTeamIndex(
+    state: BattleState,
+    target: SlotReference | undefined
+  ): number | null {
+    if (!target) return null;
+
+    if (target.type === "field") {
+      return null; // Field targets don't resolve to a specific team member
+    }
+
+    if (target.type === "team_index") {
+      return target.teamIndex ?? null;
+    }
+
+    // Default: battlefield_slot
+    const side = target.side;
+    const battlefieldSlot = (target as any).slotIndex; // Cast because TS sees it as TargetReference which might not have slotIndex depending on narrowing
+
+    if (side === undefined || battlefieldSlot === undefined) return null;
+
+    const activeSlots = side === "my" 
+      ? state.activeSlots?.myTeam 
+      : state.activeSlots?.opponentTeam
+    
+    if (!activeSlots || battlefieldSlot >= activeSlots.length) {
+      return null
+    }
+    
+    return activeSlots[battlefieldSlot] ?? null
+  }
+
   static applyDelta(state: BattleState, delta: BattleDelta): BattleState {
     const newState = { 
         ...state, 
@@ -105,14 +142,11 @@ export class BattleEngine {
     switch (delta.type) {
       case "HP_RELATIVE":
       case "HP_SET": {
+        if (delta.target.type === "field") return newState;
         const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
         
-        // Resolve battlefield slot to team index
-        const teamIndex = this.resolveSlotToTeamIndex(
-          newState, 
-          delta.target.side, 
-          delta.target.slotIndex
-        )
+        // Resolve polymorphic target to team index
+        const teamIndex = this.resolveTargetToTeamIndex(newState, delta.target)
         
         if (teamIndex === null) {
           return newState
@@ -150,14 +184,16 @@ export class BattleEngine {
              
              team[teamIndex] = { ...targetPokemon, hpPercent: newHpPercent, hpCurrent: newHpCurrent }
 
-             // If the Pokémon just fainted, remove it from the battlefield slot.
+             // If the Pokémon just fainted and was on the battlefield, remove it.
              if (newHpPercent === 0) {
-               const slots = delta.target.side === "my"
-                 ? newState.activeSlots.myTeam
-                 : newState.activeSlots.opponentTeam
-               const battlefieldSlot = delta.target.slotIndex
-               if (battlefieldSlot < slots.length) {
-                 slots[battlefieldSlot] = null
+               if (!delta.target.type || delta.target.type === "battlefield_slot") {
+                 const slots = delta.target.side === "my"
+                   ? newState.activeSlots.myTeam
+                   : newState.activeSlots.opponentTeam
+                 const battlefieldSlot = (delta.target as any).slotIndex
+                 if (battlefieldSlot !== undefined && battlefieldSlot < slots.length) {
+                   slots[battlefieldSlot] = null
+                 }
                }
              }
         }
@@ -197,14 +233,11 @@ export class BattleEngine {
       }
 
       case "PP_CHANGE": {
+        if (delta.target.type === "field") return newState;
         const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
         
-        // Resolve battlefield slot to team index
-        const teamIndex = this.resolveSlotToTeamIndex(
-          newState, 
-          delta.target.side, 
-          delta.target.slotIndex
-        )
+        // Resolve polymorphic target to team index
+        const teamIndex = this.resolveTargetToTeamIndex(newState, delta.target)
         
         if (teamIndex === null) return newState
         
@@ -230,12 +263,11 @@ export class BattleEngine {
       }
 
       case "STATUS_DELTAS": {
+        if (delta.target.type === "field") return newState;
         const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
-        const teamIndex = this.resolveSlotToTeamIndex(
-          newState,
-          delta.target.side,
-          delta.target.slotIndex
-        )
+        
+        // Resolve polymorphic target to team index
+        const teamIndex = this.resolveTargetToTeamIndex(newState, delta.target)
         
         if (teamIndex === null) return newState
         

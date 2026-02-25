@@ -134,7 +134,7 @@ export function StatusChangeEffect({
             <div className="flex-1 min-w-0 flex items-center justify-center bg-white/40 border border-gray-100 rounded px-2 py-1.5 min-h-[36px]">
                 <StatusSelector 
                     pokemon={afterPokemon}
-                    isMyTeam={effect.target.side === "my"}
+                    isMyTeam={"side" in effect.target ? effect.target.side === "my" : false}
                     onUpdate={handleUpdate}
                     readOnly={readOnly}
                     showLabel={false}

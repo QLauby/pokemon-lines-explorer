@@ -143,7 +143,7 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" =
 
   const updateActionTarget = (
     index: number,
-    target: { side: "my" | "opponent"; slotIndex: number } | undefined,
+    target: SlotReference | undefined,
     isPostTurn = false
   ) => {
     if (readOnly) return
@@ -243,7 +243,7 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" =
     const defaultTarget: SlotReference = defaultTargetOverride
       ? defaultTargetOverride
       : isSwitch
-      ? { side: action.actor.side, slotIndex: Number(action.actor.slotIndex) }
+      ? { type: "battlefield_slot", side: action.actor.side, slotIndex: Number((action.actor as any).slotIndex) }
       : action.target || action.actor
 
     const newEffect: Effect = {
