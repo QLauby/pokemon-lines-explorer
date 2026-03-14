@@ -2,7 +2,7 @@
 
 
 import { PokemonStatus } from "@/lib/constants/logos-constants"
-import { Pokemon } from "@/types/types"
+import { CustomTagData, Pokemon } from "@/types/types"
 
 import { BattlefieldZone } from "./battlefield-zone"
 import { TeamSection } from "./team-section"
@@ -45,12 +45,12 @@ interface TeamsViewProps {
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
   getTeamCounterDisplay: (teamLength: number) => string
   isStarterPokemon: (pokemon: Pokemon, index: number, isMyTeam: boolean) => boolean
-  battlefieldTags: string[]
-  playerSideTags: string[]
-  opponentSideTags: string[]
-  onUpdateBattlefieldTags: (tags: string[]) => void
-  onUpdatePlayerSideTags: (tags: string[]) => void
-  onUpdateOpponentSideTags: (tags: string[]) => void
+  battlefieldTags: CustomTagData[]
+  playerSideTags: CustomTagData[]
+  opponentSideTags: CustomTagData[]
+  onUpdateBattlefieldTags: (tags: CustomTagData[]) => void
+  onUpdatePlayerSideTags: (tags: CustomTagData[]) => void
+  onUpdateOpponentSideTags: (tags: CustomTagData[]) => void
   hpMode?: "percent" | "hp"
 }
 

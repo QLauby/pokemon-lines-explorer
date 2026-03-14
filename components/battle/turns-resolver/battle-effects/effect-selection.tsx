@@ -1,10 +1,13 @@
 "use client"
 
+import { useEffect } from "react"
+
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Effect, EffectType, Pokemon, PokemonHpInfo, SlotReference } from "@/types/types"
+import { CustomTagData, Effect, EffectType, Pokemon, PokemonHpInfo, SlotReference } from "@/types/types"
 import { Trash2 } from "lucide-react"
 import { HpChangeEffect } from "./hp-change-effect"
+import { OthersEffect } from "./others-effect"
 import { StatsModifierEffect } from "./stats-modifier-effect"
 import { StatusChangeEffect } from "./status-change-effect"
 
@@ -18,6 +21,7 @@ interface EffectSelectionProps {
     getPokemon?: (side: "my" | "opponent", slotIndex: number) => Pokemon | undefined
     getPokemonHpByTeamIndex?: (side: "my" | "opponent", teamIndex: number) => PokemonHpInfo | undefined
     getPokemonByTeamIndex?: (side: "my" | "opponent", teamIndex: number) => Pokemon | undefined
+    getBattlefieldTags?: (target: "global" | "my_side" | "opponent_side") => CustomTagData[]
     hpMode?: "percent" | "hp"
 }
 
@@ -25,6 +29,8 @@ const EFFECT_TYPE_LABELS: Record<EffectType, string> = {
     "hp-change": "HP Change",
     "status-change": "Status Change",
     "stats-modifier": "Stats Modifier",
+    "others": "Custom effects",
+    "terrain": "Terrain effects",
 }
 
 export function EffectSelection({
@@ -37,26 +43,32 @@ export function EffectSelection({
     getPokemon,
     getPokemonHpByTeamIndex,
     getPokemonByTeamIndex,
+    getBattlefieldTags,
     hpMode = "percent"
 }: EffectSelectionProps) {
     
     const isSameTarget = (t1: SlotReference, t2: SlotReference) => {
-        if (t1.type === "field" && t2.type === "field") return t1.target === t2.target;
-        if (t1.type === "team_index" && t2.type === "team_index") return t1.side === t2.side && t1.teamIndex === t2.teamIndex;
-        
-        // Handle battlefield_slot (default if type is missing)
         const type1 = t1.type || "battlefield_slot"
         const type2 = t2.type || "battlefield_slot"
         
-        if (type1 === "battlefield_slot" && type2 === "battlefield_slot") {
-            const side1 = "side" in t1 ? t1.side : null;
-            const side2 = "side" in t2 ? t2.side : null;
-            const slot1 = "slotIndex" in t1 ? t1.slotIndex : null;
-            const slot2 = "slotIndex" in t2 ? t2.slotIndex : null;
-            return side1 === side2 && slot1 === slot2;
-        }
-        return false;
+        if (type1 !== type2) return false
+
+        if (type1 === "field") return t1.target === t2.target
+        if (type1 === "team_index") return t1.side === t2.side && t1.teamIndex === t2.teamIndex
+        
+        return t1.side === t2.side && t1.slotIndex === t2.slotIndex
     }
+
+    // Auto-correction: If the current target is not in the list of valid options 
+    // (happens when changing effect type), force select the first valid option.
+    useEffect(() => {
+        if (!readOnly && options.length > 0) {
+            const currentTargetIsValid = options.some(opt => isSameTarget(opt.value, effect.target));
+            if (!currentTargetIsValid) {
+                handleTargetChange(JSON.stringify(options[0].value));
+            }
+        }
+    }, [options, effect.type]); // Trigger when options change (which happens when type changes)
 
     const targetOption = options.find(o => isSameTarget(o.value, effect.target))
     const isAlly = targetOption?.isAlly ?? ("side" in effect.target ? effect.target.side === "my" : false)
@@ -86,6 +98,8 @@ export function EffectSelection({
                 ? [{ type: "STATUS_DELTAS", target: effect.target, operations: [] }]
                 : newType === "stats-modifier"
                 ? [{ type: "STATS_MODIFIERS_DELTAS", target: effect.target, operations: [] }]
+                : (newType === "others" || newType === "terrain")
+                ? [{ type: "OTHERS_EFFECT_DELTAS", target: effect.target, operations: [] }]
                 : []
         })
     }
@@ -120,6 +134,14 @@ export function EffectSelection({
         const slot = "slotIndex" in effect.target ? effect.target.slotIndex : undefined;
         if (side === undefined || slot === undefined) return undefined;
         return getPokemon(side as "my" | "opponent", slot);
+    }
+
+    const getTargetCustomTags = () => {
+        if (effect.target.type === "field") {
+            if (!getBattlefieldTags) return [];
+            return getBattlefieldTags(effect.target.target || "global");
+        }
+        return getTargetPokemon()?.customTags || [];
     }
 
     const pokemonHpInfo = getTargetPokemonHp();
@@ -209,6 +231,14 @@ export function EffectSelection({
                         onUpdate={onUpdate}
                         readOnly={readOnly}
                         initialPokemon={getTargetPokemon()}
+                    />
+                )}
+                {(effect.type === "others" || effect.type === "terrain") && (
+                    <OthersEffect
+                        effect={effect}
+                        onUpdate={onUpdate}
+                        readOnly={readOnly}
+                        initialTags={getTargetCustomTags()}
                     />
                 )}
             </div>

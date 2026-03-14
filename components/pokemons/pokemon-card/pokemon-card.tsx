@@ -6,7 +6,7 @@ import { useState } from "react";
 import { CustomTagsManager } from "@/components/shared/custom-tags-manager";
 import { PokemonStatus, getStatusInfo } from "@/lib/constants/logos-constants";
 import { PokemonType } from "@/lib/utils/colors-utils";
-import { Pokemon, StatsModifiers } from "@/types/types";
+import { CustomTagData, Pokemon, StatsModifiers } from "@/types/types";
 import { AttackManager } from "./sub-components/attack-manager";
 import { HealthBar } from "./sub-components/health-bar";
 import { PokemonCardAbilityItem } from "./sub-components/pokemon-card-ability-item";
@@ -98,7 +98,7 @@ export function PokemonCard({
     setTimeout(() => setIsConfusionCounterMounting(pokemon.showConfusionCounter || false), 10)
   }
 
-  const handleUpdateCustomTags = (newTags: string[]) => {
+  const handleUpdateCustomTags = (newTags: CustomTagData[]) => {
     const updatedPokemon: Pokemon = { ...pokemon, customTags: newTags }
     onUpdatePokemon(updatedPokemon, isMyTeam)
   }

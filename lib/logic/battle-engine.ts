@@ -1,5 +1,5 @@
 import { convertPercentDeltaToHp, getEffectiveHpMax, recalcHpPercent } from "@/lib/utils/hp-utils"
-import { BattleDelta, BattleState, SlotReference, StatsModifiers, TreeNode } from "@/types/types"
+import { BattleDelta, BattleState, CustomTagData, OtherOperation, SlotReference, StatsModifiers, TreeNode } from "@/types/types"
 
 export class BattleEngine {
   static computeState(initialState: BattleState, nodes: Map<string, TreeNode>, targetNodeId: string): BattleState {
@@ -19,6 +19,11 @@ export class BattleEngine {
 
     // 2. Apply turn data sequentially
     let currentState = JSON.parse(JSON.stringify(initialState)) as BattleState // Deep copy initial state
+    
+    // Normalize state (for old sessions missing battlefieldState)
+    if (!currentState.battlefieldState) {
+        currentState.battlefieldState = { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } };
+    }
 
     for (const node of path) {
       
@@ -136,6 +141,18 @@ export class BattleEngine {
         activeSlots: { 
             myTeam: [...(state.activeSlots?.myTeam || [])], 
             opponentTeam: [...(state.activeSlots?.opponentTeam || [])] 
+        },
+        battlefieldState: {
+            ...state.battlefieldState,
+            customTags: [...(state.battlefieldState?.customTags || [])],
+            playerSide: {
+                ...(state.battlefieldState?.playerSide || {}),
+                customTags: [...(state.battlefieldState?.playerSide?.customTags || [])]
+            },
+            opponentSide: {
+                ...(state.battlefieldState?.opponentSide || {}),
+                customTags: [...(state.battlefieldState?.opponentSide?.customTags || [])]
+            }
         }
     }
 
@@ -346,6 +363,37 @@ export class BattleEngine {
         return newState
       }
 
+      case "OTHERS_EFFECT_DELTAS": {
+        if (delta.target.type === "field") {
+             // Battlefield tags
+             let currentTags: CustomTagData[] = [];
+             const bf = newState.battlefieldState;
+             if (delta.target.target === "global") currentTags = bf.customTags;
+             else if (delta.target.target === "my_side") currentTags = bf.playerSide.customTags;
+             else if (delta.target.target === "opponent_side") currentTags = bf.opponentSide.customTags;
+             
+             const updatedTags = this.applyOtherOperations(currentTags, delta.operations);
+             
+             if (delta.target.target === "global") newState.battlefieldState.customTags = updatedTags;
+             else if (delta.target.target === "my_side") newState.battlefieldState.playerSide.customTags = updatedTags;
+             else if (delta.target.target === "opponent_side") newState.battlefieldState.opponentSide.customTags = updatedTags;
+             
+             return newState;
+        }
+        
+        const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
+        const teamIndex = this.resolveTargetToTeamIndex(newState, delta.target)
+        if (teamIndex === null) return newState
+        
+        const targetPokemon = { ...team[teamIndex] }
+        if (!targetPokemon) return newState
+        
+        targetPokemon.customTags = this.applyOtherOperations(targetPokemon.customTags || [], delta.operations);
+        team[teamIndex] = targetPokemon;
+        
+        return newState;
+      }
+
       default:
         return state
     }
@@ -363,6 +411,12 @@ export class BattleEngine {
     
     // State 0: Initial
     let currentState = JSON.parse(JSON.stringify(initialState)) as BattleState
+    
+    // Normalize state
+    if (!currentState.battlefieldState) {
+        currentState.battlefieldState = { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } };
+    }
+    
     states.push(currentState)
 
     for (const action of actions) {
@@ -412,5 +466,32 @@ export class BattleEngine {
     return {
         att: 0, def: 0, spa: 0, spd: 0, spe: 0, acc: 0, ev: 0, crit: 0
     }
+  }
+
+  static applyOtherOperations(tags: CustomTagData[], operations: OtherOperation[]): CustomTagData[] {
+    let result = [...tags];
+    for (const op of operations) {
+      switch (op.type) {
+        case "CREATE":
+          // Avoid duplicate IDs if already present
+          if (!result.find(t => t.id === op.id)) {
+            result.push({ id: op.id, name: op.name, count: 0, showCount: false });
+          }
+          break;
+        case "DELETE":
+          result = result.filter(t => t.id !== op.id);
+          break;
+        case "RENAME":
+          result = result.map(t => t.id === op.id ? { ...t, name: op.newName } : t);
+          break;
+        case "COUNTER_TOGGLE":
+          result = result.map(t => t.id === op.id ? { ...t, showCount: op.show, count: op.show ? t.count : 0 } : t);
+          break;
+        case "COUNTER_RELATIVE":
+          result = result.map(t => t.id === op.id ? { ...t, count: (t.count ?? 0) + op.amount } : t);
+          break;
+      }
+    }
+    return result;
   }
 }

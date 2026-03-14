@@ -87,6 +87,25 @@ export function generateEffectOptions(state: BattleState): EffectOption[] {
     }
   })
 
+  // Add field targets
+  opts.push(
+    {
+      label: "Main",
+      value: { type: "field", side: "my", target: "global", slotIndex: -1 },
+      isAlly: true,
+    },
+    {
+      label: "My Side",
+      value: { type: "field", side: "my", target: "my_side", slotIndex: -1 },
+      isAlly: true,
+    },
+    {
+      label: "Opponent's Side",
+      value: { type: "field", side: "opponent", target: "opponent_side", slotIndex: -1 },
+      isAlly: false,
+    }
+  )
+
   return opts
 }
 
@@ -115,162 +134,140 @@ function resolveOutTeamIndex(
  * and the chosen EffectType.
  */
 export function getDynamicEffectTargets(
-  action: TurnAction | undefined, // undefined if it's an EndOfTurn effect
+  action: TurnAction | undefined,
   effectType: EffectType,
   state: BattleState,
   actorObj?: { pokemon: { name: string, hpPercent?: number }, isAlly: boolean, teamIndex?: number }
 ): EffectOption[] {
-  // Base list of targets: Every active pokemon on the field.
+  // Base list of targets from generateEffectOptions (contains both Pokemon and Field)
   const baseOptions = generateEffectOptions(state);
 
-  if (!action) {
-    // End-of-turn effects: for now, just the battlefield options
-    return baseOptions;
+  // --- 1. TERRAIN EFFECTS ---
+  // Only field targets are allowed
+  if (effectType === "terrain") {
+      return baseOptions.filter(opt => opt.value.type === "field");
   }
 
-  // TARGETING: stats-modifier
-  if (effectType === "stats-modifier") {
-    if (action.type === "switch" || action.type === "switch-after-ko") {
-      const options: EffectOption[] = [];
+  // --- 2. POKEMON EFFECTS (HP, Status, Stats, Custom/Tags) ---
+  // Field targets are NOT allowed
+  const pokemonOnlyOptions = baseOptions.filter(opt => opt.value.type !== "field");
+
+  // End-of-turn context or missing action: just return active pokemon
+  if (!action) {
+      return pokemonOnlyOptions;
+  }
+
+  // --- 3. ACTION-SPECIFIC LOGIC ---
+  
+  // A. Status Change: Special case where you can target benched team members
+  if (effectType === "status-change") {
       const actorSide = action.actor.side;
       const team = actorSide === "my" ? state.myTeam : state.enemyTeam;
+      const activeIndices = (actorSide === "my" ? state.activeSlots?.myTeam : state.activeSlots?.opponentTeam) || [];
       
-      // 1. The Switch-Out Pokemon (The Actor) - HIGH PRIORITY
-      const outTeamIndex = resolveOutTeamIndex(action, state, actorObj);
-      
-      if (outTeamIndex !== -1 && team[outTeamIndex]) {
-          const mon = team[outTeamIndex];
-          if (mon.hpPercent > 0) {
-              options.push({
-                  label: `[Out] ${mon.name}`,
-                  value: { type: "team_index", side: actorSide, teamIndex: outTeamIndex, slotIndex: -1 },
+      const teamOptions: EffectOption[] = [];
+      team.forEach((pokemon, idx) => {
+          if (pokemon && pokemon.hpPercent > 0 && !activeIndices.includes(idx)) {
+              teamOptions.push({
+                  label: `[Team] ${pokemon.name}`,
+                  value: { type: "team_index", side: actorSide, teamIndex: idx, slotIndex: -1 },
                   isAlly: actorSide === "my"
               });
           }
+      });
+
+      const combined = [...pokemonOnlyOptions, ...teamOptions];
+
+      // Prioritize Switch targets for Status
+      if (action.type === "switch" || action.type === "switch-after-ko") {
+          const switchOptions: EffectOption[] = [];
+          
+          // Out
+          const outIdx = resolveOutTeamIndex(action, state, actorObj);
+          if (outIdx !== -1 && team[outIdx]) {
+              switchOptions.push({
+                  label: `[Out] ${team[outIdx].name}`,
+                  value: { type: "team_index", side: actorSide, teamIndex: outIdx, slotIndex: -1 },
+                  isAlly: actorSide === "my"
+              });
+          }
+
+          // In
+          if (action.target?.type === "battlefield_slot") {
+              const inIdx = (action.target.side === "my" ? state.activeSlots.myTeam : state.activeSlots.opponentTeam)[action.target.slotIndex];
+              if (inIdx !== null && inIdx !== undefined) {
+                  const inMon = (action.target.side === "my" ? state.myTeam : state.enemyTeam)[inIdx];
+                  if (inMon) {
+                      switchOptions.push({
+                          label: `[In] ${inMon.name}`,
+                          value: { type: "battlefield_slot", side: action.target.side, slotIndex: action.target.slotIndex },
+                          isAlly: action.target.side === "my"
+                      });
+                  }
+              }
+          }
+
+          const filtered = combined.filter(opt => !switchOptions.some(s => 
+              s.value.type === opt.value.type && 
+              (s.value as any).side === (opt.value as any).side && 
+              ((s.value as any).slotIndex === (opt.value as any).slotIndex || (s.value as any).teamIndex === (opt.value as any).teamIndex)
+          ));
+          return [...switchOptions, ...filtered];
+      }
+      return combined;
+  }
+
+  // B. Other Pokémon effects (HP, Stats, Tags) - Handle Switch priority
+  if (action.type === "switch" || action.type === "switch-after-ko") {
+      const actorSide = action.actor.side;
+      const team = actorSide === "my" ? state.myTeam : state.enemyTeam;
+      const switchOptions: EffectOption[] = [];
+      
+      const outIdx = resolveOutTeamIndex(action, state, actorObj);
+      if (outIdx !== -1 && team[outIdx]) {
+          switchOptions.push({
+              label: `[Out] ${team[outIdx].name}`,
+              value: { type: "team_index", side: actorSide, teamIndex: outIdx, slotIndex: -1 },
+              isAlly: actorSide === "my"
+          });
       }
 
-      // 2. The Switch-In Pokemon
-      const switchInTarget = action.target;
-      if (switchInTarget && switchInTarget.type === "battlefield_slot") {
-          const side = switchInTarget.side;
-          const slot = switchInTarget.slotIndex;
-          const activeSlots = side === "my" ? state.activeSlots.myTeam : state.activeSlots.opponentTeam;
-          const currentInIndex = activeSlots[slot];
-          
-          if (currentInIndex !== null && currentInIndex !== undefined) {
-              const inMon = (side === "my" ? state.myTeam : state.enemyTeam)[currentInIndex];
-              if (inMon && inMon.hpPercent > 0) {
-                  options.push({
+      if (action.target?.type === "battlefield_slot") {
+          const side = action.target.side;
+          const slot = action.target.slotIndex;
+          const inIdx = (side === "my" ? state.activeSlots.myTeam : state.activeSlots.opponentTeam)[slot];
+          if (inIdx !== null && inIdx !== undefined) {
+              const inMon = (side === "my" ? state.myTeam : state.enemyTeam)[inIdx];
+              if (inMon) {
+                  switchOptions.push({
                       label: `[In] ${inMon.name}`,
-                      value: { type: "battlefield_slot", side: side, slotIndex: slot },
+                      value: { type: "battlefield_slot", side, slotIndex: slot },
                       isAlly: side === "my"
                   });
               }
           }
       }
 
-      // 3. Other active pokemon
-      const otherActive = baseOptions.filter(opt => {
-          // Exclude the [In] pokemon since we already added it
-          if (switchInTarget && opt.value.side === switchInTarget.side && (opt.value as any).slotIndex === (switchInTarget as any).slotIndex) return false;
-          return true;
-      });
-
-      return [...options, ...otherActive];
-    }
-
-    // Default stats-modifier (Attack/Item): prioritize target
-    const target = action.target;
-    if (target && target.type === "battlefield_slot") {
-      const targetSide = target.side;
-      const targetSlot = target.slotIndex;
-      
-      const targetIndex = baseOptions.findIndex(opt => 
-        opt.value.side === targetSide && (opt.value as any).slotIndex === targetSlot
-      );
-      
-      if (targetIndex !== -1) {
-        const [targetOpt] = baseOptions.splice(targetIndex, 1);
-        return [targetOpt, ...baseOptions];
-      }
-    }
-    return baseOptions;
+      const rest = pokemonOnlyOptions.filter(opt => !switchOptions.some(o => 
+          o.value.type === opt.value.type && 
+          (o.value as any).side === (opt.value as any).side && 
+          ((o.value as any).slotIndex === (opt.value as any).slotIndex || (o.value as any).teamIndex === (opt.value as any).teamIndex)
+      ));
+      return [...switchOptions, ...rest];
   }
 
-  // If this is a status change applied via an ATTACK action:
-  if (action.type === "attack" && effectType === "status-change") {
-      const casterTeam = action.actor.side === "my" ? state.myTeam : state.enemyTeam;
-      const casterActiveSlots = action.actor.side === "my" ? state.activeSlots?.myTeam : state.activeSlots?.opponentTeam;
-      const activeIndices = casterActiveSlots || [];
-      const teamOptions: EffectOption[] = [];
-      
-      casterTeam.forEach((pokemon, teamIndex) => {
-          if (pokemon && pokemon.hpPercent > 0 && !activeIndices.includes(teamIndex)) {
-              teamOptions.push({
-                  label: `[Team] ${pokemon.name}`,
-                  value: { type: "team_index", side: action.actor.side, teamIndex, slotIndex: -1 },
-                  isAlly: action.actor.side === "my"
-              });
-          }
-      });
-      
-      return [...baseOptions, ...teamOptions];
+  // C. Attack/Item priority (move target to top)
+  if (action.target?.type === "battlefield_slot") {
+      const t = action.target;
+      const targetIdx = pokemonOnlyOptions.findIndex(o => o.value.side === t.side && (o.value as any).slotIndex === t.slotIndex);
+      if (targetIdx !== -1) {
+          const res = [...pokemonOnlyOptions];
+          const [targetOpt] = res.splice(targetIdx, 1);
+          return [targetOpt, ...res];
+      }
   }
 
-  // If this is a status change applied via a SWITCH:
-  if ((action.type === "switch" || action.type === "switch-after-ko") && effectType === "status-change") {
-      const switchInTarget = action.target; 
-      const options: EffectOption[] = [];
-
-      // 1. The Switch-In Pokemon (highest priority, should be first)
-      if (switchInTarget && switchInTarget.type !== "field" && switchInTarget.type !== "team_index") {
-          const side = switchInTarget.side;
-          const slot = (switchInTarget as any).slotIndex;
-          const activeSlots = side === "my" ? state.activeSlots.myTeam : state.activeSlots.opponentTeam;
-          const team = side === "my" ? state.myTeam : state.enemyTeam;
-          
-          let switchInIndex = switchInTarget.type === "battlefield_slot" ? activeSlots[slot] : null;
-
-          if (switchInTarget && side && slot !== undefined) {
-             const mon = team[slot];
-             if (mon && mon.hpPercent > 0) {
-                 options.push({
-                     label: `[In] ${mon.name}`,
-                     value: { type: "battlefield_slot", side: action.actor.side, slotIndex: "slotIndex" in action.actor ? action.actor.slotIndex : 0 },
-                     isAlly: action.actor.side === "my"
-                 });
-             }
-          }
-      }
-
-      // 2. The Switch-Out Pokemon (the actor)
-      const actorSide = action.actor.side;
-      const team = actorSide === "my" ? state.myTeam : state.enemyTeam;
-      const outTeamIndex = resolveOutTeamIndex(action, state, actorObj);
-      
-      if (outTeamIndex !== -1 && team[outTeamIndex]) {
-          const mon = team[outTeamIndex];
-          if (mon.hpPercent > 0) {
-              options.push({
-                  label: `[Out] ${mon.name}`,
-                  value: { type: "team_index", side: actorSide, teamIndex: outTeamIndex, slotIndex: -1 },
-                  isAlly: actorSide === "my"
-              });
-          }
-      }
-
-      // 3. Other base options (the rest of the active battlefield)
-      const actorSlot = "slotIndex" in action.actor ? action.actor.slotIndex : 0;
-      const otherActive = baseOptions.filter(opt => {
-         if (opt.value.type === "battlefield_slot" && opt.value.side === actorSide && (opt.value as any).slotIndex === actorSlot) return false;
-         return true;
-      });
-
-      return [...options, ...otherActive];
-  }
-
-  // Default behaviour
-  return baseOptions;
+  return pokemonOnlyOptions;
 }
 
 /**
@@ -288,7 +285,10 @@ export function patchSimulationState(
   const patchMy = currentMy.length !== neededSlots
   const patchOpp = currentOpp.length !== neededSlots
 
-  if (!patchMy && !patchOpp) return state
+  // Normalize state if missing battlefieldState
+  if (!patchMy && !patchOpp && state.battlefieldState) return state
+
+  const bfState = state.battlefieldState || { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } };
 
   return {
     ...state,
@@ -314,7 +314,8 @@ export function patchSimulationState(
             )
         : currentOpp,
     },
-  }
+    battlefieldState: bfState,
+  } as BattleState
 }
 
 /**

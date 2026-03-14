@@ -1,8 +1,9 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 
+import { CustomTagData } from "@/types/types"
 import { Minus, Plus } from "lucide-react"
 
 import { cn } from "@/lib/utils/cn"
@@ -11,8 +12,8 @@ import { Counter } from "./counter"
 import { EditableText } from "./editable-text"
 
 interface CustomTagProps {
-  tag: string
-  onUpdate: (newTag: string) => void
+  tag: CustomTagData
+  onUpdate: (newTag: CustomTagData) => void
   onDelete: () => void
   buttonSize?: number
   autoSelectOnClick?: boolean
@@ -29,6 +30,8 @@ interface CustomTagProps {
   style?: React.CSSProperties
   inputStyle?: React.CSSProperties
   mainColor?: string
+  toggleColor?: string
+  counterColor?: string
   darkTextColor?: string
   lightTextColor?: string
   transitionDuration?: string
@@ -53,41 +56,30 @@ export function CustomTag({
   displayClassName,
   style,
   inputStyle,
-  mainColor = "#6B7280", // gray-500
-  darkTextColor = "#000000", // Black for dark text
-  lightTextColor = "#FFFFFF", // White for light text
-  transitionDuration = "0.3s", // Faster transition for tags
+  mainColor,
+  toggleColor,
+  counterColor,
+  darkTextColor = "#000000",
+  lightTextColor = "#FFFFFF",
+  transitionDuration = "0.3s",
   readOnly = false,
 }: CustomTagProps) {
-  // Parse tag for counter: "Name:Value"
-  const splitIndex = tag.lastIndexOf(":")
-  const namePart = useMemo(() => splitIndex !== -1 ? tag.substring(0, splitIndex) : tag, [tag, splitIndex])
-  const counterPart = useMemo(() => splitIndex !== -1 ? tag.substring(splitIndex + 1) : "0", [tag, splitIndex])
-  const hasCounter = splitIndex !== -1
+  const namePart = tag.name
+  const counterValue = String(tag.count ?? "0")
+  const showCounter = tag.showCount
 
-  const [showCounter, setShowCounter] = useState(hasCounter)
-  const [counterValue, setCounterValue] = useState(counterPart)
-  const [isCounterMounting, setIsCounterMounting] = useState(hasCounter)
+  const [isCounterMounting, setIsCounterMounting] = useState(showCounter)
 
-  // Sync internal state with prop changes (prevents full re-render flickering)
   useEffect(() => {
-    if (counterPart !== counterValue) {
-      setCounterValue(counterPart)
-    }
-    if (hasCounter !== showCounter) {
-      setShowCounter(hasCounter)
-      setIsCounterMounting(hasCounter)
-    }
-  }, [tag, counterPart, hasCounter])
+    setIsCounterMounting(showCounter)
+  }, [showCounter])
 
   const handleTagChange = (newValue: string) => {
     const trimmed = newValue.trim()
     if (trimmed === "") {
       onDelete()
     } else {
-      // If we have a counter, persist it
-      const finalValue = showCounter ? `${trimmed}:${counterValue}` : trimmed
-      onUpdate(finalValue)
+      onUpdate({ ...tag, name: trimmed })
     }
   }
 
@@ -95,31 +87,23 @@ export function CustomTag({
     if (showCounter) {
       setIsCounterMounting(false)
       setTimeout(() => {
-        setShowCounter(false)
-        setCounterValue("0")
-        // Persist name only
-        onUpdate(namePart)
+        onUpdate({ ...tag, showCount: false, count: 0 })
       }, 300)
     } else {
-      setShowCounter(true)
       setTimeout(() => setIsCounterMounting(true), 10)
-      setCounterValue("0")
-      // Persist with zero counter
-      onUpdate(`${namePart}:0`)
+      onUpdate({ ...tag, showCount: true, count: 0 })
     }
   }
 
   const handleCounterChange = (newValue: string) => {
-    setCounterValue(newValue)
-    onUpdate(`${namePart}:${newValue}`)
+    const val = parseInt(newValue) || 0
+    onUpdate({ ...tag, count: val })
   }
 
   const handleCounterValidateEmpty = () => {
     setIsCounterMounting(false)
     setTimeout(() => {
-      setShowCounter(false)
-      setCounterValue("0")
-      onUpdate(namePart)
+      onUpdate({ ...tag, showCount: false, count: 0 })
     }, 300)
   }
 
@@ -148,22 +132,23 @@ export function CustomTag({
             rounded={rounded}
             mode={mode}
             textAlign="center"
-            style={style}
+            mainColor={mainColor}
             readOnly={readOnly}
           />
 
           <div className="absolute -bottom-1 -right-2">
             {!readOnly ? (
                <CircularButton
-                isActive={false}
+                isActive={!!toggleColor}
                 onClick={handleToggleCounter}
                 icon={showCounter ? Minus : Plus}
-                activeColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
-                inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
+                activeColor={toggleColor || ""}
+                inactiveColor={toggleColor || "bg-gray-200 text-gray-600 hover:bg-gray-300"}
                 title={showCounter ? "Masquer le compteur" : "Afficher le compteur"}
                 diameter={buttonDiameter}
                 iconRatio={0.7}
                 variant="filled"
+                style={toggleColor ? { color: "white" } : undefined}
               />
             ) : showCounter && (
                null
@@ -181,16 +166,20 @@ export function CustomTag({
           >
             {readOnly && (
                <div 
-                className="font-medium text-gray-400 select-none flex items-center justify-center -translate-y-[0.5px]" 
-                style={{ fontSize: numericFontSize, height: numericFontSize / fontSizeRatio, width: "8px" }}
+                className={cn("font-medium select-none flex items-center justify-center -translate-y-[0.5px]", !counterColor && "text-gray-400")} 
+                style={{ fontSize: numericFontSize, height: numericFontSize / fontSizeRatio, width: "8px", color: counterColor }}
                >
                 :
                </div>
             )}
             {readOnly ? (
               <div 
-                className="font-medium text-gray-900 select-none flex items-center justify-center translate-y-[-0.5px]"
-                style={{ fontSize: numericFontSize, height: numericFontSize / fontSizeRatio }}
+                className={cn("font-medium select-none flex items-center justify-center translate-y-[-0.5px]")}
+                style={{ 
+                    fontSize: numericFontSize, 
+                    height: numericFontSize / fontSizeRatio, 
+                    color: counterColor || "#6B7280"
+                }}
               >
                 {counterValue}
               </div>
@@ -206,8 +195,8 @@ export function CustomTag({
                 rounded={false}
                 mode="text"
                 visualMode="border"
-                mainColor="#6B7280"
-                darkTextColor="#000000"
+                mainColor={counterColor || "#6B7280"}
+                darkTextColor={counterColor || "#000000"}
                 lightTextColor="#FFFFFF"
                 transitionDuration="0.3s"
                 readOnly={false}

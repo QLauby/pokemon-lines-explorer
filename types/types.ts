@@ -1,6 +1,13 @@
 import { PokemonStatus } from "@/lib/constants/logos-constants"
 import { PokemonType } from "@/lib/utils/colors-utils"
 
+export interface CustomTagData {
+  id: string
+  name: string
+  count?: number
+  showCount: boolean
+}
+
 export interface Attack {
   id: string
   name: string
@@ -46,16 +53,16 @@ export interface Pokemon extends PokemonHpInfo {
   love: boolean
   heldItem: boolean
   isMega?: boolean
-  customTags?: string[]
+  customTags?: CustomTagData[]
   statsModifiers?: StatsModifiers;
 }
 
 export interface SideState {
-  customTags: string[]
+  customTags: CustomTagData[]
 }
 
 export interface BattlefieldState {
-  customTags: string[]
+  customTags: CustomTagData[]
   playerSide: SideState
   opponentSide: SideState
 }
@@ -99,6 +106,13 @@ export type StatusOperation =
   | { type: "COUNTER_RELATIVE"; status: "sleep" | "confusion"; amount: number }
   | { type: "COUNTER_TOGGLE"; status: "sleep" | "confusion"; show: boolean }
 
+export type OtherOperation =
+  | { type: "CREATE"; id: string; name: string }
+  | { type: "DELETE"; id: string }
+  | { type: "RENAME"; id: string; newName: string }
+  | { type: "COUNTER_TOGGLE"; id: string; show: boolean }
+  | { type: "COUNTER_RELATIVE"; id: string; amount: number }
+
 export type BattleDelta =
   | { type: "HP_RELATIVE"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string }
   | { type: "HP_SET"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string }
@@ -106,10 +120,11 @@ export type BattleDelta =
   | { type: "PP_CHANGE"; target: SlotReference; moveName: string; amount: number }
   | { type: "STATUS_DELTAS"; target: SlotReference; operations: StatusOperation[] }
   | { type: "STATS_MODIFIERS_DELTAS"; target: SlotReference; operations: StatModifierOperation[]; setAllToZero?: boolean }
+  | { type: "OTHERS_EFFECT_DELTAS"; target: SlotReference; operations: OtherOperation[] }
 
 export type TurnActionType = "attack" | "switch" | "item" | "switch-after-ko"
 
-export type EffectType = "hp-change" | "status-change" | "stats-modifier"
+export type EffectType = "hp-change" | "status-change" | "stats-modifier" | "others" | "terrain"
 
 export interface Effect {
   target: SlotReference
@@ -132,6 +147,7 @@ export interface TurnAction {
   metadata?: {
     itemName?: string
     attackName?: string
+    ppAmount?: number
   }
 }
 

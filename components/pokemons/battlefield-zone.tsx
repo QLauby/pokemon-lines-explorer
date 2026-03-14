@@ -1,15 +1,16 @@
 "use client"
 
 import { lightenColor } from "@/lib/utils/colors-utils"
+import { CustomTagData } from "@/types/types"
 import { CustomTagsManager } from "../shared/custom-tags-manager"
 
 interface BattlefieldZoneProps {
-  battlefieldTags: string[]
-  playerSideTags: string[]
-  opponentSideTags: string[]
-  onUpdateBattlefieldTags: (tags: string[]) => void
-  onUpdatePlayerSideTags: (tags: string[]) => void
-  onUpdateOpponentSideTags: (tags: string[]) => void
+  battlefieldTags: CustomTagData[]
+  playerSideTags: CustomTagData[]
+  opponentSideTags: CustomTagData[]
+  onUpdateBattlefieldTags: (tags: CustomTagData[]) => void
+  onUpdatePlayerSideTags: (tags: CustomTagData[]) => void
+  onUpdateOpponentSideTags: (tags: CustomTagData[]) => void
 }
 
 export function BattlefieldZone({

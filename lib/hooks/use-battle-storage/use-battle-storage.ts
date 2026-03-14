@@ -14,7 +14,8 @@ export function useBattleStorage() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-        setSessions(JSON.parse(stored))
+        const parsed: CombatSession[] = JSON.parse(stored)
+        setSessions(parsed)
       }
     } catch (e) {
       console.error("Failed to load battles", e)

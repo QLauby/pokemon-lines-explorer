@@ -6,9 +6,11 @@ import { useEffect, useState } from "react"
 import { CircularButton } from "./circular-button"
 import { CustomTag } from "./custom-tag"
 
+import { CustomTagData } from "@/types/types"
+
 interface CustomTagsManagerProps {
-  tags: string[]
-  onUpdateTags: (newTags: string[]) => void
+  tags: CustomTagData[]
+  onUpdateTags: (newTags: CustomTagData[]) => void
   fontSize?: string | number
   fontSizeRatio?: number
   label?: string | null
@@ -16,7 +18,7 @@ interface CustomTagsManagerProps {
 }
 
 interface TagAnimationState {
-  tag: string
+  id: string
   isEntering: boolean
   isExiting: boolean
 }
@@ -26,33 +28,23 @@ export function CustomTagsManager({
   onUpdateTags,
   fontSize = 10,
   fontSizeRatio = 0.5,
-  label = "Autre :",
+  label = "Custom :",
   readOnly = false,
 }: CustomTagsManagerProps) {
   const [animatedTags, setAnimatedTags] = useState<TagAnimationState[]>([])
 
   useEffect(() => {
     setAnimatedTags((prev) => {
-      // Create a map of current animated tags by their name part to try to preserve them
       const prevMap = new Map<string, TagAnimationState>()
-      prev.forEach(at => {
-        const name = at.tag.split(":")[0]
-        prevMap.set(name, at)
-      })
+      prev.forEach(at => prevMap.set(at.id, at))
 
-      return tags.map((tag, idx) => {
-        const name = tag.split(":")[0]
-        const existing = prevMap.get(name)
-        
-        if (existing) {
-          // Update the full tag string but keep the animation state
-          return { ...existing, tag }
-        }
-        return { tag, isEntering: true, isExiting: false }
+      return tags.map((tag) => {
+        const existing = prevMap.get(tag.id)
+        if (existing) return existing
+        return { id: tag.id, isEntering: true, isExiting: false }
       })
     })
 
-    // Clear entering flag after a short delay
     const timer = setTimeout(() => {
       setAnimatedTags((prev) => prev.map((at) => (at.isEntering ? { ...at, isEntering: false } : at)))
     }, 100)
@@ -61,12 +53,16 @@ export function CustomTagsManager({
   }, [tags])
 
   const handleAddTag = () => {
-    const newTagNumber = tags.length + 1
-    const newTag = `Tag ${newTagNumber}`
+    const newTag: CustomTagData = {
+        id: crypto.randomUUID(),
+        name: `Tag ${tags.length + 1}`,
+        showCount: false,
+        count: 0
+    }
     onUpdateTags([...tags, newTag])
   }
 
-  const handleUpdateTag = (index: number, newTag: string) => {
+  const handleUpdateTag = (index: number, newTag: CustomTagData) => {
     const updatedTags = [...tags]
     updatedTags[index] = newTag
     onUpdateTags(updatedTags)
@@ -74,7 +70,7 @@ export function CustomTagsManager({
 
   const handleDeleteTag = (index: number) => {
     const tagToDelete = tags[index]
-    setAnimatedTags((prev) => prev.map((at) => (at.tag === tagToDelete ? { ...at, isExiting: true } : at)))
+    setAnimatedTags((prev) => prev.map((at) => (at.id === tagToDelete.id ? { ...at, isExiting: true } : at)))
 
     setTimeout(() => {
       const updatedTags = tags.filter((_, i) => i !== index)
@@ -87,14 +83,14 @@ export function CustomTagsManager({
       <div className="flex flex-wrap items-center gap-1 text-xs max-w-full">
         {label && <span className="text-gray-600 mr-1">{label}</span>}
         {animatedTags.map((animatedTag, index) => {
-          const tagIndex = tags.findIndex((tag) => tag === animatedTag.tag)
+          const tagIndex = tags.findIndex((tag) => tag.id === animatedTag.id)
           if (tagIndex === -1) return null
 
-          const tagNamePart = animatedTag.tag.split(":")[0]
+          const tagData = tags[tagIndex]
 
           return (
             <div
-              key={`${tagNamePart}-${index}`}
+              key={animatedTag.id}
               className={`transition-all duration-300 ease-in-out ${
                 animatedTag.isEntering
                   ? "opacity-0 -translate-x-2 scale-95"
@@ -104,7 +100,7 @@ export function CustomTagsManager({
               }`}
             >
               <CustomTag
-                tag={animatedTag.tag}
+                tag={tagData}
                 onUpdate={(newTag) => handleUpdateTag(tagIndex, newTag)}
                 onDelete={() => handleDeleteTag(tagIndex)}
                 fontSize={fontSize}

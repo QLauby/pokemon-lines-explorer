@@ -8,6 +8,7 @@ import { KO_BG_COLOR, KO_BORDEAUX } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils"
 import { BattleState, Effect, Pokemon, SlotReference, TurnAction, TurnActionType } from "@/types/types"
 
+import { Counter } from "@/components/shared/counter"
 import { EffectsList } from "../battle-effects/effects-list"
 
 interface PokemonActionProps {
@@ -21,6 +22,7 @@ interface PokemonActionProps {
   onUpdateTarget: (target: SlotReference | undefined) => void
   onUpdateMetadata: (metadata: { itemName?: string; attackName?: string }) => void
   onUpdateAttack: (attackName: string, moveName?: string) => void
+  onUpdatePpAmount: (amount: number) => void
   
   // New Effect Handlers
   onAddEffect: () => void
@@ -52,6 +54,7 @@ export function PokemonAction({
   onUpdateTarget,
   onUpdateMetadata,
   onUpdateAttack,
+  onUpdatePpAmount,
   
   onAddEffect,
   onUpdateEffect,
@@ -326,47 +329,76 @@ export function PokemonAction({
                 {/* ATTACK NAME INPUT / DROPDOWN */}
                 {action.type === "attack" && actor && (
                    (() => {
-                       const moves = actor.pokemon.attacks || []
-                       const hasMoves = moves.length > 0
-                       
-                       if (hasMoves) {
+                         const moves = actor.pokemon.attacks || []
+                         // Requirement 1: Filter attacks with 0 PP
+                         const availableMoves = moves.filter(m => m.currentPP > 0)
+                         const hasMoves = availableMoves.length > 0
+                         
+                         if (hasMoves) {
+                             return (
+                                 <div className="flex items-center gap-1 ml-1 shrink-0">
+                                     <select
+                                       className={cn(
+                                           "h-6 w-[100px] text-[10px] bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate",
+                                           borderColorClass
+                                       )}
+                                       value={action.metadata?.attackName || ""}
+                                       onChange={(e) => {
+                                           const selectedName = e.target.value
+                                           const move = availableMoves.find(m => m.name === selectedName)
+                                           if (move) {
+                                               onUpdateAttack(move.name, move.name)
+                                           }
+                                       }}
+                                     >
+                                       <option value="">Select Move...</option>
+                                       {availableMoves.map(m => (
+                                           <option key={m.name} value={m.name}>
+                                               {m.name}
+                                           </option>
+                                       ))}
+                                     </select>
+
+                                     {/* Requirement 2 & 3: Counter for multi-consumption with dynamic capping and explicit label */}
+                                     {action.metadata?.attackName && (
+                                         (() => {
+                                             const selectedMove = availableMoves.find(m => m.name === action.metadata?.attackName)
+                                             return (
+                                                <div className="flex items-center gap-1 bg-white/50 px-1 rounded-sm border border-dashed border-muted-foreground/20" title={`Consommer x PP (Max: ${selectedMove?.currentPP || '?'})`}>
+                                                    <span className="text-[10px] font-bold text-muted-foreground opacity-70">-</span>
+                                                    <Counter
+                                                        value={(action.metadata?.ppAmount || 1).toString()}
+                                                        onChange={(val) => onUpdatePpAmount(Math.max(1, parseInt(val) || 1))}
+                                                        min={1}
+                                                        max={selectedMove?.currentPP}
+                                                        fontSize={10}
+                                                        width={24}
+                                                        className="h-5"
+                                                        visualMode="default"
+                                                        mainColor={isAlly ? "#3b82f6" : "#ef4444"}
+                                                    />
+                                                    <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-70">PP</span>
+                                                </div>
+                                             )
+                                         })()
+                                     )}
+                                 </div>
+                             )
+                         } else {
                            return (
-                               <select
-                                 className={cn(
-                                     "h-6 w-[100px] text-[10px] bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate ml-1",
-                                     borderColorClass
-                                 )}
-                                 value={action.metadata?.attackName || ""}
-                                 onChange={(e) => {
-                                     const selectedName = e.target.value
-                                     // Verify it exists in moves to be safe
-                                     const move = moves.find(m => m.name === selectedName)
-                                     if (move) {
-                                         onUpdateAttack(move.name, move.name)
-                                     }
-                                 }}
-                               >
-                                 <option value="">Select Move...</option>
-                                 {moves.map(m => (
-                                     <option key={m.name} value={m.name}>
-                                         {m.name}
-                                     </option>
-                                 ))}
-                               </select>
+                               <div className="flex items-center gap-1 ml-1 shrink-0">
+                                   <input 
+                                      className={cn(
+                                          "h-6 w-[100px] text-[10px] bg-background/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring placeholder:italic",
+                                          borderColorClass
+                                      )}
+                                      placeholder="Move name..."
+                                      value={action.metadata?.attackName || ""}
+                                      onChange={(e) => onUpdateAttack(e.target.value)}
+                                    />
+                               </div>
                            )
-                       } else {
-                           return (
-                               <input 
-                                  className={cn(
-                                      "h-6 w-[100px] text-[10px] bg-background/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring placeholder:italic ml-1",
-                                      borderColorClass
-                                  )}
-                                  placeholder="Move name..."
-                                  value={action.metadata?.attackName || ""}
-                                  onChange={(e) => onUpdateAttack(e.target.value)}
-                                />
-                           )
-                       }
+                         }
                    })()
                 )}
 
@@ -454,7 +486,12 @@ export function PokemonAction({
                    onAdd={onAddEffect}
                    onUpdate={onUpdateEffect}
                    onRemove={onRemoveEffect}
-                   baseState={baseState || ({ activeSlots, myTeam, enemyTeam } as unknown as BattleState)}
+                   baseState={baseState || ({ 
+                       activeSlots, 
+                       myTeam, 
+                       enemyTeam,
+                       battlefieldState: { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } }
+                   } as unknown as BattleState)}
                    hpMode={hpMode}
                />
            ) : (
@@ -468,7 +505,12 @@ export function PokemonAction({
                      onAdd={onAddEffect}
                      onUpdate={onUpdateEffect}
                      onRemove={onRemoveEffect}
-                     baseState={baseState || ({ activeSlots, myTeam, enemyTeam } as unknown as BattleState)}
+                     baseState={baseState || ({ 
+                         activeSlots, 
+                         myTeam, 
+                         enemyTeam,
+                         battlefieldState: { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } }
+                     } as unknown as BattleState)}
                      hpMode={hpMode}
                  />
              </>

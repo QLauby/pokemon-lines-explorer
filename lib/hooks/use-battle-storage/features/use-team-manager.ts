@@ -1,5 +1,5 @@
 import { updatePokemonHpPercent } from "@/lib/utils/hp-utils"
-import { BattleState, Pokemon } from "@/types/types"
+import { BattleState, CustomTagData, Pokemon } from "@/types/types"
 import { useState } from "react"
 import { BattleEngine } from "../../../logic/battle-engine"
 
@@ -184,9 +184,9 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
     updateInitialState(updates)
   }
 
-  const updateBattlefieldTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, customTags: tags } })
-  const updatePlayerSideTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, playerSide: { customTags: tags } } })
-  const updateOpponentSideTags = (tags: string[]) => updateInitialState({ battlefieldState: { ...battlefieldState, opponentSide: { customTags: tags } } })
+  const updateBattlefieldTags = (tags: CustomTagData[]) => updateInitialState({ battlefieldState: { ...battlefieldState, customTags: tags } })
+  const updatePlayerSideTags = (tags: CustomTagData[]) => updateInitialState({ battlefieldState: { ...battlefieldState, playerSide: { customTags: tags } } })
+  const updateOpponentSideTags = (tags: CustomTagData[]) => updateInitialState({ battlefieldState: { ...battlefieldState, opponentSide: { customTags: tags } } })
 
   const getSlotForPokemon = (idx: number, isMyTeam: boolean) => {
     if (!activeSlots) return null

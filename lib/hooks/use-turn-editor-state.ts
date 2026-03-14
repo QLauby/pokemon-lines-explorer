@@ -194,9 +194,10 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" =
     const newActions = [...list]
     const action = newActions[index]
 
+    const ppAmount = action.metadata?.ppAmount ?? 1
     const otherDeltas = (action.actionDeltas || []).filter(d => d.type !== "PP_CHANGE")
     const newActionDeltas = moveName
-      ? [...otherDeltas, { type: "PP_CHANGE" as const, target: action.actor, moveName, amount: -1 }]
+      ? [...otherDeltas, { type: "PP_CHANGE" as const, target: action.actor, moveName, amount: -ppAmount }]
       : otherDeltas
 
     newActions[index] = {
@@ -205,6 +206,27 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" =
       actionDeltas: newActionDeltas,
       effects: action.effects.filter(e => !e.deltas.some(d => d.type === "PP_CHANGE")),
     }
+    setter(newActions)
+  }
+
+  const updateActionPpAmount = (index: number, amount: number, isPostTurn = false) => {
+    if (readOnly) return
+    const { list, setter } = resolve(isPostTurn)
+    const newActions = [...list]
+    const action = { ...newActions[index] }
+    
+    // Update metadata
+    action.metadata = { ...action.metadata, ppAmount: amount }
+
+    // Update the PP_CHANGE delta amount if it exists
+    action.actionDeltas = (action.actionDeltas || []).map(d => {
+        if (d.type === "PP_CHANGE") {
+            return { ...d, amount: -amount }
+        }
+        return d
+    })
+
+    newActions[index] = action
     setter(newActions)
   }
 
@@ -325,6 +347,7 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" =
     updateActionTarget,
     updateActionMetadata,
     updateActionAttack,
+    updateActionPpAmount,
     toggleActionCollapse,
     handleDeleteAction,
     handleUpdateAction,

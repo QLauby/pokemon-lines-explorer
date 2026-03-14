@@ -13,6 +13,7 @@ interface CircularButtonProps {
   size?: number
   scale?: number
   readOnly?: boolean
+  style?: React.CSSProperties
 }
 
 export const CircularButton = ({
@@ -28,6 +29,7 @@ export const CircularButton = ({
   size = 12,
   scale = 1,
   readOnly = false,
+  style,
 }: CircularButtonProps) => {
   // 1. We respect the requested diameter exactly to avoid "oval" distortions.
   let finalDiameter = Math.round(diameter || size * scale * 2)
@@ -107,6 +109,7 @@ export const CircularButton = ({
         style={{
           ...commonStyles,
           backgroundColor: isActive ? activeColor : undefined,
+          ...style,
         }}
         title={title}
       >
@@ -121,7 +124,7 @@ export const CircularButton = ({
       className={`rounded-full transition-colors border-none outline-none overflow-hidden ${
         !readOnly && "cursor-pointer"
       } ${isActive ? getActiveStyles() : getInactiveStyles()}`}
-      style={commonStyles}
+      style={{ ...commonStyles, ...style }}
       title={title}
     >
       <Icon size={finalIconSize} strokeWidth={finalStrokeWidth} style={iconStyle} className="flex-shrink-0" />

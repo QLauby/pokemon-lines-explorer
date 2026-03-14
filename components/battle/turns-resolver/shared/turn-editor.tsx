@@ -55,7 +55,7 @@ export function TurnEditor({
     postTurnActions, setPostTurnActions,
     canMoveActionUp, canMoveActionDown, moveAction,
     updateActionType, updateActionTarget, updateActionMetadata,
-    updateActionAttack, toggleActionCollapse,
+    updateActionAttack, updateActionPpAmount, toggleActionCollapse,
     handleDeleteAction, handleUpdateAction,
     addEffectToAction, updateEffectInAction, removeEffectFromAction,
     addEndOfTurnEffect, updateEndOfTurnEffect, removeEndOfTurnEffect,
@@ -160,6 +160,7 @@ export function TurnEditor({
               onUpdateTarget={target => updateActionTarget(index, target)}
               onUpdateMetadata={metadata => updateActionMetadata(index, metadata)}
               onUpdateAttack={(name, moveId) => updateActionAttack(index, name, moveId)}
+              onUpdatePpAmount={(amount) => updateActionPpAmount(index, amount)}
               onAddEffect={() => addEffectToAction(index)}
               onUpdateEffect={(effIdx, newEff) => updateEffectInAction(index, effIdx, newEff)}
               onRemoveEffect={effIdx => removeEffectFromAction(index, effIdx)}
@@ -214,6 +215,7 @@ export function TurnEditor({
                   onUpdateTarget={t => updateActionTarget(index, t, true)}
                   onUpdateMetadata={metadata => updateActionMetadata(index, metadata, true)}
                   onUpdateAttack={(name, moveId) => updateActionAttack(index, name, moveId, true)}
+                  onUpdatePpAmount={(amount) => updateActionPpAmount(index, amount, true)}
                   onAddEffect={() => addEffectToAction(index, true)}
                   onUpdateEffect={(ei, ne) => updateEffectInAction(index, ei, ne, true)}
                   onRemoveEffect={ei => removeEffectFromAction(index, ei, true)}

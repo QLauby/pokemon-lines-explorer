@@ -105,6 +105,16 @@ export function EffectsList({
                   if (!stateForThisEffect) return undefined
                   return getPokemonByTeamIndexFromState(stateForThisEffect, side, teamIndex)
               }}
+              getBattlefieldTags={(target) => {
+                  const stateForThisEffect = effectStates[index] || baseState
+                  if (!stateForThisEffect) return []
+                  const bf = stateForThisEffect.battlefieldState;
+                  if (!bf) return [];
+                  if (target === "global") return bf.customTags || [];
+                  if (target === "my_side") return bf.playerSide?.customTags || [];
+                  if (target === "opponent_side") return bf.opponentSide?.customTags || [];
+                  return [];
+              }}
               hpMode={hpMode}
             />
             )

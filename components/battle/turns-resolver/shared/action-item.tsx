@@ -33,6 +33,7 @@ interface ActionItemProps {
   onUpdateTarget: (target: { side: "my" | "opponent"; slotIndex: number } | undefined) => void
   onUpdateMetadata: (metadata: { itemName?: string; attackName?: string }) => void
   onUpdateAttack: (attackName: string, moveName?: string) => void
+  onUpdatePpAmount: (amount: number) => void
   onAddEffect: () => void
   onUpdateEffect: (effectIndex: number, newEffect: Effect) => void
   onRemoveEffect: (effectIndex: number) => void
@@ -59,6 +60,7 @@ export function ActionItem({
   onUpdateTarget,
   onUpdateMetadata,
   onUpdateAttack,
+  onUpdatePpAmount,
   onAddEffect,
   onUpdateEffect,
   onRemoveEffect,
@@ -126,6 +128,7 @@ export function ActionItem({
           onUpdateTarget={target => !readOnly && onUpdateTarget(target)}
           onUpdateMetadata={metadata => !readOnly && onUpdateMetadata(metadata)}
           onUpdateAttack={(name, moveId) => !readOnly && onUpdateAttack(name, moveId)}
+          onUpdatePpAmount={(amount) => !readOnly && onUpdatePpAmount(amount)}
           onAddEffect={() => !readOnly && onAddEffect()}
           onUpdateEffect={(effIndex, newEff) => !readOnly && onUpdateEffect(effIndex, newEff)}
           onRemoveEffect={effIndex => !readOnly && onRemoveEffect(effIndex)}
