@@ -38,6 +38,7 @@ interface CounterProps {
   transitionDuration?: string
   doubleClickStep?: number
   readOnly?: boolean
+  showPlusSign?: boolean
 }
 
 export function Counter(props: CounterProps) {
@@ -56,6 +57,7 @@ export function Counter(props: CounterProps) {
     transitionDuration = "0.3s",
     doubleClickStep = 5,
     readOnly = false,
+    showPlusSign = false,
     ...editableTextProps
   } = props
 
@@ -163,6 +165,7 @@ export function Counter(props: CounterProps) {
         visualMode="border"
         transitionDuration={transitionDuration}
         readOnly={readOnly}
+        showPlusSign={showPlusSign}
       />
 
       {!readOnly && (

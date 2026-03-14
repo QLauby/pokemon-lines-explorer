@@ -86,6 +86,13 @@ export interface SlotReference {
 }
 
 // Delta Definitions
+export type StatModifierKey = "att" | "def" | "spa" | "spd" | "spe" | "acc" | "ev" | "crit"
+
+export type StatModifierOperation = {
+  stat: StatModifierKey
+  amount: number
+}
+
 export type StatusOperation =
   | { type: "ADD"; status: PokemonStatus | "confusion" | "love" }
   | { type: "REMOVE"; status: PokemonStatus | "confusion" | "love" }
@@ -98,6 +105,7 @@ export type BattleDelta =
   | { type: "SWITCH"; side: "my" | "opponent"; fromSlot: number; toSlot: number; slotIndex?: number }
   | { type: "PP_CHANGE"; target: SlotReference; moveName: string; amount: number }
   | { type: "STATUS_DELTAS"; target: SlotReference; operations: StatusOperation[] }
+  | { type: "STATS_MODIFIERS_DELTAS"; target: SlotReference; operations: StatModifierOperation[]; setAllToZero?: boolean }
 
 export type TurnActionType = "attack" | "switch" | "item" | "switch-after-ko"
 

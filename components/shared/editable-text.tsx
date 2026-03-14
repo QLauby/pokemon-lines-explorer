@@ -49,6 +49,7 @@ interface EditableTextProps {
   readOnly?: boolean
   rawEquationString?: string
   onEquationChange?: (eq: string | undefined) => void
+  showPlusSign?: boolean
 }
 
 const DEFAULT_TEXT_IF_VOID = "Click to edit ..."
@@ -114,6 +115,7 @@ export function EditableText({
   readOnly = false,
   rawEquationString,
   onEquationChange,
+  showPlusSign = false,
 }: EditableTextProps) {
   // 1. Hook State
   const [isEditing, setIsEditing] = useState(false)
@@ -218,6 +220,10 @@ export function EditableText({
         displayText = `${numeric.toFixed(resolvedDecimals).replace(".", ",")}`
       } else {
         displayText = `${Math.trunc(numeric)}`
+      }
+
+      if (showPlusSign && numeric > 0) {
+        displayText = `+${displayText}`
       }
     } else {
       displayText = resolvedPlaceholder

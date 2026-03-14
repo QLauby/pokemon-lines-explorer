@@ -91,6 +91,26 @@ export function generateEffectOptions(state: BattleState): EffectOption[] {
 }
 
 /**
+ * Resolves the team index of the pokemon switching out (the actor)
+ * for a switch action, using various safety fallbacks.
+ */
+function resolveOutTeamIndex(
+    action: TurnAction,
+    state: BattleState,
+    actorObj?: { pokemon: { name: string }, teamIndex?: number }
+): number {
+    const actorSide = action.actor.side;
+    const team = actorSide === "my" ? state.myTeam : state.enemyTeam;
+    const actorSlot = "slotIndex" in action.actor ? action.actor.slotIndex : 0;
+    
+    if (actorObj?.teamIndex !== undefined) return actorObj.teamIndex;
+    if (actorObj?.pokemon.name) return team.findIndex(p => p.name === actorObj.pokemon.name);
+    
+    const activeSlots = actorSide === "my" ? state.activeSlots.myTeam : state.activeSlots.opponentTeam;
+    return activeSlots[actorSlot as number] ?? -1;
+}
+
+/**
  * Generates dynamic target choices based on context (Turn Action vs End-of-Turn)
  * and the chosen EffectType.
  */
@@ -105,6 +125,75 @@ export function getDynamicEffectTargets(
 
   if (!action) {
     // End-of-turn effects: for now, just the battlefield options
+    return baseOptions;
+  }
+
+  // TARGETING: stats-modifier
+  if (effectType === "stats-modifier") {
+    if (action.type === "switch" || action.type === "switch-after-ko") {
+      const options: EffectOption[] = [];
+      const actorSide = action.actor.side;
+      const team = actorSide === "my" ? state.myTeam : state.enemyTeam;
+      
+      // 1. The Switch-Out Pokemon (The Actor) - HIGH PRIORITY
+      const outTeamIndex = resolveOutTeamIndex(action, state, actorObj);
+      
+      if (outTeamIndex !== -1 && team[outTeamIndex]) {
+          const mon = team[outTeamIndex];
+          if (mon.hpPercent > 0) {
+              options.push({
+                  label: `[Out] ${mon.name}`,
+                  value: { type: "team_index", side: actorSide, teamIndex: outTeamIndex, slotIndex: -1 },
+                  isAlly: actorSide === "my"
+              });
+          }
+      }
+
+      // 2. The Switch-In Pokemon
+      const switchInTarget = action.target;
+      if (switchInTarget && switchInTarget.type === "battlefield_slot") {
+          const side = switchInTarget.side;
+          const slot = switchInTarget.slotIndex;
+          const activeSlots = side === "my" ? state.activeSlots.myTeam : state.activeSlots.opponentTeam;
+          const currentInIndex = activeSlots[slot];
+          
+          if (currentInIndex !== null && currentInIndex !== undefined) {
+              const inMon = (side === "my" ? state.myTeam : state.enemyTeam)[currentInIndex];
+              if (inMon && inMon.hpPercent > 0) {
+                  options.push({
+                      label: `[In] ${inMon.name}`,
+                      value: { type: "battlefield_slot", side: side, slotIndex: slot },
+                      isAlly: side === "my"
+                  });
+              }
+          }
+      }
+
+      // 3. Other active pokemon
+      const otherActive = baseOptions.filter(opt => {
+          // Exclude the [In] pokemon since we already added it
+          if (switchInTarget && opt.value.side === switchInTarget.side && (opt.value as any).slotIndex === (switchInTarget as any).slotIndex) return false;
+          return true;
+      });
+
+      return [...options, ...otherActive];
+    }
+
+    // Default stats-modifier (Attack/Item): prioritize target
+    const target = action.target;
+    if (target && target.type === "battlefield_slot") {
+      const targetSide = target.side;
+      const targetSlot = target.slotIndex;
+      
+      const targetIndex = baseOptions.findIndex(opt => 
+        opt.value.side === targetSide && (opt.value as any).slotIndex === targetSlot
+      );
+      
+      if (targetIndex !== -1) {
+        const [targetOpt] = baseOptions.splice(targetIndex, 1);
+        return [targetOpt, ...baseOptions];
+      }
+    }
     return baseOptions;
   }
 
@@ -157,19 +246,7 @@ export function getDynamicEffectTargets(
       // 2. The Switch-Out Pokemon (the actor)
       const actorSide = action.actor.side;
       const team = actorSide === "my" ? state.myTeam : state.enemyTeam;
-      const actorSlot = "slotIndex" in action.actor ? action.actor.slotIndex : 0;
-      
-      let outTeamIndex = -1;
-      if (actorObj?.teamIndex !== undefined) {
-          outTeamIndex = actorObj.teamIndex;
-      } else if (actorObj?.pokemon.name) {
-         outTeamIndex = team.findIndex(p => p.name === actorObj.pokemon.name);
-      } else {
-         const activeSlots = actorSide === "my" ? state.activeSlots.myTeam : state.activeSlots.opponentTeam;
-         if (activeSlots[actorSlot as number] !== undefined) {
-             outTeamIndex = activeSlots[actorSlot as number] as number;
-         }
-      }
+      const outTeamIndex = resolveOutTeamIndex(action, state, actorObj);
       
       if (outTeamIndex !== -1 && team[outTeamIndex]) {
           const mon = team[outTeamIndex];
@@ -183,6 +260,7 @@ export function getDynamicEffectTargets(
       }
 
       // 3. Other base options (the rest of the active battlefield)
+      const actorSlot = "slotIndex" in action.actor ? action.actor.slotIndex : 0;
       const otherActive = baseOptions.filter(opt => {
          if (opt.value.type === "battlefield_slot" && opt.value.side === actorSide && (opt.value as any).slotIndex === actorSlot) return false;
          return true;

@@ -317,6 +317,35 @@ export class BattleEngine {
         return newState
       }
 
+      case "STATS_MODIFIERS_DELTAS": {
+        if (delta.target.type === "field") return newState;
+        const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
+        
+        const teamIndex = this.resolveTargetToTeamIndex(newState, delta.target)
+        if (teamIndex === null) return newState
+        
+        const targetPokemon = { ...team[teamIndex] }
+        if (!targetPokemon) return newState
+
+        const currentModifiers = delta.setAllToZero 
+            ? this.getStatsModifiersDefault()
+            : { ...(targetPokemon.statsModifiers || this.getStatsModifiersDefault()) }
+        
+        for (const op of delta.operations) {
+            const oldValue = currentModifiers[op.stat] ?? 0
+            const newValue = oldValue + op.amount
+            
+            // Clamping
+            const min = -6
+            const max = op.stat === "crit" ? 4 : 6
+            
+            currentModifiers[op.stat] = Math.max(min, Math.min(max, newValue))
+        }
+
+        team[teamIndex] = { ...targetPokemon, statsModifiers: currentModifiers }
+        return newState
+      }
+
       default:
         return state
     }

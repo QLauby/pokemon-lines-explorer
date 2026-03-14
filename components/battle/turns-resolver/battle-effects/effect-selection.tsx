@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 import { Effect, EffectType, Pokemon, PokemonHpInfo, SlotReference } from "@/types/types"
 import { Trash2 } from "lucide-react"
 import { HpChangeEffect } from "./hp-change-effect"
+import { StatsModifierEffect } from "./stats-modifier-effect"
 import { StatusChangeEffect } from "./status-change-effect"
 
 interface EffectSelectionProps {
@@ -83,6 +84,8 @@ export function EffectSelection({
                 ? [{ type: "HP_RELATIVE", target: effect.target, amount: 0, unit: hpMode }] 
                 : newType === "status-change"
                 ? [{ type: "STATUS_DELTAS", target: effect.target, operations: [] }]
+                : newType === "stats-modifier"
+                ? [{ type: "STATS_MODIFIERS_DELTAS", target: effect.target, operations: [] }]
                 : []
         })
     }
@@ -201,9 +204,12 @@ export function EffectSelection({
                     />
                 )}
                 {effect.type === "stats-modifier" && (
-                    <div className="text-[11px] text-muted-foreground italic py-1">
-                        Stats Modifier — bientôt disponible
-                    </div>
+                    <StatsModifierEffect
+                        effect={effect}
+                        onUpdate={onUpdate}
+                        readOnly={readOnly}
+                        initialPokemon={getTargetPokemon()}
+                    />
                 )}
             </div>
         </div>
