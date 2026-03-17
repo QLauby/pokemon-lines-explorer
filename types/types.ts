@@ -113,6 +113,10 @@ export type OtherOperation =
   | { type: "COUNTER_TOGGLE"; id: string; show: boolean }
   | { type: "COUNTER_RELATIVE"; id: string; amount: number }
 
+export type MegaTeraOperation = 
+  | { type: "SET_MEGA"; value: boolean }
+  | { type: "SET_TERA"; value: boolean }
+
 export type BattleDelta =
   | { type: "HP_RELATIVE"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string }
   | { type: "HP_SET"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string }
@@ -121,10 +125,13 @@ export type BattleDelta =
   | { type: "STATUS_DELTAS"; target: SlotReference; operations: StatusOperation[] }
   | { type: "STATS_MODIFIERS_DELTAS"; target: SlotReference; operations: StatModifierOperation[]; setAllToZero?: boolean }
   | { type: "OTHERS_EFFECT_DELTAS"; target: SlotReference; operations: OtherOperation[] }
+  | { type: "MEGA_TERA_DELTAS"; target: SlotReference; operations: MegaTeraOperation[] }
+  | { type: "ABILITY_CHANGE"; target: SlotReference; abilityName: string }
+  | { type: "ITEM_CHANGE"; target: SlotReference; heldItem: boolean; heldItemName?: string }
 
 export type TurnActionType = "attack" | "switch" | "item" | "switch-after-ko"
 
-export type EffectType = "hp-change" | "status-change" | "stats-modifier" | "others" | "terrain"
+export type EffectType = "hp-change" | "status-change" | "stats-modifier" | "others" | "terrain" | "mega-tera" | "ability-item"
 
 export interface Effect {
   target: SlotReference

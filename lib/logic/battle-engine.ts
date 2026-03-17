@@ -380,7 +380,6 @@ export class BattleEngine {
              
              return newState;
         }
-        
         const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
         const teamIndex = this.resolveTargetToTeamIndex(newState, delta.target)
         if (teamIndex === null) return newState
@@ -392,6 +391,55 @@ export class BattleEngine {
         team[teamIndex] = targetPokemon;
         
         return newState;
+      }
+
+      case "MEGA_TERA_DELTAS": {
+        if (delta.target.type === "field") return newState;
+        
+        const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
+        const teamIndex = this.resolveTargetToTeamIndex(newState, delta.target)
+        if (teamIndex === null) return newState
+        
+        const targetPokemon = { ...team[teamIndex] }
+        if (!targetPokemon) return newState
+        
+        for (const op of delta.operations) {
+            if (op.type === "SET_MEGA") {
+                targetPokemon.isMega = op.value
+            } else if (op.type === "SET_TERA") {
+                targetPokemon.isTerastallized = op.value
+            }
+        }
+        
+        team[teamIndex] = targetPokemon;
+        return newState;
+      }
+
+      case "ABILITY_CHANGE": {
+        if (delta.target.type === "field") return newState;
+        const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
+        const teamIndex = this.resolveTargetToTeamIndex(newState, delta.target)
+        if (teamIndex === null) return newState
+        const targetPokemon = { ...team[teamIndex] }
+        if (!targetPokemon) return newState
+
+        targetPokemon.abilityName = delta.abilityName
+        team[teamIndex] = targetPokemon
+        return newState
+      }
+
+      case "ITEM_CHANGE": {
+        if (delta.target.type === "field") return newState;
+        const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
+        const teamIndex = this.resolveTargetToTeamIndex(newState, delta.target)
+        if (teamIndex === null) return newState
+        const targetPokemon = { ...team[teamIndex] }
+        if (!targetPokemon) return newState
+
+        targetPokemon.heldItem = delta.heldItem
+        targetPokemon.heldItemName = delta.heldItemName
+        team[teamIndex] = targetPokemon
+        return newState
       }
 
       default:

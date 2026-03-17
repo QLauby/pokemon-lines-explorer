@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CustomTagData, Effect, EffectType, Pokemon, PokemonHpInfo, SlotReference } from "@/types/types"
 import { Trash2 } from "lucide-react"
+import { AbilityItemEffect } from "./ability-item-effect"
 import { HpChangeEffect } from "./hp-change-effect"
+import { MegaTeraEffect } from "./mega-tera-effect"
 import { OthersEffect } from "./others-effect"
 import { StatsModifierEffect } from "./stats-modifier-effect"
 import { StatusChangeEffect } from "./status-change-effect"
@@ -31,6 +33,8 @@ const EFFECT_TYPE_LABELS: Record<EffectType, string> = {
     "stats-modifier": "Stats Modifier",
     "others": "Custom effects",
     "terrain": "Terrain effects",
+    "mega-tera": "Mega / Tera",
+    "ability-item": "Ability & Item",
 }
 
 export function EffectSelection({
@@ -100,6 +104,13 @@ export function EffectSelection({
                 ? [{ type: "STATS_MODIFIERS_DELTAS", target: effect.target, operations: [] }]
                 : (newType === "others" || newType === "terrain")
                 ? [{ type: "OTHERS_EFFECT_DELTAS", target: effect.target, operations: [] }]
+                : newType === "mega-tera"
+                ? [{ type: "MEGA_TERA_DELTAS", target: effect.target, operations: [] }]
+                : newType === "ability-item"
+                ? [
+                    { type: "ABILITY_CHANGE", target: effect.target, abilityName: getTargetPokemon()?.abilityName || "" },
+                    { type: "ITEM_CHANGE", target: effect.target, heldItem: getTargetPokemon()?.heldItem || false, heldItemName: getTargetPokemon()?.heldItemName || "" }
+                  ]
                 : []
         })
     }
@@ -239,6 +250,22 @@ export function EffectSelection({
                         onUpdate={onUpdate}
                         readOnly={readOnly}
                         initialTags={getTargetCustomTags()}
+                    />
+                )}
+                {effect.type === "mega-tera" && (
+                    <MegaTeraEffect
+                        effect={effect}
+                        onUpdate={onUpdate}
+                        readOnly={readOnly}
+                        initialPokemon={getTargetPokemon()}
+                    />
+                )}
+                {effect.type === "ability-item" && (
+                    <AbilityItemEffect
+                        effect={effect}
+                        onUpdate={onUpdate}
+                        readOnly={readOnly}
+                        initialPokemon={getTargetPokemon()}
                     />
                 )}
             </div>

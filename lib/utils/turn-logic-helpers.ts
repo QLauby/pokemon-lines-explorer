@@ -148,7 +148,7 @@ export function getDynamicEffectTargets(
       return baseOptions.filter(opt => opt.value.type === "field");
   }
 
-  // --- 2. POKEMON EFFECTS (HP, Status, Stats, Custom/Tags) ---
+  // --- 2. POKEMON EFFECTS (HP, Status, Stats, Custom/Tags, Mega/Tera, Ability/Item) ---
   // Field targets are NOT allowed
   const pokemonOnlyOptions = baseOptions.filter(opt => opt.value.type !== "field");
 
@@ -217,7 +217,7 @@ export function getDynamicEffectTargets(
       return combined;
   }
 
-  // B. Other Pokémon effects (HP, Stats, Tags) - Handle Switch priority
+  // B. Other Pokémon effects (HP, Stats, Tags, Mega/Tera, Ability/Item) - Handle Switch priority
   if (action.type === "switch" || action.type === "switch-after-ko") {
       const actorSide = action.actor.side;
       const team = actorSide === "my" ? state.myTeam : state.enemyTeam;
