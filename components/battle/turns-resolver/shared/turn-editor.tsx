@@ -78,6 +78,7 @@ export function TurnEditor({
     myTeam,
     enemyTeam,
     activeSlotsCount: battleFormat === "double" ? 2 : 1,
+    hpMode
   })
 
   // ── Post-Turn Switches (End-of-Turn KOs) ─────────────────────

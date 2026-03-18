@@ -71,6 +71,7 @@ export interface TreeNode {
   id: string
   description: string
   probability: number
+  probabilityExpression?: string
   turnData: TurnData
   parentId?: string
   children: string[]

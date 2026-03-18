@@ -147,38 +147,57 @@ export function HpChangeEffect({
         let actualEndHp = 0;
         let actualDiff = 0;
 
-        if (currentMode === "set") {
-            let targetHp = effectiveUnit === "hp" ? currentAmount : Math.round((currentAmount / 100) * maxHp)
-            actualEndHp = Math.max(0, Math.min(maxHp, targetHp))
-            endHp = (actualEndHp / maxHp) * 100
-
-            if (actualEndHp >= actualStartHp) {
-                isEffectivelyHealing = true;
-                actualDiff = actualEndHp - actualStartHp
-                diffPct = endHp - startHp
+        if (hpMode === "hp") {
+            // --- HP MODE (HP IS KING) ---
+            let deltaHp: number;
+            if (currentMode === "set") {
+                const targetHp = effectiveUnit === "hp" ? currentAmount : Math.round((currentAmount / 100) * maxHp)
+                actualEndHp = Math.max(0, Math.min(maxHp, targetHp))
+                deltaHp = actualEndHp - actualStartHp
             } else {
-                isEffectivelyHealing = false;
-                actualDiff = actualStartHp - actualEndHp
-                diffPct = startHp - endHp
+                deltaHp = effectiveUnit === "hp" 
+                    ? currentAmount 
+                    : Math.abs(convertPercentDeltaToHp(currentAmount, maxHp))
+                
+                if (currentMode === "damage") {
+                    actualDiff = Math.min(actualStartHp, deltaHp)
+                    actualEndHp = actualStartHp - actualDiff
+                    actualDiff = -actualDiff
+                } else {
+                    actualDiff = Math.min(maxHp - actualStartHp, deltaHp)
+                    actualEndHp = actualStartHp + actualDiff
+                }
+                deltaHp = actualDiff
             }
-        } else if (currentMode === "heal") {
-            const rawHealedPct = toPercent(currentAmount)
-            const healedPct = Math.min(100 - startHp, rawHealedPct) 
-            endHp = startHp + healedPct
-            diffPct = healedPct
 
-            const rawHealedFloor = effectiveUnit === "hp" ? currentAmount : Math.abs(convertPercentDeltaToHp(currentAmount, maxHp))
-            actualDiff = Math.min(maxHp - actualStartHp, rawHealedFloor)
-            actualEndHp = actualStartHp + actualDiff
+            actualDiff = Math.abs(deltaHp)
+            actualEndHp = Math.max(0, Math.min(maxHp, actualStartHp + deltaHp))
+            endHp = (actualEndHp / maxHp) * 100
+            diffPct = Math.abs(endHp - startHp)
+            isEffectivelyHealing = deltaHp >= 0
         } else {
-            const rawDamagePct = toPercent(currentAmount)
-            const damagePct = Math.min(startHp, rawDamagePct) 
-            endHp = startHp - damagePct
-            diffPct = damagePct
+            // --- PERCENT MODE (PERCENT IS KING) ---
+            let deltaPct: number;
+            if (currentMode === "set") {
+                const targetPct = effectiveUnit === "percent" ? currentAmount : (currentAmount / maxHp) * 100
+                endHp = Math.max(0, Math.min(100, targetPct))
+                deltaPct = endHp - startHp
+            } else {
+                deltaPct = effectiveUnit === "percent" ? currentAmount : (currentAmount / maxHp) * 100
+                if (currentMode === "damage") {
+                    diffPct = Math.min(startHp, deltaPct)
+                    endHp = startHp - diffPct
+                    deltaPct = -diffPct
+                } else {
+                    diffPct = Math.min(100 - startHp, deltaPct)
+                    endHp = startHp + diffPct
+                }
+            }
 
-            const rawDamageFloor = effectiveUnit === "hp" ? currentAmount : Math.abs(convertPercentDeltaToHp(currentAmount, maxHp))
-            actualDiff = Math.min(actualStartHp, rawDamageFloor)
-            actualEndHp = actualStartHp - actualDiff
+            diffPct = Math.abs(deltaPct)
+            isEffectivelyHealing = deltaPct >= 0
+            actualEndHp = Math.round((endHp * maxHp) / 100)
+            actualDiff = Math.abs(actualEndHp - actualStartHp)
         }
 
         if (!isEffectivelyHealing) {
@@ -190,7 +209,7 @@ export function HpChangeEffect({
                     >
                         {endHp > 10 && (hpMode === "hp"
                             ? `${actualEndHp}`
-                            : `${endHp.toFixed(0)}%`)}
+                            : `${endHp.toFixed(1)}%`)}
                     </div>
                     <div
                         className="absolute top-0 h-full bg-red-500/50 transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white"
@@ -198,7 +217,7 @@ export function HpChangeEffect({
                     >
                         {diffPct > 5 && (hpMode === "hp"
                             ? `-${actualDiff}`
-                            : `-${diffPct.toFixed(0)}%`)}
+                            : `-${diffPct.toFixed(1)}%`)}
                     </div>
                 </>
             )
@@ -211,7 +230,7 @@ export function HpChangeEffect({
                     >
                         {startHp > 10 && (hpMode === "hp"
                             ? `${actualStartHp}`
-                            : `${startHp.toFixed(0)}%`)}
+                            : `${startHp.toFixed(1)}%`)}
                     </div>
                     <div
                         className="absolute top-0 h-full bg-green-500/50 transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white"
@@ -219,7 +238,7 @@ export function HpChangeEffect({
                     >
                         {diffPct > 5 && (hpMode === "hp"
                             ? `+${actualDiff}`
-                            : `+${diffPct.toFixed(0)}%`)}
+                            : `+${diffPct.toFixed(1)}%`)}
                     </div>
                 </>
             )

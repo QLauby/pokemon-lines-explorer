@@ -10,6 +10,7 @@ interface UseTurnSimulationProps {
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
   activeSlotsCount?: number
+  hpMode?: "percent" | "hp"
 }
 
 export interface KODetected {
@@ -26,6 +27,7 @@ export function useTurnSimulation({
   myTeam,
   enemyTeam,
   activeSlotsCount = 1,
+  hpMode = "percent",
 }: UseTurnSimulationProps) {
   
   // 1. Ensure we have a valid starting state
@@ -65,8 +67,8 @@ export function useTurnSimulation({
 
   // 3. Compute the full sequence of states
   const computedStates = useMemo(() => {
-    return BattleEngine.computeTurnSequence(safeInitialState, allActions)
-  }, [safeInitialState, allActions])
+    return BattleEngine.computeTurnSequence(safeInitialState, allActions, hpMode)
+  }, [safeInitialState, allActions, hpMode])
 
   // 4. Detect KOs across the entire timeline
   const detectedKOs = useMemo(() => {

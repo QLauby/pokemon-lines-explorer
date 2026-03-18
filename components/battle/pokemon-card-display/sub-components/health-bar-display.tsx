@@ -45,7 +45,7 @@ export function HealthBarDisplay({
         )}>
           {hpMode === "hp" && hpCurrent !== undefined
             ? `${hpCurrent}/${hpMax}`
-            : `${Math.round(hpPercent)}%`
+            : `${hpPercent % 1 === 0 ? hpPercent.toFixed(0) : hpPercent.toFixed(1)}%`
           }
         </span>
       )}

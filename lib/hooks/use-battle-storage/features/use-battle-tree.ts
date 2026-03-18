@@ -34,8 +34,8 @@ export function useBattleTree({
              const rootNode: TreeNode = {
                  id: "root",
                  description: "État Initial",
-                 probability: 100,
-                 cumulativeProbability: 100,
+                 probability: 1,
+                 cumulativeProbability: 1,
                  turnData: { actions: [], endOfTurnEffects: [] },
                  children: [],
                  parentId: undefined,
@@ -62,7 +62,7 @@ export function useBattleTree({
      }
   }, [currentSession?.id, currentSession?.nodes.length]) // Trigger on session switch or node count change
 
-  const addAction = (turnData: import("@/types/types").TurnData) => {
+  const addAction = (turnData: import("@/types/types").TurnData, probability?: number, description?: string, probabilityExpression?: string) => {
     if (!selectedNodeId || !currentSession) return
     
     const parentNode = currentSession.nodes.find((n: TreeNode) => n.id === selectedNodeId)
@@ -88,9 +88,10 @@ export function useBattleTree({
 
     const newNode: TreeNode = {
         id: nodeId,
-        description: "", 
-        probability: 100,
-        cumulativeProbability: parentNode.cumulativeProbability,
+        description: description || "", 
+        probability: probability ?? 1,
+        probabilityExpression,
+        cumulativeProbability: parentNode.cumulativeProbability * (probability ?? 1),
         turnData,
         children: [],
         parentId: selectedNodeId,
@@ -217,8 +218,8 @@ export function useBattleTree({
           const rootNode: TreeNode = {
                 id: "root",
                 description: "État Initial",
-                probability: 100,
-                cumulativeProbability: 100,
+                probability: 1,
+                cumulativeProbability: 1,
                 turnData: { actions: [], endOfTurnEffects: [] },
                 children: [],
                 parentId: undefined,

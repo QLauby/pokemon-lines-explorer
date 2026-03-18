@@ -23,7 +23,7 @@ interface CombatViewProps {
   selectedNodeId: string
   onSelectedNodeChange: (nodeId: string) => void
   onResetBattle: () => void
-  onAddAction: (data: import("@/types/types").TurnData) => void
+  onAddAction: (data: import("@/types/types").TurnData, probability?: number, description?: string, probabilityExpression?: string) => void,
   onUpdateNode: (nodeId: string, updates: Partial<TreeNode>) => void
   onDeleteNode: (nodeId: string) => void
   myTeam: Pokemon[]
@@ -131,7 +131,8 @@ export function CombatView({
          return BattleEngine.computeState(
             currentSession.initialState,
             nodes,
-            selectedNode.parentId
+            selectedNode.parentId,
+            currentSession.hpMode
          )
       }
       
@@ -160,7 +161,8 @@ export function CombatView({
   const currentBattleState = BattleEngine.computeState(
       currentSession.initialState, 
       displayNodes, 
-      targetNodeId || "root"
+      targetNodeId || "root",
+      currentSession.hpMode
   )
 
   const { battlefieldState } = currentSession.initialState
@@ -173,7 +175,8 @@ export function CombatView({
      return BattleEngine.computeState(
         currentSession.initialState,
         nodes, // Use pure nodes, not displayNodes to avoid preview recursion/contamination
-        selectedNodeId
+        selectedNodeId,
+        currentSession.hpMode
      )
   }, [currentSession.initialState, nodes, selectedNodeId])
 
@@ -210,6 +213,7 @@ export function CombatView({
                     selectedNodeId={selectedNodeId}
                     onSelectedNodeChange={onSelectedNodeChange}
                     onResetBattle={onResetBattle}
+                    onUpdateNode={onUpdateNode}
                     highlightedNodeIds={highlightedNodeIds}
                     previewNodeId={targetNodeId === "preview-node" ? "preview-node" : null}
                   />
@@ -258,7 +262,7 @@ export function CombatView({
                     nextCurrentEnemyTeam={selectedNodeState.enemyTeam}
                     nextActivePokemon={nextActivePokemonList}
                     nextBattleState={selectedNodeState}
-                    initialBattleState={parentState || currentSession.initialState}
+                    sessionInitialState={currentSession.initialState}
                     readOnly={readOnly}
                     hpMode={currentSession.hpMode}
                  />

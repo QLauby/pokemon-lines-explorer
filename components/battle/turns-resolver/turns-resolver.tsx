@@ -9,7 +9,7 @@ import { UpdateCurrentTurn } from "./update-current-turn"
 interface TurnsResolverProps {
   selectedNodeId: string
   nodes: Map<string, TreeNode>
-  onAddAction: (data: TurnData) => void
+  onAddAction: (data: TurnData, probability?: number, description?: string, probabilityExpression?: string) => void
   onUpdateNode: (nodeId: string, updates: Partial<TreeNode>) => void
   onDeleteNode: (nodeId: string) => void
   activePokemon: { pokemon: Pokemon; isAlly: boolean }[]
@@ -28,7 +28,7 @@ interface TurnsResolverProps {
   nextCurrentEnemyTeam?: Pokemon[]
   nextActivePokemon?: { pokemon: Pokemon; isAlly: boolean }[]
   nextBattleState?: BattleState
-  initialBattleState?: BattleState
+  sessionInitialState?: BattleState
   readOnly?: boolean
   hpMode?: "percent" | "hp"
 }
@@ -56,7 +56,7 @@ export function TurnsResolver({
   nextCurrentEnemyTeam,
   nextActivePokemon,
   nextBattleState,
-  initialBattleState,
+  sessionInitialState,
   hpMode = "percent",
 }: TurnsResolverProps) {
   const [activeTab, setActiveTab] = useState<Tab>("next")
@@ -131,6 +131,7 @@ export function TurnsResolver({
                  enemyTeam={updateParentEnemyTeam || enemyTeam}
                  onChange={onPreviewChange}
                  battleType={battleType}
+                 sessionInitialState={sessionInitialState}
                  hpMode={hpMode}
                />
           )}
@@ -153,7 +154,7 @@ export function TurnsResolver({
                 enemyTeam={nextCurrentEnemyTeam || enemyTeam}
                 battleType={battleType}
                 currentBattleState={nextBattleState}
-                initialBattleState={initialBattleState}
+                sessionInitialState={sessionInitialState}
                 hpMode={hpMode}
             />
          )}

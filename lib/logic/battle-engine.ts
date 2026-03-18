@@ -1,8 +1,8 @@
-import { convertPercentDeltaToHp, getEffectiveHpMax, recalcHpPercent } from "@/lib/utils/hp-utils"
+import { getEffectiveHpMax } from "@/lib/utils/hp-utils"
 import { BattleDelta, BattleState, CustomTagData, OtherOperation, SlotReference, StatsModifiers, TreeNode } from "@/types/types"
 
 export class BattleEngine {
-  static computeState(initialState: BattleState, nodes: Map<string, TreeNode>, targetNodeId: string): BattleState {
+  static computeState(initialState: BattleState, nodes: Map<string, TreeNode>, targetNodeId: string, hpMode: "percent" | "hp" = "percent"): BattleState {
     if (!targetNodeId || !nodes.has(targetNodeId)) {
       return initialState
     }
@@ -33,12 +33,12 @@ export class BattleEngine {
         for (const action of node.turnData.actions) {
             // 1. Action-level deltas first (SWITCH, PP_CHANGE)
             for (const delta of (action.actionDeltas || [])) {
-                currentState = this.applyDelta(currentState, delta)
+                currentState = this.applyDelta(currentState, delta, hpMode)
             }
             // 2. User effects (HP_RELATIVE etc.)
             for (const effect of (action.effects || [])) {
                 for (const delta of effect.deltas) {
-                    currentState = this.applyDelta(currentState, delta)
+                    currentState = this.applyDelta(currentState, delta, hpMode)
                 }
             }
         }
@@ -47,7 +47,7 @@ export class BattleEngine {
         const eotEffects = node.turnData.endOfTurnEffects || []
         for (const effect of eotEffects) {
              for (const delta of effect.deltas) {
-                 currentState = this.applyDelta(currentState, delta)
+                 currentState = this.applyDelta(currentState, delta, hpMode)
              }
         }
 
@@ -55,11 +55,11 @@ export class BattleEngine {
         const postActions = node.turnData.postTurnActions || []
         for (const action of postActions) {
             for (const delta of (action.actionDeltas || [])) {
-                currentState = this.applyDelta(currentState, delta)
+                currentState = this.applyDelta(currentState, delta, hpMode)
             }
             for (const effect of (action.effects || [])) {
                 for (const delta of effect.deltas) {
-                    currentState = this.applyDelta(currentState, delta)
+                    currentState = this.applyDelta(currentState, delta, hpMode)
                 }
             }
         }
@@ -132,7 +132,7 @@ export class BattleEngine {
     return activeSlots[battlefieldSlot] ?? null
   }
 
-  static applyDelta(state: BattleState, delta: BattleDelta): BattleState {
+  static applyDelta(state: BattleState, delta: BattleDelta, hpMode: "percent" | "hp" = "percent"): BattleState {
     const newState = { 
         ...state, 
         myTeam: [...state.myTeam], 
@@ -170,49 +170,75 @@ export class BattleEngine {
         }
         
         const targetPokemon = team[teamIndex]
-        
-        if (targetPokemon) {
-             // --- Unit handling ---
-             const hpMax = getEffectiveHpMax(targetPokemon)
-             
-             let newHpCurrent: number;
+        if (!targetPokemon) return newState
 
-             if (delta.type === "HP_SET") {
-                 // 1. Calculate the exact targeted HP
-                 const targetHp = delta.unit === "hp" 
-                     ? delta.amount 
-                     : Math.round((delta.amount / 100) * hpMax)
-                     
-                 // 2. Bound it to max/min
-                 newHpCurrent = Math.max(0, Math.min(hpMax, targetHp))
-             } else {
-                 // 1. Calculate the exact HP change using Math.trunc for correct rounding (-12.5 -> -12)
-                 const deltaHp = delta.unit === "hp" 
-                     ? delta.amount 
-                     : convertPercentDeltaToHp(delta.amount, hpMax)
-                     
-                 // 2. Apply it to hpCurrent and bound it
-                 const currentHp = targetPokemon.hpCurrent ?? hpMax
-                 newHpCurrent = Math.max(0, Math.min(hpMax, currentHp + deltaHp))
-             }
-             
-             // 3. Recalculate percent strictly from the new current HP
-             const newHpPercent = recalcHpPercent(newHpCurrent, hpMax)
-             
-             team[teamIndex] = { ...targetPokemon, hpPercent: newHpPercent, hpCurrent: newHpCurrent }
+        const hpMax = getEffectiveHpMax(targetPokemon)
+        let newHpCurrent: number;
+        let newHpPercent: number;
 
-             // If the Pokémon just fainted and was on the battlefield, remove it.
-             if (newHpPercent === 0) {
-               if (!delta.target.type || delta.target.type === "battlefield_slot") {
-                 const slots = delta.target.side === "my"
-                   ? newState.activeSlots.myTeam
-                   : newState.activeSlots.opponentTeam
-                 const battlefieldSlot = (delta.target as any).slotIndex
-                 if (battlefieldSlot !== undefined && battlefieldSlot < slots.length) {
-                   slots[battlefieldSlot] = null
-                 }
-               }
-             }
+        if (hpMode === "hp") {
+            // --- HP MODE (HP IS KING) ---
+            // 1. Determine absolute HP magnitude of change
+            let deltaHp: number;
+            if (delta.type === "HP_SET") {
+                deltaHp = delta.unit === "hp" 
+                    ? delta.amount 
+                    : Math.round((delta.amount / 100) * hpMax) // To-target sets use rounding
+            } else {
+                deltaHp = delta.unit === "hp"
+                    ? Math.trunc(delta.amount) // Already HP, floor it
+                    : Math.trunc((delta.amount * hpMax) / 100) // Percent -> HP: POKEMON FLOOR RULE
+            }
+
+            // 2. Apply to current integer HP
+            const currentHp = targetPokemon.hpCurrent ?? hpMax
+            if (delta.type === "HP_SET") {
+                newHpCurrent = Math.max(0, Math.min(hpMax, deltaHp))
+            } else {
+                newHpCurrent = Math.max(0, Math.min(hpMax, currentHp + deltaHp))
+            }
+
+            // 3. Percentage is a mere consequence for display
+            newHpPercent = (newHpCurrent / hpMax) * 100
+        } else {
+            // --- PERCENT MODE (PERCENT IS KING) ---
+            // 1. Determine absolute Percentage magnitude of change
+            let deltaPct: number;
+            if (delta.type === "HP_SET") {
+                deltaPct = delta.unit === "percent"
+                    ? delta.amount
+                    : (delta.amount / hpMax) * 100
+            } else {
+                deltaPct = delta.unit === "percent"
+                    ? delta.amount
+                    : (delta.amount / hpMax) * 100
+            }
+
+            // 2. Apply to current floating-point Percent
+            const currentPercent = targetPokemon.hpPercent ?? 100
+            if (delta.type === "HP_SET") {
+                newHpPercent = Math.max(0, Math.min(100, deltaPct))
+            } else {
+                newHpPercent = Math.max(0, Math.min(100, currentPercent + deltaPct))
+            }
+
+            // 3. Integer HP is a mere consequence for display/mechanics
+            newHpCurrent = Math.round((newHpPercent * hpMax) / 100)
+        }
+
+        team[teamIndex] = { ...targetPokemon, hpPercent: newHpPercent, hpCurrent: newHpCurrent }
+
+        // If the PokÃ©mon just fainted and was on the battlefield, remove it.
+        if (newHpPercent === 0) {
+            if (!delta.target.type || delta.target.type === "battlefield_slot") {
+                const slots = delta.target.side === "my"
+                    ? newState.activeSlots.myTeam
+                    : newState.activeSlots.opponentTeam
+                const battlefieldSlot = (delta.target as any).slotIndex
+                if (battlefieldSlot !== undefined && battlefieldSlot < slots.length) {
+                    slots[battlefieldSlot] = null
+                }
+            }
         }
         return newState
       }
@@ -454,7 +480,7 @@ export class BattleEngine {
    * Returns an array where index i corresponds to the state BEFORE action i,
    * and the last element corresponds to the state AFTER the last action.
    */
-  static computeTurnSequence(initialState: BattleState, actions: any[]): BattleState[] {
+  static computeTurnSequence(initialState: BattleState, actions: any[], hpMode: "percent" | "hp" = "percent"): BattleState[] {
     const states: BattleState[] = []
     
     // State 0: Initial
@@ -495,11 +521,11 @@ export class BattleEngine {
 
         // 3. Apply Deltas: Continue applying deltas via this.applyDelta
         for (const delta of (action.actionDeltas || [])) {
-            nextState = this.applyDelta(nextState, delta)
+            nextState = this.applyDelta(nextState, delta, hpMode)
         }
         for (const effect of (action.effects || [])) {
             for (const delta of effect.deltas) {
-                nextState = this.applyDelta(nextState, delta)
+                nextState = this.applyDelta(nextState, delta, hpMode)
             }
         }
         

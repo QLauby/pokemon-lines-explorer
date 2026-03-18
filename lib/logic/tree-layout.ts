@@ -47,10 +47,13 @@ export function recalculateTreeLayout(nodes: TreeNode[]): TreeNode[] {
 
   // Recursive Assignment
   // Returns total height
-  function assignCoordinatesAndIndices(node: TreeNode, y: number, inheritedBranchIndex: number): number {
+  function assignCoordinatesAndIndices(node: TreeNode, y: number, inheritedBranchIndex: number, parentCumulativeProb: number): number {
     node.x = START_X + node.turn * HORIZONTAL_SPACING
     node.y = y
     node.branchIndex = inheritedBranchIndex // Apply inherited (or root) index
+    
+    // Calculate cumulative probability
+    node.cumulativeProbability = parentCumulativeProb * (node.probability ?? 1)
 
     const children = childrenMap.get(node.id) || []
 
@@ -88,7 +91,7 @@ export function recalculateTreeLayout(nodes: TreeNode[]): TreeNode[] {
             nextBranchIndex++
         }
 
-        const childHeight = assignCoordinatesAndIndices(child, currentChildY, childBranchIndex)
+        const childHeight = assignCoordinatesAndIndices(child, currentChildY, childBranchIndex, node.cumulativeProbability)
         currentChildY += childHeight
         totalSubtreeHeight += childHeight
     }
@@ -98,8 +101,8 @@ export function recalculateTreeLayout(nodes: TreeNode[]): TreeNode[] {
 
   let rootY = VERTICAL_SPACING
   roots.forEach(root => {
-      // Root starts with Branch Index 0
-      const h = assignCoordinatesAndIndices(root, rootY, 0)
+      // Root starts with Branch Index 0 and 100% cumulative probability
+      const h = assignCoordinatesAndIndices(root, rootY, 0, 1)
       rootY += h
   })
 
