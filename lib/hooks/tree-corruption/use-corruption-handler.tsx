@@ -151,6 +151,19 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
                   nodes: finalNodes
               })
           }
+      } else if (type === 'REORDER_POKEMON') {
+          const { isMyTeam, oldIndex, newIndex } = payload as { isMyTeam: boolean, oldIndex: number, newIndex: number }
+          const teamSide = isMyTeam ? 'myTeam' : 'enemyTeam'
+          const newTeam = [...session.initialState[teamSide]]
+          
+          const temp = newTeam[oldIndex]
+          newTeam[oldIndex] = newTeam[newIndex]
+          newTeam[newIndex] = temp
+
+          onUpdateSession({
+              initialState: { ...session.initialState, [teamSide]: newTeam },
+              nodes: finalNodes
+          })
       }
 
       
@@ -190,6 +203,9 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
      }
       if (pendingModification.type === 'CHANGE_DEPLOYMENT') {
           return `Changing deployment invalidates ${count} turns.`
+      }
+      if (pendingModification.type === 'REORDER_POKEMON') {
+          return `Changing character order impact the combat sequence.`
       }
      return "Modification causes conflicts."
   }, [isCorrupted, pendingModification, corruptedNodeIds])

@@ -2,10 +2,12 @@
 
 import { CombatView } from "@/components/battle/battle-view"
 import { AppHeader } from "@/components/layout/app-header"
+import BattleSessionMenu from "@/components/layout/session-menu/battle-session-menu"
 import { TeamsView } from "@/components/pokemons/teams-view"
 import { CorruptionProvider, useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
 import { usePokemonBattle } from "@/lib/hooks/use-pokemon-battle"
 import { CombatSession } from "@/types/types"
+import { useState } from "react"
 
 
 
@@ -40,6 +42,16 @@ function InnerContent({
     actions: ReturnType<typeof usePokemonBattle>['actions'] 
 }) {
     const { requestModification, isCorrupted } = useCorruptionHandler()
+    const [isSessionsMenuOpen, setIsSessionsMenuOpen] = useState(false)
+
+    // Destructure all needed session actions from setters/actions/state
+    const {
+        sessions,
+        currentSession,
+    } = state
+
+    // We need to extend the usePokemonBattle return to expose these if not already there
+    // For now I'll assume they are available if I pass them through usePokemonBattle
 
     const handleTryChangeBattleType = (type: 'simple' | 'double') => {
         if (type === state.battleType) return
@@ -132,8 +144,35 @@ function InnerContent({
         }
     }
 
+    const handleMovePokemon = (id: string, isMyTeam: boolean, direction: 'up' | 'down') => {
+        const team = isMyTeam ? state.myTeam : state.enemyTeam
+        const oldIndex = team.findIndex(p => p.id === id)
+        if (oldIndex === -1) return
+
+        const newIndex = direction === 'up' ? oldIndex - 1 : oldIndex + 1
+        if (newIndex < 0 || newIndex >= team.length) return
+
+        const isPending = requestModification('REORDER_POKEMON', { isMyTeam, oldIndex, newIndex })
+        if (isPending) {
+            setters.setCurrentView('combat')
+        }
+    }
+
     return (
-        <div className="container mx-auto p-6 space-y-6">
+        <>
+          <BattleSessionMenu 
+            isOpen={isSessionsMenuOpen}
+            onClose={() => setIsSessionsMenuOpen(false)}
+            sessions={state.sessions}
+            currentSessionId={state.currentSessionId}
+            setCurrentSessionId={setters.setCurrentSessionId}
+            createSession={actions.createSession}
+            deleteSession={actions.deleteSession}
+            duplicateSession={actions.duplicateSession}
+            updateSessionName={actions.updateSessionName}
+            updateSessionsOrder={actions.updateSessionsOrder}
+          />
+          <div className="container mx-auto p-6 space-y-6">
           <AppHeader
             currentView={state.currentView}
             battleType={state.battleType}
@@ -143,6 +182,7 @@ function InnerContent({
             onBattleTypeChange={handleTryChangeBattleType}
             onHpModeChange={handleTryChangeHpMode}
             onResetBattle={actions.resetBattleIfNeeded}
+            onOpenSessions={() => setIsSessionsMenuOpen(true)}
             navigationDisabled={isCorrupted}
           />
     
@@ -167,6 +207,7 @@ function InnerContent({
               onToggleMega={actions.toggleMega}
               onFlagClick={handleFlagClick}
               onAddPokemon={actions.addPokemon}
+              onMovePokemon={handleMovePokemon}
               onBattleTypeChange={handleTryChangeBattleType} 
               onResetBattle={actions.resetBattleIfNeeded}
               getDefaultPokemonName={actions.getDefaultPokemonName}
@@ -202,5 +243,6 @@ function InnerContent({
             )
           )}
         </div>
-      )
+      </>
+    )
 }

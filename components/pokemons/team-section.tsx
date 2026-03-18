@@ -43,6 +43,7 @@ interface TeamSectionProps {
   onToggleMega: (pokemonId: string, isMyTeam: boolean) => void
   onFlagClick: (index: number, isMyTeam: boolean) => void
   onAddPokemon: (teamType: "my" | "opponent") => void
+  onMovePokemon: (id: string, isMyTeam: boolean, direction: "up" | "down") => void
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
   getTeamCounterDisplay: (teamLength: number) => string
   isStarterPokemon: (pokemon: Pokemon, index: number, isMyTeam: boolean) => boolean
@@ -70,6 +71,7 @@ export function TeamSection({
   onToggleMega,
   onFlagClick,
   onAddPokemon,
+  onMovePokemon,
   getDefaultPokemonName,
   getTeamCounterDisplay,
   isStarterPokemon,
@@ -85,12 +87,7 @@ export function TeamSection({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {[...team]
-          .sort((a, b) => Number(a.id) - Number(b.id))
-          .map((pokemon) => {
-             // Find original index for flag click logic which relies on array position
-             const originalIndex = team.findIndex(p => p.id === pokemon.id)
-             
+        {team.map((pokemon, originalIndex) => {
              return (
               <PokemonCard
                 key={pokemon.id}
@@ -112,9 +109,12 @@ export function TeamSection({
                 onToggleTerastallized={onToggleTerastallized}
                 onToggleMega={onToggleMega}
                 onFlagClick={onFlagClick}
+                onMovePokemon={onMovePokemon}
                 getSlotForPokemon={getSlotForPokemon}
                 getDefaultPokemonName={getDefaultPokemonName}
                 hpMode={hpMode}
+                isFirst={originalIndex === 0}
+                isLast={originalIndex === team.length - 1}
               />
             )
           })}

@@ -53,6 +53,35 @@ export function useBattleStorage() {
     saveToStorage(newSessions)
   }
 
+  const updateSessionName = (id: string, name: string) => {
+    const newSessions = sessions.map((s) => 
+      s.id === id ? { ...s, name } : s
+    )
+    saveToStorage(newSessions)
+  }
+
+  const updateSessionsOrder = (newSessions: CombatSession[]) => {
+    saveToStorage(newSessions)
+  }
+
+  const duplicateSession = (id: string) => {
+    const session = sessions.find((s) => s.id === id)
+    if (!session) return null
+    
+    // Deep clone the entire session
+    const duplicated: CombatSession = JSON.parse(JSON.stringify(session))
+    duplicated.id = Date.now().toString()
+    duplicated.name = `${session.name} (Copy)`
+    
+    // Insert new session after the original one
+    const originalIndex = sessions.findIndex((s) => s.id === id)
+    const newSessions = [...sessions]
+    newSessions.splice(originalIndex + 1, 0, duplicated)
+    
+    saveToStorage(newSessions)
+    return duplicated
+  }
+
   const createSession = (name: string): CombatSession => {
     const newSession: CombatSession = {
       id: Date.now().toString(),
@@ -80,7 +109,8 @@ export function useBattleStorage() {
       }],
       lastSelectedNodeId: "root"
     }
-    saveSession(newSession)
+    const newSessions = [...sessions, newSession]
+    saveToStorage(newSessions)
     return newSession
   }
 
@@ -89,6 +119,9 @@ export function useBattleStorage() {
     isLoaded,
     saveSession,
     deleteSession,
+    updateSessionName,
+    updateSessionsOrder,
+    duplicateSession,
     createSession,
   }
 }

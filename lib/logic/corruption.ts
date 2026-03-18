@@ -101,5 +101,29 @@ export function detectCorruption(
         return corruptedIds
     }
 
+    if (modification.type === "REORDER_POKEMON") {
+        const { isMyTeam, oldIndex, newIndex } = modification.payload as { isMyTeam: boolean, oldIndex: number, newIndex: number }
+        const maxStarters = originalSession.battleType === "simple" ? 1 : 2
+        
+        // If we swap a Pokémon that is/was a starter at turn 0
+        const impactsStarter = oldIndex < maxStarters || newIndex < maxStarters
+        
+        if (impactsStarter) {
+            // Check if any node has actions
+            const isTreeEmpty = originalSession.nodes.every(n => 
+                n.turnData.actions.length === 0 && 
+                n.turnData.endOfTurnEffects.length === 0
+            )
+
+            if (!isTreeEmpty) {
+                // Total corruption
+                console.log("REORDER CORRUPTION: Starter changed in non-empty tree.")
+                return ["root"]
+            }
+        }
+        
+        return [] // Safe or silent
+    }
+
     return []
 }

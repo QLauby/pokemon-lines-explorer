@@ -79,7 +79,7 @@ export function TurnsResolver({
   
   if (previewBranchIndex !== undefined && previewBranchIndex !== null) {
       nextBranchIndex = previewBranchIndex
-  } else if (selectedNode && selectedNode.children.length > 0) {
+  } else if (selectedNode && selectedNode.children?.length > 0) {
     const usedBranches = new Set(Array.from(nodes.values()).map(n => n.branchIndex))
     let newBranch = 1
     while (usedBranches.has(newBranch)) newBranch++

@@ -1,5 +1,7 @@
 "use client"
 
+import { Layers } from "lucide-react"
+
 interface AppHeaderProps {
   currentView: "teams" | "combat"
   battleType: "simple" | "double"
@@ -9,6 +11,7 @@ interface AppHeaderProps {
   onBattleTypeChange: (type: "simple" | "double") => void
   onHpModeChange: (mode: "percent" | "hp") => void
   onResetBattle: () => void
+  onOpenSessions: () => void
   navigationDisabled?: boolean
 }
 
@@ -21,15 +24,24 @@ export function AppHeader({
   onBattleTypeChange,
   onHpModeChange,
   onResetBattle,
+  onOpenSessions,
   navigationDisabled = false,
 }: AppHeaderProps) {
   return (
     <>
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">Pokémon Lines Explorer</h1>
-        <p className="text-muted-foreground">
-          {currentView === "teams" ? "Définissez vos équipes de Pokémon" : "Tracez votre chemin vers la victoire !"}
-        </p>
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={onOpenSessions}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors font-semibold text-xs shadow-sm hover:shadow-md active:scale-95"
+          title="Gérer les sessions de combat"
+        >
+          <Layers className="h-4 w-4 text-primary" />
+          <span>Sessions</span>
+        </button>
+        <div className="flex-1 text-center">
+            <h1 className="text-3xl font-bold">Pokémon Lines Explorer</h1>
+        </div>
+        <div className="w-[100px]" /> {/* Spacer to balance the header */}
       </div>
 
       <div className="border-b border-border mb-6">

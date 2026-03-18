@@ -40,6 +40,7 @@ interface TeamsViewProps {
   onToggleMega: (pokemonId: string, isMyTeam: boolean) => void
   onFlagClick: (index: number, isMyTeam: boolean) => void
   onAddPokemon: (teamType: "my" | "opponent") => void
+  onMovePokemon: (id: string, isMyTeam: boolean, direction: "up" | "down") => void
   onBattleTypeChange: (type: "simple" | "double") => void
   onResetBattle: () => void
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
@@ -74,6 +75,7 @@ export function TeamsView({
   onToggleMega,
   onFlagClick,
   onAddPokemon,
+  onMovePokemon,
   onBattleTypeChange,
   onResetBattle,
   getDefaultPokemonName,
@@ -120,6 +122,7 @@ export function TeamsView({
           onToggleMega={onToggleMega}
           onFlagClick={onFlagClick}
           onAddPokemon={onAddPokemon}
+          onMovePokemon={onMovePokemon}
           getDefaultPokemonName={getDefaultPokemonName}
           getTeamCounterDisplay={getTeamCounterDisplay}
           isStarterPokemon={isStarterPokemon}
@@ -146,6 +149,7 @@ export function TeamsView({
           onToggleMega={onToggleMega}
           onFlagClick={onFlagClick}
           onAddPokemon={onAddPokemon}
+          onMovePokemon={onMovePokemon}
           getDefaultPokemonName={getDefaultPokemonName}
           getTeamCounterDisplay={getTeamCounterDisplay}
           isStarterPokemon={isStarterPokemon}

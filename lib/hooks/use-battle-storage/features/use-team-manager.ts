@@ -206,6 +206,26 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
   const startEditingPokemon = (p: Pokemon) => { setEditingPokemonId(p.id); setEditingPokemonName(p.name); }
   const cancelEditing = () => { setEditingPokemonId(null); setEditingPokemonName(""); }
 
+  const movePokemon = (id: string, isMyTeam: boolean, direction: "up" | "down") => {
+    const team = isMyTeam ? myTeam : enemyTeam
+    const index = team.findIndex((p: Pokemon) => p.id === id)
+    if (index === -1) return
+
+    const newIndex = direction === "up" ? index - 1 : index + 1
+    if (newIndex < 0 || newIndex >= team.length) return
+
+    const newTeam = [...team]
+    const temp = newTeam[index]
+    newTeam[index] = newTeam[newIndex]
+    newTeam[newIndex] = temp
+
+    if (isMyTeam) {
+      updateInitialState({ myTeam: newTeam })
+    } else {
+      updateInitialState({ enemyTeam: newTeam })
+    }
+  }
+
   return {
       newMyPokemonName, setNewMyPokemonName,
       newOpponentPokemonName, setNewOpponentPokemonName,
@@ -237,6 +257,7 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
       isStarterPokemon: isPokemonActive,
       startEditingPokemon,
       cancelEditing,
-      getDefaultPokemonName
+      getDefaultPokemonName,
+      movePokemon
   }
 }

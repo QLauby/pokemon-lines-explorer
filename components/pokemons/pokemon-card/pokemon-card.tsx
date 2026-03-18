@@ -47,10 +47,13 @@ interface PokemonCardProps {
   onToggleTerastallized: (pokemonId: string, isMyTeam: boolean) => void
   onToggleMega: (pokemonId: string, isMyTeam: boolean) => void
   onFlagClick: (index: number, isMyTeam: boolean) => void
+  onMovePokemon?: (id: string, isMyTeam: boolean, direction: "up" | "down") => void
   getSlotForPokemon: (index: number, isMyTeam: boolean) => number | null
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
   readOnly?: boolean
   isExpanded?: boolean
+  isFirst?: boolean
+  isLast?: boolean
   onToggleExpansion?: () => void
   hpMode?: "percent" | "hp"
 }
@@ -74,10 +77,13 @@ export function PokemonCard({
   onToggleTerastallized,
   onToggleMega,
   onFlagClick,
+  onMovePokemon,
   getSlotForPokemon,
   getDefaultPokemonName,
   readOnly = false,
   isExpanded = false,
+  isFirst = false,
+  isLast = false,
   onToggleExpansion,
   hpMode = "percent",
 }: PokemonCardProps) {
@@ -254,11 +260,14 @@ export function PokemonCard({
             onToggleMega={onToggleMega}
             onToggleTerastallized={onToggleTerastallized}
             onFlagClick={onFlagClick}
+            onMovePokemon={onMovePokemon}
             onRemove={onRemove}
             getSlotForPokemon={getSlotForPokemon}
             isExpanded={isCardExpanded}
             handleToggle={handleToggle}
             readOnly={readOnly}
+            isFirst={isFirst}
+            isLast={isLast}
             teraType={teraType}
             isSleepCounterMounting={isSleepCounterMounting}
             isConfusionCounterMounting={isConfusionCounterMounting}

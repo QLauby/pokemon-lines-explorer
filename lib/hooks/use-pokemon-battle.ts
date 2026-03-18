@@ -16,6 +16,10 @@ export function usePokemonBattle() {
       setCurrentView,
       sessions,
       createSession,
+      deleteSession,
+      duplicateSession,
+      updateSessionName,
+      updateSessionsOrder,
       setBattleType,
       setHpMode,
       updateInitialState,
@@ -117,6 +121,8 @@ export function usePokemonBattle() {
         getSlotForPokemon: teamManager.getSlotForPokemon,
         battlefieldState: currentState.battlefieldState,
         currentSession,
+        sessions,
+        currentSessionId,
     },
     setters: {
         setCurrentView,
@@ -125,6 +131,7 @@ export function usePokemonBattle() {
         setNewMyPokemonName: teamManager.setNewMyPokemonName,
         setNewOpponentPokemonName: teamManager.setNewOpponentPokemonName,
         setSelectedNodeId: battleTree.setSelectedNodeId,
+        setCurrentSessionId,
     },
     actions: {
         addPokemon: teamManager.addPokemon,
@@ -152,7 +159,13 @@ export function usePokemonBattle() {
         updateBattlefieldTags: teamManager.updateBattlefieldTags,
         updatePlayerSideTags: teamManager.updatePlayerSideTags,
         updateOpponentSideTags: teamManager.updateOpponentSideTags,
-        overwriteSession: saveSession
+        overwriteSession: saveSession,
+        createSession,
+        deleteSession,
+        duplicateSession,
+        updateSessionName,
+        updateSessionsOrder,
+        movePokemon: teamManager.movePokemon
     }
   }
 }

@@ -57,11 +57,14 @@ interface PokemonCardHeaderProps {
     onToggleMega: (id: string, isMyTeam: boolean) => void
     onToggleTerastallized: (id: string, isMyTeam: boolean) => void
     onFlagClick: (index: number, isMyTeam: boolean) => void
+    onMovePokemon?: (id: string, isMyTeam: boolean, direction: "up" | "down") => void
     onRemove: (id: string, isMyTeam: boolean) => void
     getSlotForPokemon: (index: number, isMyTeam: boolean) => number | null
     isExpanded: boolean
     handleToggle: () => void
     readOnly?: boolean
+    isFirst?: boolean
+    isLast?: boolean
     teraType?: PokemonType | null
     isSleepCounterMounting?: boolean
     isConfusionCounterMounting?: boolean
@@ -85,11 +88,14 @@ export function PokemonCardHeader({
     onToggleMega,
     onToggleTerastallized,
     onFlagClick,
+    onMovePokemon,
     onRemove,
     getSlotForPokemon,
     isExpanded,
     handleToggle,
     readOnly,
+    isFirst,
+    isLast,
     teraType,
     isSleepCounterMounting,
     isConfusionCounterMounting,
@@ -124,6 +130,28 @@ export function PokemonCardHeader({
 
         <div className="flex justify-between items-center text-sm py-0.5">
           <div className="flex-1 mr-2 h-6 flex items-center min-w-0">
+            {!readOnly && (
+               <div className="flex flex-col space-y-0.5 mr-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-5 w-5 p-0 hover:bg-gray-100/50 rounded-sm" 
+                    disabled={isFirst}
+                    onClick={() => onMovePokemon?.(pokemon.id, isMyTeam, "up")}
+                  >
+                    <ChevronUp className={cn("h-4 w-4", isFirst ? "text-transparent" : "text-gray-400 hover:text-gray-800")} />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-5 w-5 p-0 hover:bg-gray-100/50 rounded-sm" 
+                    disabled={isLast}
+                    onClick={() => onMovePokemon?.(pokemon.id, isMyTeam, "down")}
+                  >
+                    <ChevronDown className={cn("h-4 w-4", isLast ? "text-transparent" : "text-gray-400 hover:text-gray-800")} />
+                  </Button>
+               </div>
+            )}
             <TypeLiseret types={pokemon.types} className="w-1 h-full mr-1.5" />
             <EditableText
               value={pokemon.name || defaultName}

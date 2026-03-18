@@ -3,7 +3,16 @@ import { useEffect, useMemo, useState } from "react"
 import { useBattleStorage } from "../use-battle-storage"
 
 export function useBattleSession() {
-  const { sessions, isLoaded, saveSession, createSession } = useBattleStorage()
+  const { 
+    sessions, 
+    isLoaded, 
+    saveSession, 
+    createSession,
+    deleteSession: deleteSessionFromStorage,
+    updateSessionsOrder,
+    duplicateSession,
+    updateSessionName
+  } = useBattleStorage()
   
   // UI State
   const [currentView, setCurrentView] = useState<"teams" | "combat">("teams")
@@ -13,7 +22,7 @@ export function useBattleSession() {
   useEffect(() => {
     if (isLoaded) {
       if (sessions.length === 0) {
-        const session = createSession("Combat 1")
+        const session = createSession("Fight 1")
         setCurrentSessionId(session.id)
       } else if (!currentSessionId) {
         // Default to the first one or most recent
@@ -48,11 +57,27 @@ export function useBattleSession() {
     isLoaded,
     currentSession,
     currentSessionId,
-    setCurrentSessionId,
+    setCurrentSessionId: (id: string | null) => {
+      setCurrentSessionId(id)
+      setCurrentView("teams")
+    },
     currentView,
     setCurrentView,
     sessions,
     saveSession,
+    deleteSession: (id: string) => {
+      if (id === currentSessionId) {
+        const remaining = sessions.filter(s => s.id !== id);
+        if (remaining.length > 0) {
+          setCurrentSessionId(remaining[0].id);
+          setCurrentView("teams")
+        }
+      }
+      return deleteSessionFromStorage(id);
+    },
+    updateSessionsOrder,
+    duplicateSession,
+    updateSessionName,
     createSession,
     setBattleType,
     setHpMode,

@@ -37,7 +37,7 @@ export function pruneTree(
   return nodes.filter(n => !nodesToRemove.has(n.id))
 }
 
-export type ModificationType = 'DELETE_POKEMON' | 'CHANGE_DEPLOYMENT' | 'CHANGE_HP_MODE'
+export type ModificationType = 'DELETE_POKEMON' | 'CHANGE_DEPLOYMENT' | 'CHANGE_HP_MODE' | 'REORDER_POKEMON'
 
 export interface IndexRef {
     side: 'my' | 'opponent'
@@ -184,6 +184,39 @@ export function sanitizeTreeForModification(
         })
 
         return clonedNodes
+    }
+
+    if (type === 'REORDER_POKEMON') {
+        const { isMyTeam, oldIndex, newIndex } = payload as { isMyTeam: boolean, oldIndex: number, newIndex: number }
+        
+        return nodes.map(node => {
+            const newNode = JSON.parse(JSON.stringify(node)) as TreeNode
+            
+            // Remap SWITCH deltas (these use team indices)
+            const remapDeltas = (effects: any[]) => {
+                effects.forEach(e => {
+                    if (!e.deltas) return
+                    e.deltas.forEach((d: any) => {
+                        if (d.type === 'SWITCH') {
+                            const sameSide = (d.side === 'my' && isMyTeam) || (d.side === 'opponent' && !isMyTeam)
+                            if (sameSide) {
+                                if (d.fromSlot === oldIndex) d.fromSlot = newIndex
+                                else if (d.fromSlot === newIndex) d.fromSlot = oldIndex
+                                
+                                if (d.toSlot === oldIndex) d.toSlot = newIndex
+                                else if (d.toSlot === newIndex) d.toSlot = oldIndex
+                            }
+                        }
+                    })
+                })
+            }
+
+            remapDeltas(newNode.turnData.actions.flatMap(a => a.effects))
+            remapDeltas(newNode.turnData.endOfTurnEffects)
+            if (newNode.turnData.postTurnActions) remapDeltas(newNode.turnData.postTurnActions.flatMap(a => a.effects))
+
+            return newNode
+        })
     }
 
     return nodes
