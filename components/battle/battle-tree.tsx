@@ -3,6 +3,8 @@
 import { Minus, Plus, RotateCcw } from "lucide-react"
 import { useState } from "react"
 
+import DeletionDialog from "@/components/shared/deletion-dialog"
+
 import { EditableText } from "@/components/shared/editable-text"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +18,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { THEME } from "@/lib/constants/color-constants"
 import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
 import { cn } from "@/lib/utils/cn"
 import { darkenColor, lightenColor } from "@/lib/utils/colors-utils"
@@ -42,6 +45,7 @@ export function BattleTree({
   previewNodeId = null,
 }: BattleTreeProps) {
   const [zoom, setZoom] = useState(1)
+  const [isRestartDialogOpen, setIsRestartDialogOpen] = useState(false)
   const { corruptedNodeIds, isCorrupted } = useCorruptionHandler()
 
   if (nodes.size === 0) return null
@@ -69,7 +73,7 @@ export function BattleTree({
             >
               <Minus className="h-4 w-4" />
             </Button>
-            <div className="flex items-center px-2 bg-gray-50 text-xs font-medium min-w-[3.5rem] justify-center">
+            <div className="flex items-center px-2 text-xs font-medium min-w-[3.5rem] justify-center" style={{ backgroundColor: THEME.battle_tree.zoom_label_bg }}>
                 {Math.round(zoom * 100)}%
             </div>
             <Button 
@@ -82,7 +86,7 @@ export function BattleTree({
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={onResetBattle} className="cursor-pointer h-8" disabled={isCorrupted}>
+          <Button variant="outline" size="sm" onClick={() => setIsRestartDialogOpen(true)} className="cursor-pointer h-8" disabled={isCorrupted}>
             <RotateCcw className="h-4 w-4 mr-2" />
             Restart
           </Button>
@@ -90,7 +94,8 @@ export function BattleTree({
       </div>
       <div className="flex-1 min-h-0 p-4">
         <div
-          className="relative border rounded bg-gray-50 overflow-auto h-full w-full"
+
+          className="relative border rounded bg-slate-50 overflow-auto h-full w-full"
         >
           <div
             className="relative origin-top-left transition-transform duration-200"
@@ -116,7 +121,8 @@ export function BattleTree({
 
                     const isNodeCorrupted = corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id)
                     const isPreview = node.id === previewNodeId
-                    const color = isNodeCorrupted ? "#ef4444" : getTreeBranchColor(node.branchIndex)
+                    const color = isNodeCorrupted ? THEME.common.error : getTreeBranchColor(node.branchIndex)
+
 
                     if (node.branchIndex === 0) {
                         return (
@@ -181,7 +187,7 @@ export function BattleTree({
 
                     const isNodeCorrupted = corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id)
                     const isPreview = node.id === previewNodeId
-                    const branchColor = isNodeCorrupted ? "#ef4444" : getTreeBranchColor(node.branchIndex)
+                    const branchColor = isNodeCorrupted ? THEME.common.error : getTreeBranchColor(node.branchIndex)
 
                     if (isPreview) return null
 
@@ -202,10 +208,11 @@ export function BattleTree({
                                         <PopoverTrigger asChild disabled={isPreview}>
                                             <div 
                                                 className={cn(
-                                                    "flex items-center justify-center bg-gray-50 rounded-[2px] font-bold text-[7px] leading-none tabular-nums shadow-sm transition-all border border-transparent hover:border-gray-200",
+                                                    "flex items-center justify-center rounded-[2px] font-bold text-[7px] leading-none tabular-nums shadow-sm transition-all border border-transparent hover:border-slate-200",
                                                     !isPreview ? "cursor-pointer hover:shadow-md" : "opacity-70"
                                                 )}
                                                 style={{
+                                                    backgroundColor: THEME.battle_tree.zoom_label_bg,
                                                     color: branchColor,
                                                     minWidth: "18px",
                                                     height: "10px",
@@ -214,24 +221,24 @@ export function BattleTree({
                                             >
                                                 {(() => {
                                                     const val = node.probability * 100
-                                                    return (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)).replace(".", ",")
+                                                    return (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1))
                                                 })()} %
                                             </div>
                                         </PopoverTrigger>
                                     </TooltipTrigger>
                                     <TooltipContent side="top">
                                         <div className="flex flex-col items-center">
-                                            <p className="font-bold text-xs">Probability: {(() => {
+                                            <p className="font-bold text-xs">Probability : {(() => {
                                                 const val = node.probability * 100
-                                                return (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)).replace(".", ",")
+                                                return (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1))
                                             })()} %</p>
-                                            {!isPreview && <p className="text-[10px] text-gray-400">Click to edit</p>}
+                                            <p className="text-[10px]" style={{ color: THEME.battle_tree.description_text }}>Click to edit</p>
                                         </div>
                                     </TooltipContent>
                                 </Tooltip>
                                 <PopoverContent className="w-48 p-3" side="top">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Edit probability</label>
+                                        <label className="text-[10px] uppercase font-bold tracking-wider" style={{ color: THEME.battle_tree.description_text }}>Edit probability</label>
                                         <div className="flex justify-center py-1">
                                             <EditableText
                                                 value={node.probability.toString()}
@@ -262,10 +269,10 @@ export function BattleTree({
                 // Turn 0 is never "corrupted" visually (it's a reset), so never show red
                 const isNodeCorrupted = node.turn !== 0 && (corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id))
                 const isPreview = node.id === previewNodeId
-                const branchColor = isNodeCorrupted ? "#ef4444" : getTreeBranchColor(node.branchIndex)
+                const branchColor = isNodeCorrupted ? THEME.common.error : getTreeBranchColor(node.branchIndex)
                 
-                const activeBg = isNodeCorrupted ? "#fee2e2" : lightenColor(branchColor, 30) // Red-100 if corrupted
-                const activeText = isNodeCorrupted ? "#b91c1c" : darkenColor(branchColor, 40) // Red-700 if corrupted
+                const activeBg = isNodeCorrupted ? THEME.battle_tree.node_corrupted_bg : lightenColor(branchColor, 30)
+                const activeText = isNodeCorrupted ? THEME.battle_tree.node_corrupted_text : darkenColor(branchColor, 40)
 
                 return (
                     <div
@@ -308,12 +315,12 @@ export function BattleTree({
                                     <span className="tabular-nums">
                                         P(<span style={{ color: branchColor }}>{node.turn}</span>) = {(() => {
                                             const val = node.cumulativeProbability * 100
-                                            return (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1)).replace(".", ",")
+                                            return (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1))
                                         })()} %
                                     </span>
                                 </div>
                                 {node.description && (
-                                    <p className="text-[10px] text-gray-500 italic border-t pt-1 line-clamp-3">
+                                    <p className="text-[10px] italic border-t pt-1 line-clamp-3" style={{ color: THEME.battle_tree.description_text }}>
                                         {node.description}
                                     </p>
                                 )}
@@ -326,6 +333,17 @@ export function BattleTree({
           </div>
         </div>
       </div>
+      <DeletionDialog 
+        open={isRestartDialogOpen}
+        onOpenChange={setIsRestartDialogOpen}
+        onConfirm={() => {
+            onResetBattle()
+            setIsRestartDialogOpen(false)
+        }}
+        title="Restart Session"
+        description="This will permanently delete all branches and turns. Only the initial setup will be preserved. This action cannot be undone."
+        confirmLabel="Restart"
+      />
     </div>
     </TooltipProvider>
   )

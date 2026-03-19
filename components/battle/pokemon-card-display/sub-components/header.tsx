@@ -3,9 +3,8 @@ import { StarBadgeIcon } from "@/assets/badges/star-badge"
 import MegaColored from "@/assets/logos/mega/mega-colored.svg"
 import { CircularButton } from "@/components/shared/circular-button"
 import { TypeLiseret } from "@/components/shared/type-liseret"
-import { KO_BORDEAUX } from "@/lib/constants/color-constants"
+import { THEME } from "@/lib/constants/color-constants"
 import { POKEMON_LOGOS } from "@/lib/constants/logos-constants"
-import { pokemonTypeColors } from "@/lib/utils/colors-utils"
 import { Pokemon } from "@/types/types"
 import Image from "next/image"
 
@@ -40,7 +39,7 @@ export function PokemonCardDisplayHeader({ pokemon }: PokemonCardDisplayHeaderPr
                         <div className="relative w-3 h-3 flex items-center justify-center shrink-0">
                           <StarBadgeIcon
                             className="absolute inset-0 w-full h-full"
-                            style={{ color: pokemonTypeColors[pokemon.teraType] }}
+                            style={{ color: THEME.pokemon_types[pokemon.teraType] }}
                           />
                           <div className="relative z-10 flex items-center justify-center w-full h-full scale-[0.65]">
                             <Image
@@ -59,7 +58,7 @@ export function PokemonCardDisplayHeader({ pokemon }: PokemonCardDisplayHeaderPr
                           onClick={() => {}}
                           icon={MegaColoredIcon}
                           activeColor="bg-transparent"
-                          title="Méga-Évolution active"
+                          title="Mega-Evolution active"
                           variant="outlined"
                           diameter={13}
                           iconRatio={0.9}
@@ -70,7 +69,7 @@ export function PokemonCardDisplayHeader({ pokemon }: PokemonCardDisplayHeaderPr
                 ) : (
                     <span 
                         className="text-white font-black px-1 py-[1px] rounded-[2px] text-[8px] leading-none select-none tracking-tight"
-                        style={{ backgroundColor: KO_BORDEAUX }}
+                        style={{ backgroundColor: THEME.ko.bordeaux }}
                     >
                         KO
                     </span>

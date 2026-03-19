@@ -1,22 +1,23 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { THEME } from '@/lib/constants/color-constants'
 import type { CombatSession } from '@/types/types'
 import {
-    closestCorners,
-    DndContext,
-    DragEndEvent,
-    DragStartEvent,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors
+  closestCorners,
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors
 } from '@dnd-kit/core'
 import {
-    arrayMove,
-    SortableContext,
-    sortableKeyboardCoordinates,
-    verticalListSortingStrategy
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy
 } from '@dnd-kit/sortable'
 import { Layers, Plus, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -114,7 +115,10 @@ export default function BattleSessionMenu({
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between p-6 border-b border-border bg-gray-50/50">
+        <div 
+          className="flex items-center justify-between p-6 border-b border-border"
+          style={{ backgroundColor: `${THEME.session_menu.header_footer_bg}80` }}
+        >
             <div className="flex items-center gap-2">
                 <div className="p-2 bg-primary rounded-lg text-primary-foreground">
                     <Layers className="h-5 w-5" />
@@ -124,7 +128,13 @@ export default function BattleSessionMenu({
                     <p className="text-xs text-muted-foreground">{sessions.length} / 100 battles</p>
                 </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full h-8 w-8 hover:bg-gray-200">
+            <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onClose} 
+                className="rounded-full h-8 w-8 hover:bg-slate-200"
+                style={{ backgroundColor: 'transparent' }}
+            >
                 <X className="h-4 w-4" />
             </Button>
         </div>
@@ -161,7 +171,10 @@ export default function BattleSessionMenu({
             </DndContext>
         </div>
 
-        <div className="p-6 border-t border-border bg-gray-50/50 flex flex-col gap-3">
+        <div 
+            className="p-6 border-t border-border flex flex-col gap-3"
+            style={{ backgroundColor: `${THEME.session_menu.header_footer_bg}80` }}
+        >
             <Button 
                 onClick={handleCreate} 
                 disabled={sessions.length >= 100}
@@ -184,11 +197,11 @@ export default function BattleSessionMenu({
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e2e8f0;
+          background: ${THEME.session_menu.scrollbar_thumb};
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #cbd5e1;
+          background: ${THEME.session_menu.scrollbar_hover};
         }
       `}</style>
     </>

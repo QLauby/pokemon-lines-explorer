@@ -23,18 +23,18 @@ const MODIFIER_CONFIG = [
 
 export function StatsModifiersDisplay({ modifiers, onUpdate, readOnly = false }: StatsModifiersDisplayProps) {
   const getModifierColor = (value: number, key: string) => {
-    if (value === 0) return "text-gray-400";
+    if (value === 0) return "text-slate-400";
     if (key === "crit") return "text-orange-500 font-bold";
     return value > 0 ? "text-blue-500 font-bold" : "text-red-500 font-bold";
   };
 
   const getLabelColor = (value: number) => {
-    if (value === 0) return "text-gray-400";
+    if (value === 0) return "text-slate-400";
     return value > 0 ? "text-blue-600/70" : "text-red-600/70";
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-1 gap-y-2 py-1 px-1 border-y border-gray-100 bg-gray-50/30 rounded-sm">
+    <div className="flex flex-wrap items-center justify-between gap-x-1 gap-y-2 py-1 px-1 border-y border-slate-100 bg-slate-50/30 rounded-sm">
       {MODIFIER_CONFIG.map((config) => {
         const value = modifiers[config.key as keyof StatsModifiers];
         return (

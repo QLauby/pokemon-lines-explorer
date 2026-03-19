@@ -1,6 +1,6 @@
 "use client"
 
-import { lightenColor } from "@/lib/utils/colors-utils"
+import { THEME } from "@/lib/constants/color-constants"
 import { CustomTagData } from "@/types/types"
 import { CustomTagsManager } from "../shared/custom-tags-manager"
 
@@ -21,15 +21,18 @@ export function BattlefieldZone({
   onUpdatePlayerSideTags,
   onUpdateOpponentSideTags,
 }: BattlefieldZoneProps) {
-  const playerBorderColor = lightenColor("#3B82F6", 40) // lightened blue-500
-  const opponentBorderColor = lightenColor("#EF4444", 40) // lightened red-500
+  const playerBorderColor = THEME.battlefield.side_border_ally
+  const opponentBorderColor = THEME.battlefield.side_border_opponent
 
   return (
     <div className="mb-6 mx-auto md:w-2/3">
       {/* Main Terrain Container */}
-      <div className="border-2 border-gray-300 rounded-lg p-4 bg-white">
+      <div 
+        className="border-2 rounded-lg p-4 bg-white"
+        style={{ borderColor: THEME.battlefield.main_border }}
+      >
         <div className="mb-3">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Battlefield</h3>
+          <h3 className="text-sm font-semibold mb-2" style={{ color: THEME.battlefield.title_text }}>Battlefield</h3>
           <CustomTagsManager
             tags={battlefieldTags}
             onUpdateTags={onUpdateBattlefieldTags}
@@ -42,12 +45,12 @@ export function BattlefieldZone({
         <div className="grid md:grid-cols-2 gap-4">
           {/* Player Side */}
           <div
-            className="border-2 rounded-lg p-3 bg-gray-50"
-            style={{ borderColor: playerBorderColor }}
+            className="border-2 rounded-lg p-3"
+            style={{ borderColor: playerBorderColor, backgroundColor: THEME.battlefield.side_bg }}
           >
-            <h4 className="text-xs font-semibold mb-2" style={{ color: playerBorderColor }}>
-              Player
-            </h4>
+          <h4 className="text-xs font-semibold mb-2" style={{ color: THEME.battlefield.side_label_ally }}>
+               Player
+             </h4>
             <CustomTagsManager
               tags={playerSideTags}
               onUpdateTags={onUpdatePlayerSideTags}
@@ -58,12 +61,12 @@ export function BattlefieldZone({
 
           {/* Opponent Side */}
           <div
-            className="border-2 rounded-lg p-3 bg-gray-50"
-            style={{ borderColor: opponentBorderColor }}
+            className="border-2 rounded-lg p-3"
+            style={{ borderColor: opponentBorderColor, backgroundColor: THEME.battlefield.side_bg }}
           >
-            <h4 className="text-xs font-semibold mb-2" style={{ color: opponentBorderColor }}>
-              Opponent
-            </h4>
+          <h4 className="text-xs font-semibold mb-2" style={{ color: THEME.battlefield.side_label_opponent }}>
+               Opponent
+             </h4>
             <CustomTagsManager
               tags={opponentSideTags}
               onUpdateTags={onUpdateOpponentSideTags}

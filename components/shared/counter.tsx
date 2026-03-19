@@ -5,7 +5,10 @@ import { useRef, useState } from "react"
 
 import { ChevronDown, ChevronUp } from "lucide-react"
 
+import { THEME } from "@/lib/constants/color-constants"
 import { EditableText } from "./editable-text"
+
+const colors = THEME.counter
 
 interface CounterProps {
   value: string
@@ -130,17 +133,17 @@ export function Counter(props: CounterProps) {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: `rgba(213, 221, 226, ${buttonOpacity})`,
-    border: `1px solid rgba(158, 177, 189, ${buttonOpacity})`,
+    backgroundColor: `rgba(${colors.base_rgb}, ${buttonOpacity})`,
+    border: `1px solid rgba(${colors.border_rgb}, ${buttonOpacity})`,
     cursor: "pointer",
     transition: `all ${transitionDuration} ease-in-out`,
-    color: `rgba(88, 112, 128, ${Math.min(1, buttonOpacity + 0.3)})`,
+    color: `rgba(${colors.text_rgb}, ${Math.min(1, buttonOpacity + 0.3)})`,
   }
 
   const arrowButtonHoverStyle: React.CSSProperties = {
-    backgroundColor: `rgba(185, 199, 207, ${buttonOpacity})`,
-    borderColor: `rgba(131, 154, 170, ${buttonOpacity})`,
-    color: `rgba(66, 85, 97, ${Math.min(1, buttonOpacity + 0.3)})`,
+    backgroundColor: `rgba(${colors.hover_base_rgb}, ${buttonOpacity})`,
+    borderColor: `rgba(${colors.hover_border_rgb}, ${buttonOpacity})`,
+    color: `rgba(${colors.hover_text_rgb}, ${Math.min(1, buttonOpacity + 0.3)})`,
   }
 
   return (
@@ -152,6 +155,9 @@ export function Counter(props: CounterProps) {
     >
       <EditableText
         {...editableTextProps}
+        mainColor={props.mainColor || colors.bg}
+        darkTextColor={props.darkTextColor || colors.text}
+        lightTextColor={props.lightTextColor || THEME.common.white}
         value={value}
         onChange={onChange}
         type="number"
@@ -172,7 +178,7 @@ export function Counter(props: CounterProps) {
         <div
           style={{
             ...overlayStyle,
-            border: isHovered ? `1px solid rgba(158, 177, 189, ${buttonOpacity})` : "none",
+            border: isHovered ? `1px solid rgba(${colors.border_rgb}, ${buttonOpacity})` : "none",
           }}
         >
           <button
@@ -191,9 +197,9 @@ export function Counter(props: CounterProps) {
             }}
             onMouseLeave={(e) => {
               Object.assign(e.currentTarget.style, {
-                backgroundColor: `rgba(213, 221, 226, ${buttonOpacity})`,
-                borderColor: `rgba(158, 177, 189, ${buttonOpacity})`,
-                color: `rgba(88, 112, 128, ${Math.min(1, buttonOpacity + 0.3)})`,
+                backgroundColor: `rgba(${colors.base_rgb}, ${buttonOpacity})`,
+                borderColor: `rgba(${colors.border_rgb}, ${buttonOpacity})`,
+                color: `rgba(${colors.text_rgb}, ${Math.min(1, buttonOpacity + 0.3)})`,
               })
             }}
           >
@@ -222,9 +228,9 @@ export function Counter(props: CounterProps) {
             }}
             onMouseLeave={(e) => {
               Object.assign(e.currentTarget.style, {
-                backgroundColor: `rgba(213, 221, 226, ${buttonOpacity})`,
-                borderColor: `rgba(158, 177, 189, ${buttonOpacity})`,
-                color: `rgba(88, 112, 128, ${Math.min(1, buttonOpacity + 0.3)})`,
+                backgroundColor: `rgba(${colors.base_rgb}, ${buttonOpacity})`,
+                borderColor: `rgba(${colors.border_rgb}, ${buttonOpacity})`,
+                color: `rgba(${colors.text_rgb}, ${Math.min(1, buttonOpacity + 0.3)})`,
               })
             }}
           >

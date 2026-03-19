@@ -107,31 +107,31 @@ export function StatusChangeEffect({
     return (
         <div className="flex items-stretch gap-3 w-full">
             {/* Visualisation Avant -> Après */}
-            <div className="flex items-center justify-center w-[150px] shrink-0 bg-white/50 px-2 py-1.5 rounded border border-gray-100 min-h-[36px] gap-2">
+            <div className="flex items-center justify-center w-[150px] shrink-0 bg-white/50 px-2 py-1.5 rounded border border-slate-100 min-h-[36px] gap-2">
                 <div className="flex-1 flex justify-end min-w-0">
                     {hasAnyStatusBefore ? (
                         <PokemonCardDisplayStatus pokemon={initialPokemon} />
                     ) : (
-                        <span className="text-[10px] text-gray-400 italic whitespace-nowrap">No status</span>
+                        <span className="text-[10px] text-slate-400 italic whitespace-nowrap">No status</span>
                     )}
                 </div>
                 
-                <ArrowRight className="h-3 w-3 text-gray-400 shrink-0 mx-1" />
+                <ArrowRight className="h-3 w-3 text-slate-400 shrink-0 mx-1" />
                 
                 <div className="flex-1 flex justify-start min-w-0">
                     {hasAnyStatusAfter ? (
                         <PokemonCardDisplayStatus pokemon={afterPokemon} />
                     ) : (
-                        <span className="text-[10px] text-gray-400 italic whitespace-nowrap">No status</span>
+                        <span className="text-[10px] text-slate-400 italic whitespace-nowrap">No status</span>
                     )}
                 </div>
             </div>
 
             {/* Ligne de démarcation verticale */}
-            <div className="w-px bg-gray-200 my-1 rounded-full shrink-0" />
+            <div className="w-px bg-slate-200 my-1 rounded-full shrink-0" />
 
             {/* Télécommande / Sélecteur */}
-            <div className="flex-1 min-w-0 flex items-center justify-center bg-white/40 border border-gray-100 rounded px-2 py-1.5 min-h-[36px]">
+            <div className="flex-1 min-w-0 flex items-center justify-center bg-white/40 border border-slate-100 rounded px-2 py-1.5 min-h-[36px]">
                 <StatusSelector 
                     pokemon={afterPokemon}
                     isMyTeam={"side" in effect.target ? effect.target.side === "my" : false}

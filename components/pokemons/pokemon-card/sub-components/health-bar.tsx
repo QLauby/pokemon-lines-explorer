@@ -73,12 +73,12 @@ export function HealthBar({
 
   return (
     <div className="flex items-center w-full">
-      {showText && <span className="text-xs font-medium text-gray-600 w-6 flex-shrink-0">HP</span>}
+      {showText && <span className="text-xs font-medium text-slate-600 w-6 flex-shrink-0">HP</span>}
 
       <div className="flex items-center flex-1">
         {/* Health bar — always driven by hpPercent */}
         <div className="flex items-center h-6 flex-1">
-          <div className="bg-gray-200 rounded-full h-2 w-full">
+          <div className="bg-slate-200 rounded-full h-2 w-full">
             <div
               className={`h-2 rounded-full transition-all duration-700 ease-in-out ${getHealthColor(hpPercent)}`}
               style={{ width: `${Math.max(0, hpPercent)}%` }}
@@ -104,7 +104,7 @@ export function HealthBar({
               rounded={true}
               textAlign="center"
             />
-            <span className="text-xs text-gray-400 font-medium">/</span>
+            <span className="text-xs text-slate-400 font-medium">/</span>
             {/* max HP — allowEmpty=false + min=1 → EditableText reverts on empty/invalid */}
             <EditableText
               value={String(hpMax)}

@@ -1,5 +1,6 @@
 "use client"
 
+import { THEME } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils/cn"
 import { BattlefieldState, Pokemon, TreeNode } from "@/types/types"
 import { CustomTagsManager } from "../shared/custom-tags-manager"
@@ -44,16 +45,16 @@ export function CurrentState({
   })
 
   // -- Render Helpers --
-  const playerBorderColor = "#3B82F6" // blue-500
-  const opponentBorderColor = "#EF4444" // red-500
+  const playerBorderColor = THEME.battlefield.side_border_ally
+  const opponentBorderColor = THEME.battlefield.side_border_opponent
 
   return (
     <div className="flex flex-col gap-3 text-[11px]">
       
       {/* 1. Main Battlefield Container */}
-      <div className="border border-gray-200 rounded-xl p-2 bg-gray-50/30 shadow-sm ring-1 ring-black/5">
+      <div className="border rounded-xl p-2 shadow-sm ring-1 ring-black/5" style={{ borderColor: THEME.battlefield.main_border, backgroundColor: THEME.battlefield.side_bg }}>
         <div className="mb-2">
-          <h3 className="text-[10px] font-bold text-gray-700 mb-1 uppercase tracking-wider">Battlefield</h3>
+          <h3 className="text-[10px] font-bold mb-1 uppercase tracking-wider" style={{ color: THEME.battlefield.title_text }}>Battlefield</h3>
           {/* Global Field Tags */}
           <CustomTagsManager
             tags={battlefieldState?.customTags || []}
@@ -71,7 +72,7 @@ export function CurrentState({
              className="border rounded-xl p-2 bg-white shadow-sm"
              style={{ borderColor: `${playerBorderColor}40` }} // 25% opacity
            >
-             <h4 className="text-[9px] font-bold mb-1 uppercase tracking-tighter" style={{ color: playerBorderColor }}>
+             <h4 className="text-[9px] font-bold mb-1 uppercase tracking-tighter" style={{ color: THEME.battlefield.side_label_ally }}>
                Player
              </h4>
              
@@ -103,9 +104,9 @@ export function CurrentState({
                         />
                     ) : (
                         <div key={`empty-my-${slotIndex}`} className={cn(
-                            "w-full h-full min-h-[50px] rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-[10px] uppercase font-bold bg-gray-50/50",
+                            "w-full h-full min-h-[50px] rounded-lg border-2 border-dashed flex items-center justify-center text-[10px] uppercase font-bold",
                             battleType === "simple" && "w-[calc(50%-4px)]"
-                        )}>
+                        )} style={{ borderColor: THEME.battlefield.main_border, color: THEME.pokemon_card.status.label, backgroundColor: THEME.battlefield.side_bg }}>
                             Empty Slot
                         </div>
                     )
@@ -118,7 +119,7 @@ export function CurrentState({
              className="border rounded-xl p-2 bg-white shadow-sm"
              style={{ borderColor: `${opponentBorderColor}40` }}
            >
-             <h4 className="text-[9px] font-bold mb-1 uppercase tracking-tighter" style={{ color: opponentBorderColor }}>
+             <h4 className="text-[9px] font-bold mb-1 uppercase tracking-tighter" style={{ color: THEME.battlefield.side_label_opponent }}>
                Opponent
              </h4>
 
@@ -150,9 +151,9 @@ export function CurrentState({
                         />
                     ) : (
                         <div key={`empty-enemy-${slotIndex}`} className={cn(
-                            "w-full h-full min-h-[64px] rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400 text-[10px] uppercase font-bold bg-gray-50/50",
+                            "w-full h-full min-h-[64px] rounded-lg border-2 border-dashed flex items-center justify-center text-[10px] uppercase font-bold",
                             battleType === "simple" && "w-[calc(50%-4px)]"
-                        )}>
+                        )} style={{ borderColor: THEME.battlefield.main_border, color: THEME.pokemon_card.status.label, backgroundColor: THEME.battlefield.side_bg }}>
                             Empty Slot
                         </div>
                     )
@@ -166,8 +167,8 @@ export function CurrentState({
       <div className="border-t pt-3 mt-1 grid grid-cols-1 md:grid-cols-2 gap-3 px-1">
           
           {/* Player Team */}
-          <div className="bg-blue-50/20 rounded-xl p-2 border border-blue-100/50 shadow-sm transition-all hover:shadow-md">
-             <h4 className="text-[8px] font-bold text-blue-800 mb-1 uppercase tracking-widest pl-1">My Team</h4>
+          <div className="rounded-xl p-2 border shadow-sm transition-all hover:shadow-md" style={{ backgroundColor: THEME.common.ally_bg + "33", borderColor: THEME.common.ally_bg + "80" }}>
+             <h4 className="text-[8px] font-bold mb-1 uppercase tracking-widest pl-1" style={{ color: THEME.common.ally_text }}>My Team</h4>
              <div className="grid grid-cols-2 gap-2">
                  {myTeam.map((pokemon, idx) => {
                     const isActive = (activeSlots?.myTeam || [0, 1]).slice(0, activeCount).includes(idx)
@@ -186,8 +187,8 @@ export function CurrentState({
           </div>
 
           {/* Opponent Team */}
-          <div className="bg-red-50/20 rounded-xl p-2 border border-red-100/50 shadow-sm transition-all hover:shadow-md">
-             <h4 className="text-[8px] font-bold text-red-800 mb-1 uppercase tracking-widest pl-1">Opponent Team</h4>
+          <div className="rounded-xl p-2 border shadow-sm transition-all hover:shadow-md" style={{ backgroundColor: THEME.common.opponent_bg + "33", borderColor: THEME.common.opponent_bg + "80" }}>
+             <h4 className="text-[8px] font-bold mb-1 uppercase tracking-widest pl-1" style={{ color: THEME.common.opponent_text }}>Opponent Team</h4>
               <div className="grid grid-cols-2 gap-2">
                  {enemyTeam.map((pokemon, idx) => {
                     const isActive = (activeSlots?.opponentTeam || [0, 1]).slice(0, activeCount).includes(idx)

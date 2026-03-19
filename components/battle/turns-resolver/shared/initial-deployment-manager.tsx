@@ -174,7 +174,7 @@ export function InitialDeploymentManager({
 
   return (
     <div className="space-y-4">
-      <div className="text-sm font-medium text-gray-700">
+      <div className="text-sm font-medium text-slate-700">
         {renderTitle()}
       </div>
       

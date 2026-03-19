@@ -132,7 +132,7 @@ export function UpdateCurrentTurn({
 
       <div className="grid grid-cols-2 gap-4 pb-4 border-b items-center">
          <div className="space-y-1.5 text-center flex flex-col items-center justify-center">
-            <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Turn Probability</label>
+            <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Turn Probability</label>
             <div className="flex justify-center">
                 <EditableText
                   value={isTurnZero ? "1" : probability}
@@ -156,7 +156,7 @@ export function UpdateCurrentTurn({
                   max={1}
                   decimals={1}
                   defaultValue="1"
-                  placeholder="ex : 12,5 or = 1/8"
+                  placeholder="e.g. 12.5 or = 1/8"
                   autoWidth={false}
                   width="100px"
                   editWidth="180px"
@@ -169,7 +169,7 @@ export function UpdateCurrentTurn({
             </div>
          </div>
          <div className="space-y-1.5 text-center flex flex-col items-center justify-center">
-            <label className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Turn Description</label>
+            <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Turn Description</label>
             <Textarea 
                 value={description}
                 onChange={(e) => {

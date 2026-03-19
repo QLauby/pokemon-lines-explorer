@@ -21,7 +21,7 @@ export const CircularButton = ({
   onClick,
   icon: Icon,
   activeColor,
-  inactiveColor = "bg-gray-100 text-gray-400 hover:bg-gray-200",
+  inactiveColor = "bg-slate-100 text-slate-400 hover:bg-slate-200",
   title,
   diameter,
   variant = "filled",
@@ -53,14 +53,14 @@ export const CircularButton = ({
       "bg-blue-500 text-white": "text-blue-500 bg-white",
       "bg-yellow-500 text-white": "text-yellow-500 bg-white",
       "bg-purple-500 text-white": "text-purple-500 bg-white",
-      "bg-gray-400 text-white": "text-gray-400 bg-white",
-      "bg-gray-800 text-white": "text-gray-800 bg-white",
+      "bg-slate-400 text-white": "text-slate-400 bg-white",
+      "bg-slate-800 text-white": "text-slate-800 bg-white",
       "bg-pink-500 text-white": "text-pink-500 bg-white",
       "bg-green-500 text-white": "text-green-500 bg-white",
       "bg-stone-700 text-white": "text-stone-700 bg-white",
       "bg-amber-700 text-white": "text-amber-700 bg-white",
     }
-    return colorMap[activeColor] || "text-gray-500 bg-white"
+    return colorMap[activeColor] || "text-slate-500 bg-white"
   }
 
   const getActiveStyles = () => {
@@ -72,9 +72,9 @@ export const CircularButton = ({
 
   const getInactiveStyles = () => {
     if (variant === "outlined") {
-      return inactiveColor !== "bg-gray-100 text-gray-400 hover:bg-gray-200"
+      return inactiveColor !== "bg-slate-100 text-slate-400 hover:bg-slate-200"
         ? inactiveColor
-        : "bg-white text-gray-400 hover:bg-gray-50"
+        : "bg-white text-slate-400 hover:bg-slate-50"
     }
     return inactiveColor
   }
@@ -105,7 +105,7 @@ export const CircularButton = ({
         onClick={readOnly ? undefined : onClick}
         className={`rounded-full transition-colors border-none outline-none overflow-hidden ${
           !readOnly && "cursor-pointer"
-        } ${isActive ? "text-white" : "bg-gray-100 text-gray-400 hover:bg-gray-200"}`}
+        } ${isActive ? "text-white" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
         style={{
           ...commonStyles,
           backgroundColor: isActive ? activeColor : undefined,

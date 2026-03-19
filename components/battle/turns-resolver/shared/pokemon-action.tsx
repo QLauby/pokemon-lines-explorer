@@ -1,14 +1,23 @@
-﻿"use client"
+"use client"
 
 import { AlertTriangle, ChevronDown, ChevronRight, ChevronUp, Package, Repeat, Swords } from "lucide-react"
 import { useEffect } from "react"
 
 import { Button } from "@/components/ui/button"
-import { KO_BG_COLOR, KO_BORDEAUX } from "@/lib/constants/color-constants"
+import { THEME } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils"
+import { PokemonType } from "@/lib/utils/colors-utils"
 import { BattleState, Effect, Pokemon, SlotReference, TurnAction, TurnActionType } from "@/types/types"
 
 import { Counter } from "@/components/shared/counter"
+import { TypeLiseret } from "@/components/shared/type-liseret"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { EffectsList } from "../battle-effects/effects-list"
 
 interface PokemonActionProps {
@@ -83,7 +92,7 @@ export function PokemonAction({
   }
   
   // --- 1. Available Attack Targets (Everyone on field) ---
-  const activeTargets: { label: string; value: string; isAlly: boolean; side: "my" | "opponent"; slotIndex: number }[] = []
+  const activeTargets: { label: string; value: string; isAlly: boolean; side: "my" | "opponent"; slotIndex: number; types: PokemonType[] }[] = []
 
   // Add My Active Pokemon
   activeSlots.myTeam.forEach((teamMemberIndex, battlefieldSlotIndex) => {
@@ -95,7 +104,8 @@ export function PokemonAction({
                   value: JSON.stringify({ type: "battlefield_slot", side: "my", slotIndex: battlefieldSlotIndex }),
                   isAlly: true,
                   side: "my",
-                  slotIndex: battlefieldSlotIndex
+                  slotIndex: battlefieldSlotIndex,
+                  types: pokemon.types
               })
           }
       }
@@ -111,7 +121,8 @@ export function PokemonAction({
                   value: JSON.stringify({ type: "battlefield_slot", side: "opponent", slotIndex: battlefieldSlotIndex }),
                   isAlly: false,
                   side: "opponent",
-                  slotIndex: battlefieldSlotIndex
+                  slotIndex: battlefieldSlotIndex,
+                  types: pokemon.types
               })
           }
       }
@@ -152,11 +163,12 @@ export function PokemonAction({
           value: JSON.stringify({ type: "battlefield_slot", side: isAlly ? "my" : "opponent", slotIndex: idx }),
           isAlly: isAlly,
           slotIndex: idx,
-          pokemon: p
+          pokemon: p,
+          types: p.types
       }
   }).filter((p): p is NonNullable<typeof p> => p !== null)
 
-  // Filter out KO'd PokÃ©mon from available switch targets
+  // Filter out KO'd Pokémon from available switch targets
   const availableBenchMembers = benchMembers.filter(member => member.pokemon.hpPercent > 0)
 
   const getActorName = () => {
@@ -169,27 +181,35 @@ export function PokemonAction({
       return "UNKNOWN"
   }
   
-  // Define Styles
-  let containerStyle = {}
-  let borderColorClass = isAlly ? "border-blue-200" : "border-red-200"
-  let containerClass = isAlly 
-          ? "border-blue-100 bg-blue-50/30 hover:bg-blue-50/50" 
-          : "border-red-100 bg-red-50/30 hover:bg-red-50/50"
+  // Define Styles (Teinté logic)
+  let containerStyle: React.CSSProperties = {
+      backgroundColor: isAlly ? THEME.common.ally_bg + "33" : THEME.common.opponent_bg + "33",
+      borderColor: isAlly ? THEME.common.ally_bg + "80" : THEME.common.opponent_bg + "80",
+      "--action-border-strong": isAlly ? THEME.common.ally_bg : THEME.common.opponent_bg,
+  } as React.CSSProperties
+  
+  let borderColorClass = "border-[var(--action-border-strong)]/50"
+  let containerClass = "hover:shadow-sm shadow-black/5 transition-all"
 
   if (isSwitchAfterKo) {
       containerStyle = {
-          borderColor: KO_BORDEAUX,
-          backgroundColor: KO_BG_COLOR,
-      }
+          ...containerStyle,
+          borderColor: THEME.ko.bordeaux,
+          backgroundColor: THEME.ko.bg,
+          "--action-border-strong": THEME.ko.bordeaux,
+      } as React.CSSProperties
       borderColorClass = "" // Remove border color class
-      containerClass = "hover:bg-gray-200/50" // Add hover state
+      containerClass = "hover:bg-slate-200/50" // Keep tailwind or replace
+  } else {
+      containerStyle = {
+          ...containerStyle,
+          "--action-border-strong": isAlly ? THEME.common.ally : THEME.common.opponent,
+      } as React.CSSProperties
   }
 
-
-  
-   const commonElementStyle = isSwitchAfterKo 
-    ? { borderColor: KO_BORDEAUX } 
-    : { borderColor: isAlly ? "#dbeafe" : "#fee2e2" } // Matches border-blue-100 / border-red-100
+  const commonElementStyle = {
+      borderColor: isSwitchAfterKo ? THEME.ko.bordeaux : (isAlly ? THEME.common.ally_bg + "80" : THEME.common.opponent_bg + "80")
+  }
 
   return (
     <div
@@ -236,17 +256,21 @@ export function PokemonAction({
         <div className="flex-1 min-w-0 flex items-center gap-1.5">
           {/* 1. Actor Name */}
           <div className="flex items-center gap-1.5 shrink-0 max-w-[200px]">
-              {isSwitchAfterKo && <AlertTriangle className="h-4 w-4 text-amber-700 shrink-0" />}
+              {isSwitchAfterKo && <AlertTriangle className="h-4 w-4 shrink-0" style={{ color: THEME.ko.bordeaux }} />}
               
+              {actor && <TypeLiseret types={actor.pokemon.types} className="w-1 h-3 rounded-full mr-0.5" />}
+
               <div className={cn(
                 "text-[11px] font-extrabold truncate shrink-0 max-w-[120px]",
-                isAlly ? "text-blue-700" : "text-red-700"
-              )}>
+              )} 
+              style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }}
+              title={actor?.pokemon.name}
+              >
                 {getActorName()}
               </div>
 
               {isSwitchAfterKo && (
-                  <span className="text-[10px] uppercase font-bold text-gray-700 opacity-70">
+                  <span className="text-[10px] uppercase font-bold opacity-70" style={{ color: THEME.pokemon_card.status.label }}>
                       is KO
                   </span>
               )}
@@ -258,7 +282,7 @@ export function PokemonAction({
           <div className="flex items-center shrink-0">
                   {isSwitchAfterKo ? (
                       // Locked Badge for Forced Switch
-                      <div className="flex items-center shrink-0 opacity-80">
+                      <div className="flex items-center shrink-0">
                           <div 
                             className="h-6 px-1.5 text-[9px] font-bold bg-background/50 border rounded-l flex items-center justify-center text-muted-foreground border-r-0"
                             style={commonElementStyle}
@@ -269,7 +293,7 @@ export function PokemonAction({
                             className="h-6 px-1 flex items-center justify-center bg-background/50 border rounded-r border-l-0 text-muted-foreground"
                             style={commonElementStyle}
                           >
-                            <Repeat className="h-3.5 w-3.5" />
+                            <Repeat className="h-3.5 w-3.5 opacity-60" />
                           </div>
                     </div>
                   ) : (
@@ -277,7 +301,7 @@ export function PokemonAction({
                       <>
                         <select
                             className={cn(
-                                "h-6 text-[9px] font-bold bg-background/50 border rounded-l px-1 focus:ring-1 focus:ring-ring outline-none cursor-pointer appearance-none text-muted-foreground hover:text-foreground transition-colors border-r-0",
+                                "h-6 text-[9px] font-bold bg-white/50 border rounded-l px-1 focus:ring-1 focus:ring-ring outline-none cursor-pointer appearance-none text-muted-foreground hover:text-foreground transition-colors border-r-0",
                                 borderColorClass
                             )}
                             value={action.type}
@@ -288,170 +312,218 @@ export function PokemonAction({
                             <option value="item">ITM</option>
                         </select>
                         <div className={cn(
-                            "h-6 px-1 flex items-center justify-center bg-background/50 border rounded-r border-l-0 text-muted-foreground opacity-60",
+                            "h-6 px-1 flex items-center justify-center bg-white/50 border rounded-r border-l-0 text-muted-foreground",
                             borderColorClass
                         )}>
-                            {typeIcons[action.type]}
+                            <div className="opacity-60 flex items-center justify-center" style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }}>
+                                {typeIcons[action.type]}
+                            </div>
                         </div>
                       </>
                   )}
               </div>
 
-              {/* 3. Specific Details (Target/Input) */}
-              <div className="shrink-0 flex items-center min-w-0">
-                {/* ATTACK TARGETS */}
-                {action.type === "attack" && (
-                  <>
-                    <select
-                      className={cn(
-                          "h-6 w-[100px] text-[10px] font-medium bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate",
-                          borderColorClass
-                      )}
-                      value={action.target ? JSON.stringify(action.target) : ""}
-                      onChange={(e) => onUpdateTarget(e.target.value ? JSON.parse(e.target.value) : undefined)}
-                    >
-                      <option value="">No Target</option>
-                      {activeTargets.map(t => (
-                          <option 
-                            key={t.value} 
-                            value={t.value}
-                            className={t.isAlly ? "text-blue-600" : "text-red-600"}
-                          >
-                            {t.label}
-                          </option>
-                      ))}
-                    </select>
-                    
-                    <span className="text-[10px] text-muted-foreground px-1">with</span>
-                  </>
-                )}
-
-                {/* ATTACK NAME INPUT / DROPDOWN */}
-                {action.type === "attack" && actor && (
-                   (() => {
-                         const moves = actor.pokemon.attacks || []
-                         // Requirement 1: Filter attacks with 0 PP
-                         const availableMoves = moves.filter(m => m.currentPP > 0)
-                         const hasMoves = availableMoves.length > 0
-                         
-                         if (hasMoves) {
+                {/* 3. Specific Details (Target/Input) */}
+                <div className="shrink-0 flex items-center min-w-0">
+                  {/* ATTACK TARGETS */}
+                  {action.type === "attack" && (
+                    <>
+                      <Select
+                        value={action.target ? JSON.stringify(action.target) : "none"}
+                        onValueChange={(val: string) => onUpdateTarget(val === "none" ? undefined : JSON.parse(val))}
+                      >
+                        <SelectTrigger 
+                            className={cn(
+                                "h-6 w-[100px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden truncate",
+                                borderColorClass
+                            )}
+                            title={(() => {
+                                const selected = activeTargets.find(t => JSON.stringify(action.target) === t.value)
+                                return selected?.label || "No Target"
+                            })()}
+                            style={{ 
+                                color: (() => {
+                                    const selected = activeTargets.find(t => JSON.stringify(action.target) === t.value)
+                                    return selected ? (selected.isAlly ? THEME.common.ally_text : THEME.common.opponent_text) : THEME.common.neutral
+                                })()
+                            }}
+                        >
+                          <SelectValue placeholder="Target Pokémon..." className="truncate" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none" className="text-[10px]">Target Pokémon...</SelectItem>
+                          {activeTargets.map(t => (
+                            <SelectItem key={t.value} value={t.value} className="text-[10px]">
+                                <div className="flex items-center gap-2">
+                                    <TypeLiseret types={t.types} className="w-1 h-3 rounded-full" />
+                                    <span style={{ color: t.isAlly ? THEME.common.ally_text : THEME.common.opponent_text }}>
+                                        {t.label}
+                                    </span>
+                                </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span className="text-[10px] text-muted-foreground px-0.5 leading-[24px]">with</span>
+                    </>
+                  )}
+  
+                  {/* ATTACK NAME INPUT / DROPDOWN */}
+                  {action.type === "attack" && actor && (
+                     (() => {
+                           const moves = actor.pokemon.attacks || []
+                           const availableMoves = moves.filter(m => m.currentPP > 0)
+                           const hasMoves = availableMoves.length > 0
+                           
+                           if (hasMoves) {
+                               return (
+                                   <div className="flex items-center gap-1 ml-1 shrink-0">
+                                       <Select
+                                         value={action.metadata?.attackName || "none"}
+                                         onValueChange={(val: string) => {
+                                             if (val === "none") {
+                                                 onUpdateAttack("", "")
+                                                 return
+                                             }
+                                             const move = availableMoves.find(m => m.name === val)
+                                             if (move) onUpdateAttack(move.name, move.name)
+                                         }}
+                                       >
+                                         <SelectTrigger 
+                                            className={cn(
+                                                "h-6 w-[100px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden truncate",
+                                                borderColorClass
+                                            )}
+                                            style={{ color: action.metadata?.attackName ? (isAlly ? THEME.common.ally_text : THEME.common.opponent_text) : THEME.common.neutral }}
+                                            title={action.metadata?.attackName || "Move name..."}
+                                         >
+                                            <SelectValue placeholder="Move name..." className="truncate" />
+                                         </SelectTrigger>
+                                         <SelectContent>
+                                           <SelectItem value="none" className="text-[10px]">Move name...</SelectItem>
+                                           {availableMoves.map(m => (
+                                               <SelectItem key={m.name} value={m.name} className="text-[10px]">
+                                                   <div className="flex items-center gap-2">
+                                                       <TypeLiseret types={m.type ? [m.type] : []} className="w-1 h-3 rounded-full" />
+                                                       <span style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }}>
+                                                            {m.name}
+                                                       </span>
+                                                   </div>
+                                               </SelectItem>
+                                           ))}
+                                         </SelectContent>
+                                       </Select>
+  
+                                       {action.metadata?.attackName && (
+                                           (() => {
+                                               const selectedMoveObj = availableMoves.find(m => m.name === action.metadata?.attackName)
+                                               return (
+                                                  <div className="flex items-center gap-1 bg-white/50 px-1 rounded-sm border border-dashed border-muted-foreground/20" title={`Consommer x PP (Max : ${selectedMoveObj?.currentPP || ' ?'})`}>
+                                                      <span className="text-[10px] font-bold text-muted-foreground opacity-70">-</span>
+                                                      <Counter
+                                                          value={(action.metadata?.ppAmount || 1).toString()}
+                                                          onChange={(val) => onUpdatePpAmount(Math.max(1, parseInt(val) || 1))}
+                                                          min={1}
+                                                          max={selectedMoveObj?.currentPP}
+                                                          fontSize={10}
+                                                          width={24}
+                                                          className="h-5"
+                                                          visualMode="default"
+                                                           mainColor={isAlly ? THEME.common.ally : THEME.common.opponent}
+                                                      />
+                                                      <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-70">PP</span>
+                                                  </div>
+                                               )
+                                           })()
+                                       )}
+                                   </div>
+                               )
+                           } else {
                              return (
                                  <div className="flex items-center gap-1 ml-1 shrink-0">
-                                     <select
-                                       className={cn(
-                                           "h-6 w-[100px] text-[10px] bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate",
-                                           borderColorClass
-                                       )}
-                                       value={action.metadata?.attackName || ""}
-                                       onChange={(e) => {
-                                           const selectedName = e.target.value
-                                           const move = availableMoves.find(m => m.name === selectedName)
-                                           if (move) {
-                                               onUpdateAttack(move.name, move.name)
-                                           }
-                                       }}
-                                     >
-                                       <option value="">Select Move...</option>
-                                       {availableMoves.map(m => (
-                                           <option key={m.name} value={m.name}>
-                                               {m.name}
-                                           </option>
-                                       ))}
-                                     </select>
-
-                                     {/* Requirement 2 & 3: Counter for multi-consumption with dynamic capping and explicit label */}
-                                     {action.metadata?.attackName && (
-                                         (() => {
-                                             const selectedMove = availableMoves.find(m => m.name === action.metadata?.attackName)
-                                             return (
-                                                <div className="flex items-center gap-1 bg-white/50 px-1 rounded-sm border border-dashed border-muted-foreground/20" title={`Consommer x PP (Max: ${selectedMove?.currentPP || '?'})`}>
-                                                    <span className="text-[10px] font-bold text-muted-foreground opacity-70">-</span>
-                                                    <Counter
-                                                        value={(action.metadata?.ppAmount || 1).toString()}
-                                                        onChange={(val) => onUpdatePpAmount(Math.max(1, parseInt(val) || 1))}
-                                                        min={1}
-                                                        max={selectedMove?.currentPP}
-                                                        fontSize={10}
-                                                        width={24}
-                                                        className="h-5"
-                                                        visualMode="default"
-                                                        mainColor={isAlly ? "#3b82f6" : "#ef4444"}
-                                                    />
-                                                    <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-70">PP</span>
-                                                </div>
-                                             )
-                                         })()
-                                     )}
+                                     <input 
+                                        className={cn(
+                                            "h-6 w-[100px] text-[10px] bg-white/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring placeholder:italic transition-colors",
+                                            borderColorClass
+                                        )}
+                                        style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }}
+                                        placeholder="Move name..."
+                                        value={action.metadata?.attackName || ""}
+                                        onChange={(e) => onUpdateAttack(e.target.value)}
+                                      />
                                  </div>
                              )
-                         } else {
-                           return (
-                               <div className="flex items-center gap-1 ml-1 shrink-0">
-                                   <input 
-                                      className={cn(
-                                          "h-6 w-[100px] text-[10px] bg-background/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring placeholder:italic",
-                                          borderColorClass
-                                      )}
-                                      placeholder="Move name..."
-                                      value={action.metadata?.attackName || ""}
-                                      onChange={(e) => onUpdateAttack(e.target.value)}
-                                    />
-                               </div>
-                           )
-                         }
-                   })()
-                )}
-
-                {/* SWITCH TARGETS */}
-                {(action.type === "switch" || action.type === "switch-after-ko") && (
-                    availableBenchMembers.length === 0 && action.type === "switch-after-ko" ? (
-                        // No switch available for KO'd PokÃ©mon
-                        <div 
-                          className={cn(
-                              "h-6 w-[130px] text-[10px] font-medium bg-background/50 border rounded px-1.5 flex items-center text-muted-foreground italic",
-                              !isSwitchAfterKo && borderColorClass
-                          )}
-                          style={commonElementStyle}
-                        >
-                          No switch available
-                        </div>
-                    ) : (
-                        <select
-                          className={cn(
-                              "h-6 w-[130px] text-[10px] font-medium bg-background/50 border rounded px-1.5 outline-none focus:ring-1 focus:ring-ring truncate",
-                              !isSwitchAfterKo && borderColorClass
-                          )}
-                          style={commonElementStyle}
-                          value={action.target ? JSON.stringify(action.target) : ""}
-                          onChange={(e) => onUpdateTarget(e.target.value ? JSON.parse(e.target.value) : undefined)}
-                        >
-                          <option value="">Select...</option>
-                          {availableBenchMembers.map(t => (
-                              <option 
-                                key={t.value} 
-                                value={t.value}
-                                className={t.isAlly ? "text-blue-600" : "text-red-600"}
-                              >
-                                {"\u2192 "}{t.label}
-                              </option>
-                          ))}
-                        </select>
-                    )
-                )}
-
-                {/* ITEM INPUT */}
-                {action.type === "item" && (
-                    <input 
-                      className={cn(
-                          "h-6 w-[130px] text-[10px] bg-background/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring placeholder:italic",
-                          borderColorClass
-                      )}
-                      placeholder="Item name..."
-                      value={action.metadata?.itemName || ""}
-                      onChange={(e) => onUpdateMetadata({ itemName: e.target.value })}
-                    />
-                )}
-              </div>
+                           }
+                     })()
+                  )}
+  
+                  {/* SWITCH TARGETS */}
+                  {(action.type === "switch" || action.type === "switch-after-ko") && (
+                      availableBenchMembers.length === 0 && action.type === "switch-after-ko" ? (
+                          // No switch available for KO'd Pokémon
+                          <div 
+                            className={cn(
+                                "h-6 w-[130px] text-[10px] font-medium bg-background/50 border rounded px-1.5 flex items-center text-muted-foreground italic",
+                                !isSwitchAfterKo && borderColorClass
+                            )}
+                            style={commonElementStyle}
+                          >
+                            No switch available
+                          </div>
+                      ) : (
+                          <Select
+                            value={action.target ? JSON.stringify(action.target) : "none"}
+                            onValueChange={(val: string) => onUpdateTarget(val === "none" ? undefined : JSON.parse(val))}
+                          >
+                            <SelectTrigger 
+                              className={cn(
+                                "h-6 w-[110px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden truncate",
+                                !isSwitchAfterKo && borderColorClass
+                              )} 
+                              title={(() => {
+                                  const selected = availableBenchMembers.find(t => JSON.stringify(action.target) === t.value)
+                                  return selected?.label || "Select..."
+                              })()}
+                              style={{ 
+                                ...commonElementStyle,
+                                color: (() => {
+                                    const selected = availableBenchMembers.find(t => JSON.stringify(action.target) === t.value)
+                                    return selected ? (selected.isAlly ? THEME.common.ally_text : THEME.common.opponent_text) : THEME.common.neutral
+                                })()
+                             }}
+                            >
+                                <SelectValue placeholder="Select..." className="truncate" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none" className="text-[10px]">Select...</SelectItem>
+                              {availableBenchMembers.map(t => (
+                                <SelectItem key={t.value} value={t.value} className="text-[10px]">
+                                    <div className="flex items-center gap-2">
+                                        <TypeLiseret types={t.types} className="w-1 h-3 rounded-full" />
+                                        <span style={{ color: t.isAlly ? THEME.common.ally_text : THEME.common.opponent_text }}>
+                                            {"\u2192 "}{t.label}
+                                        </span>
+                                    </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                      )
+                  )}
+  
+                  {/* ITEM INPUT */}
+                  {action.type === "item" && (
+                      <input 
+                        className={cn(
+                            "h-6 w-[130px] text-[10px] bg-background/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring placeholder:italic",
+                            borderColorClass
+                        )}
+                        placeholder="Item name..."
+                        value={action.metadata?.itemName || ""}
+                        onChange={(e) => onUpdateMetadata({ itemName: e.target.value })}
+                      />
+                  )}
+                </div>
             </div>
 
         {/* Collapse Toggle */}

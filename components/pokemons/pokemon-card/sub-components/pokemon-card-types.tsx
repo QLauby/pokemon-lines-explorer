@@ -16,7 +16,7 @@ export function PokemonCardTypes({
 }: PokemonCardTypesProps) {
     return (
         <div className="flex items-center gap-1 flex-wrap min-h-[32px] py-1">
-            <span className="text-xs text-gray-600 mr-1">Types :</span>
+            <span className="text-xs text-slate-600 mr-1">Types :</span>
             <PokemonTypeDropdown 
               selectedType={types[0] || null} 
               onSelect={(t) => handleTypeChange(0, t)} 
@@ -32,7 +32,7 @@ export function PokemonCardTypes({
               size={24}
             />
 
-            <span className="text-xs text-gray-600 mr-1 ml-2">Tera :</span>
+            <span className="text-xs text-slate-600 mr-1 ml-2">Tera :</span>
             <PokemonTypeDropdown 
               selectedType={teraType || null} 
               onSelect={handleTeraChange} 

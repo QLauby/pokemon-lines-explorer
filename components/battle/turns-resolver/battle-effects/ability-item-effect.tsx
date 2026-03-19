@@ -114,16 +114,16 @@ export function AbilityItemEffect({
     return (
         <div className="flex flex-col gap-1 w-full py-1">
             {/* Ability Line */}
-            <div className="grid grid-cols-[130px_20px_1fr_30px] items-center gap-2 w-full bg-white/40 backdrop-blur-sm rounded-md border border-gray-100/50 px-2 h-9">
+            <div className="grid grid-cols-[130px_20px_1fr_30px] items-center gap-2 w-full bg-white/40 backdrop-blur-sm rounded-md border border-slate-100/50 px-2 h-9">
                 <div className="flex items-center gap-1.5 min-w-0">
                     <Sparkles className="h-3.5 w-3.5 text-amber-500/60 shrink-0" />
-                    <span className="text-[10px] text-gray-400 italic truncate font-light">
+                    <span className="text-[10px] text-slate-400 italic truncate font-light">
                         {pokemon.abilityName || "No Ability"}
                     </span>
                 </div>
                 
                 <div className="flex justify-center">
-                    <ArrowRight className="h-3.5 w-3.5 text-gray-300/60" />
+                    <ArrowRight className="h-3.5 w-3.5 text-slate-300/60" />
                 </div>
                 
                 <div className="min-w-0 h-full flex items-center">
@@ -144,7 +144,7 @@ export function AbilityItemEffect({
                     {isAbilityModified && !readOnly && (
                         <button 
                             onClick={resetAbility}
-                            className="p-1.5 rounded-full hover:bg-amber-100/50 text-gray-300 hover:text-amber-600 transition-all active:scale-90"
+                            className="p-1.5 rounded-full hover:bg-amber-100/50 text-slate-300 hover:text-amber-600 transition-all active:scale-90"
                             title="Reset to initial ability"
                         >
                             <RotateCcw className="h-3.5 w-3.5" />
@@ -154,22 +154,22 @@ export function AbilityItemEffect({
             </div>
 
             {/* Item Line */}
-            <div className="grid grid-cols-[130px_20px_1fr_30px] items-center gap-2 w-full bg-white/40 backdrop-blur-sm rounded-md border border-gray-100/50 px-2 h-9">
+            <div className="grid grid-cols-[130px_20px_1fr_30px] items-center gap-2 w-full bg-white/40 backdrop-blur-sm rounded-md border border-slate-100/50 px-2 h-9">
                 <div className="flex items-center gap-1.5 min-w-0">
                     {pokemon.heldItemName === "Mega Stone" ? (
-                        <div className="bg-white rounded-full p-0.5 border border-gray-100 flex items-center justify-center">
+                        <div className="bg-white rounded-full p-0.5 border border-slate-100 flex items-center justify-center">
                              <MegaColoredIcon size={12} />
                         </div>
                     ) : (
-                        <ShoppingBag className={pokemon.heldItem ? "h-3.5 w-3.5 text-amber-700/60 shrink-0" : "h-3.5 w-3.5 text-gray-300/60 shrink-0"} />
+                        <ShoppingBag className={pokemon.heldItem ? "h-3.5 w-3.5 text-amber-700/60 shrink-0" : "h-3.5 w-3.5 text-slate-300/60 shrink-0"} />
                     )}
-                    <span className="text-[10px] text-gray-400 italic truncate font-light">
+                    <span className="text-[10px] text-slate-400 italic truncate font-light">
                         {pokemon.heldItem ? pokemon.heldItemName : "No Item"}
                     </span>
                 </div>
                 
                 <div className="flex justify-center">
-                    <ArrowRight className="h-3.5 w-3.5 text-gray-300/60" />
+                    <ArrowRight className="h-3.5 w-3.5 text-slate-300/60" />
                 </div>
                 
                 <div className="min-w-0 flex items-center gap-2 h-full">
@@ -200,7 +200,7 @@ export function AbilityItemEffect({
                                 className="font-medium text-amber-950"
                             />
                         ) : (
-                            <span className="text-[11px] text-gray-400/80 italic ml-1">No Item</span>
+                            <span className="text-[11px] text-slate-400/80 italic ml-1">No Item</span>
                         )}
                     </div>
                 </div>
@@ -209,7 +209,7 @@ export function AbilityItemEffect({
                     {isItemModified && !readOnly && (
                         <button 
                             onClick={resetItem}
-                            className="p-1.5 rounded-full hover:bg-amber-100/50 text-gray-300 hover:text-amber-600 transition-all active:scale-90"
+                            className="p-1.5 rounded-full hover:bg-amber-100/50 text-slate-300 hover:text-amber-600 transition-all active:scale-90"
                             title="Reset to initial item"
                         >
                             <RotateCcw className="h-3.5 w-3.5" />

@@ -104,7 +104,7 @@ export function TeamsView({
       <div className="grid md:grid-cols-2 gap-6 md:w-2/3 mx-auto">
         <TeamSection
           team={myTeam}
-          title="Mon Équipe"
+          title="My Team"
           isMyTeam={true}
           battleType={battleType}
           getSlotForPokemon={getSlotForPokemon}
@@ -131,7 +131,7 @@ export function TeamsView({
 
         <TeamSection
           team={enemyTeam}
-          title="Équipe Adverse"
+          title="Opponent Team"
           isMyTeam={false}
           battleType={battleType}
           getSlotForPokemon={getSlotForPokemon}

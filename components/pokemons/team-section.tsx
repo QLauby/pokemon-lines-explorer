@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
+import { THEME } from "@/lib/constants/color-constants"
 import { PokemonStatus } from "@/lib/constants/logos-constants"
 import { Pokemon } from "@/types/types"
 import { PokemonCard } from "./pokemon-card/pokemon-card"
@@ -79,14 +80,29 @@ export function TeamSection({
 }: TeamSectionProps) {
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 leading-7 text-xl">
+    <Card 
+      style={{ 
+          backgroundColor: isMyTeam ? THEME.common.ally_bg + "33" : THEME.common.opponent_bg + "33",
+          borderColor: isMyTeam ? THEME.common.ally_bg + "80" : THEME.common.opponent_bg + "80"
+      }}
+      className="shadow-sm transition-all hover:shadow-md border rounded-xl"
+    >
+      <CardHeader className="pb-3">
+        <CardTitle 
+          className="flex items-center gap-2 leading-7 text-xl font-bold"
+          style={{ color: isMyTeam ? THEME.common.ally_text : THEME.common.opponent_text }}
+        >
           {title}
-          <Badge variant="secondary">{getTeamCounterDisplay(team.length)}</Badge>
+          <Badge 
+            variant="secondary" 
+            className="font-bold bg-white/50"
+            style={{ color: isMyTeam ? THEME.common.ally_text : THEME.common.opponent_text }}
+          >
+            {getTeamCounterDisplay(team.length)}
+          </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-3">
         {team.map((pokemon, originalIndex) => {
              return (
               <PokemonCard
@@ -124,10 +140,14 @@ export function TeamSection({
             variant="outline"
             size="sm"
             onClick={() => onAddPokemon(isMyTeam ? "my" : "opponent")}
-            className="h-8 text-sm w-full bg-transparent cursor-pointer"
+            className="h-9 text-xs w-full bg-white/40 hover:bg-white/60 border-2 cursor-pointer transition-all"
+            style={{ 
+                color: isMyTeam ? THEME.common.ally_text : THEME.common.opponent_text,
+                borderColor: isMyTeam ? THEME.common.ally_bg : THEME.common.opponent_bg
+            }}
           >
-            <Plus className="h-4 w-4 mr-1" />
-            Ajouter un pokémon
+            <Plus className="h-4 w-4 mr-2" />
+            Add Pokemon
           </Button>
         </div>
       </CardContent>

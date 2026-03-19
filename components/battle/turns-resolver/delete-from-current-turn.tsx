@@ -94,10 +94,10 @@ export function DeleteFromCurrentTurn({
         description={mainNode.turn === 0 
             ? (affectedNodes.length > 0
                 ? `Do you really want to delete ALL ${affectedNodes.length} turns of this session ? Turn 0 will be reset to its initial state.`
-                : "Do you really want to reset Turn 0 to its initial deployment state?")
+                : "Do you really want to reset Turn 0 to its initial deployment state ?")
             : affectedNodes.length > 1 
-                ? `Do you really want to delete turn ${mainNode.turn} and all ${affectedNodes.length - 1} following turns?`
-                : `Do you really want to delete turn ${mainNode.turn}?`
+                ? `Do you really want to delete turn ${mainNode.turn} and all ${affectedNodes.length - 1} following turns ?`
+                : `Do you really want to delete turn ${mainNode.turn} ?`
         }
       />
     </div>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 
-import { TREE_BASE_COLOR } from "@/lib/constants/color-constants"
+import { THEME } from "@/lib/constants/color-constants"
 import { BattleEngine } from "@/lib/logic/battle-engine"
 import { recalculateTreeLayout } from "@/lib/logic/tree-layout"
 import { getCyclicColor } from "@/lib/utils/colors-utils"
@@ -10,7 +10,7 @@ import type { CombatSession, Pokemon, TreeNode } from "@/types/types"
 import { TurnData } from "@/types/types"
 
 export function getTreeBranchColor(branchIndex: number): string {
-  return getCyclicColor(TREE_BASE_COLOR, 10, "shortList", branchIndex + 1)
+  return getCyclicColor(THEME.battle_tree.branch_base, 10, "shortList", branchIndex + 1)
 }
 
 import { BattleTree } from "./battle-tree"
@@ -198,7 +198,7 @@ export function CombatView({
   }, [selectedNodeState, currentSession.battleType])
 
   return (
-    <div className="w-full p-2 bg-gray-50/50 min-h-screen">
+    <div className="w-full p-2 bg-slate-50/50 min-h-screen">
        {/* Main Grid: Left (Tree + Battle) | Right (Actions) */}
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start max-w-[1800px] mx-auto">
           

@@ -140,7 +140,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
 
   return (
     <div className="mt-1">
-      <div className="p-1.5 border rounded-lg bg-gray-50">
+      <div className="p-1.5 border rounded-lg bg-slate-50">
         <div className="flex flex-col gap-1.5">
           {pokemon.attacks.length > 0 && (
             <div className="grid grid-cols-2 gap-1.5">
@@ -178,7 +178,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
 
                     <div className="flex items-center gap-1 text-xs">
                       <div className="flex items-center gap-1">
-                        <span className="text-gray-600 whitespace-nowrap" style={{ fontSize: "8px" }}>
+                        <span className="text-slate-600 whitespace-nowrap" style={{ fontSize: "8px" }}>
                           PP :
                         </span>
                         <Counter
@@ -193,7 +193,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
                           defaultValue="0"
                           placeholder=""
                         />
-                        <span className="text-gray-500">/</span>
+                        <span className="text-slate-500">/</span>
                         <EditableText
                           value={attack.maxPP.toString()}
                           onChange={(newValue) => handleMaxPPChange(attack.id, newValue)}
@@ -231,10 +231,10 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
               variant="outline"
               size="sm"
               onClick={addAttack}
-              className="h-6 text-xs w-full bg-transparent cursor-pointer dashed border-gray-300 text-gray-400 hover:text-gray-600 hover:border-gray-400"
+              className="h-6 text-xs w-full bg-transparent cursor-pointer dashed border-slate-300 text-slate-400 hover:text-slate-600 hover:border-slate-400"
             >
               <Plus className="h-3 w-3 mr-1" />
-              Ajouter attaque
+              Add Attack
             </Button>
           )}
         </div>

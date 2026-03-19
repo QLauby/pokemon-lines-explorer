@@ -39,7 +39,8 @@ export function AppHeader({
           <span>Sessions</span>
         </button>
         <div className="flex-1 text-center">
-            <h1 className="text-3xl font-bold">Pokémon Lines Explorer</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Pokémon Lines Explorer</h1>
+            <p className="text-base text-slate-500 font-medium italic mt-0.5">Trace your path to victory !</p>
         </div>
         <div className="w-[100px]" /> {/* Spacer to balance the header */}
       </div>

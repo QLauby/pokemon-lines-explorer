@@ -13,11 +13,11 @@ export function PokemonCardDisplayStats({ pokemon }: PokemonCardDisplayStatsProp
     const renderStat = (label: string, value: number, icon: any) => {
         if (value === 0) return null
         return (
-          <div className="flex items-center gap-1 text-[8px] bg-gray-100 px-1 py-0.5 rounded">
+          <div className="flex items-center gap-1 text-[8px] bg-slate-100 px-1 py-0.5 rounded">
             <span className={value > 0 ? "text-green-600 font-bold" : "text-red-600 font-bold"}>
                 {value > 0 ? "+" : ""}{value}
             </span>
-            <span className="text-gray-500 uppercase">{label}</span>
+            <span className="text-slate-500 uppercase">{label}</span>
           </div>
         )
     }

@@ -1,24 +1,7 @@
-export const pokemonTypeColors = {
-  ghost: "#663994",
-  ice: "#88DBED",
-  dragon: "#6521EE",
-  fighting: "#C80001",
-  steel: "#A5A7C5",
-  fairy: "#F9A5D1",
-  dark: "#494949",
-  electric: "#FFD625",
-  fire: "#FF7111",
-  ground: "#E5BB60",
-  poison: "#AE01CC",
-  rock: "#C49101",
-  bug: "#9CC31F",
-  grass: "#3BCB02",
-  psychic: "#FE509B",
-  flying: "#A890FE",
-  normal: "#ADAB8D",
-  water: "#717FFF",
-  stellar: "#40B4A4",
-} as const
+import { PALETTE } from "../constants/color-constants"
+
+export const pokemonTypeColors = PALETTE.pokemon_types
+
 
 // Type for TypeScript autocompletion
 export type PokemonType = keyof typeof pokemonTypeColors

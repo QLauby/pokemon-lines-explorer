@@ -5,9 +5,10 @@ import { Counter } from "@/components/shared/counter";
 import { EditableText } from "@/components/shared/editable-text";
 import { TypeLiseret } from "@/components/shared/type-liseret";
 import { Button } from "@/components/ui/button";
+import { THEME } from "@/lib/constants/color-constants";
 import { POKEMON_LOGOS } from "@/lib/constants/logos-constants";
 import { cn } from "@/lib/utils/cn";
-import { PokemonType, pokemonTypeColors } from "@/lib/utils/colors-utils";
+import { PokemonType } from "@/lib/utils/colors-utils";
 import { Pokemon } from "@/types/types";
 import { ChevronDown, ChevronUp, Minus, Plus, Swords, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -117,10 +118,16 @@ export function PokemonCardHeader({
             inactiveColor={cn(
               "bg-transparent",
               isStarter 
-                ? (isMyTeam ? "text-blue-500" : "text-red-500") 
-                : "text-gray-400 hover:text-gray-600"
+                ? (isMyTeam ? "text-[var(--status-ally)]" : "text-[var(--status-opponent)]") 
+                : "text-[var(--header-expand-icon)] hover:text-[var(--header-expand-icon-hover)]"
             )}
-            title={!isExpanded ? "Déployer la carte" : "Réduire la carte"}
+            style={{
+                "--status-ally": THEME.common.ally,
+                "--status-opponent": THEME.common.opponent,
+                "--header-expand-icon": THEME.pokemon_card.header.expand_icon,
+                "--header-expand-icon-hover": THEME.pokemon_card.header.expand_icon_hover,
+            } as React.CSSProperties}
+            title={!isExpanded ? "Expand card" : "Collapse card"}
             variant="filled"
             diameter={15}
             iconRatio={0.8}
@@ -135,20 +142,22 @@ export function PokemonCardHeader({
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-5 w-5 p-0 hover:bg-gray-100/50 rounded-sm" 
+                    className="h-5 w-5 p-0 rounded-sm" 
+                    style={{ backgroundColor: "transparent" }}
                     disabled={isFirst}
                     onClick={() => onMovePokemon?.(pokemon.id, isMyTeam, "up")}
                   >
-                    <ChevronUp className={cn("h-4 w-4", isFirst ? "text-transparent" : "text-gray-400 hover:text-gray-800")} />
+                    <ChevronUp className={cn("h-4 w-4 transition-colors")} style={{ color: isFirst ? "transparent" : THEME.pokemon_card.header.move_icon }} />
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-5 w-5 p-0 hover:bg-gray-100/50 rounded-sm" 
+                    className="h-5 w-5 p-0 rounded-sm" 
+                    style={{ backgroundColor: "transparent" }}
                     disabled={isLast}
                     onClick={() => onMovePokemon?.(pokemon.id, isMyTeam, "down")}
                   >
-                    <ChevronDown className={cn("h-4 w-4", isLast ? "text-transparent" : "text-gray-400 hover:text-gray-800")} />
+                    <ChevronDown className={cn("h-4 w-4 transition-colors")} style={{ color: isLast ? "transparent" : THEME.pokemon_card.header.move_icon }} />
                   </Button>
                </div>
             )}
@@ -191,7 +200,7 @@ export function PokemonCardHeader({
                         }}
                         icon={status.icon}
                         activeColor={status.activeColor}
-                        title={`Retirer le statut ${status.title}`}
+                        title={`Remove ${status.title} status`}
                         variant="filled"
                         diameter={20}
                         iconRatio={0.7}
@@ -203,9 +212,10 @@ export function PokemonCardHeader({
                             isActive={false}
                             onClick={status.type === "sleep" ? handleToggleSleepCounter : handleToggleConfusionCounter}
                             icon={(status.type === "sleep" ? pokemon.showSleepCounter : pokemon.showConfusionCounter) ? Minus : Plus}
-                            activeColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
-                            inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
-                            title={(status.type === "sleep" ? pokemon.showSleepCounter : pokemon.showConfusionCounter) ? "Masquer le compteur" : "Afficher le compteur"}
+                            activeColor="bg-transparent"
+                            inactiveColor="bg-transparent"
+                            style={{ backgroundColor: THEME.pokemon_card.status.toggle_plus, color: THEME.pokemon_card.status.toggle_text }}
+                            title={(status.type === "sleep" ? pokemon.showSleepCounter : pokemon.showConfusionCounter) ? "Hide counter" : "Show counter"}
                             diameter={10}
                             iconRatio={0.8}
                             variant="filled"
@@ -234,7 +244,7 @@ export function PokemonCardHeader({
                           rounded={false}
                           mode="text"
                           visualMode="default"
-                          mainColor="#6B7280"
+                          mainColor={THEME.pokemon_card.status.counter_text}
                           className="w-4 h-4 text-xs"
                         />
                       </div>
@@ -258,7 +268,7 @@ export function PokemonCardHeader({
                           rounded={false}
                           mode="text"
                           visualMode="default"
-                          mainColor="#6B7280"
+                          mainColor={THEME.pokemon_card.status.counter_text}
                           className="w-4 h-4 text-xs"
                         />
                       </div>
@@ -268,6 +278,15 @@ export function PokemonCardHeader({
               </div>
             )}
 
+            {pokemon.hpPercent === 0 && (
+              <span 
+                className="text-white font-black px-1 py-[1px] rounded-[2px] text-[8px] leading-none select-none tracking-tight shrink-0"
+                style={{ backgroundColor: THEME.ko.bordeaux }}
+              >
+                KO
+              </span>
+            )}
+            
             {teraType && (
               <div
                className={cn(
@@ -276,7 +295,7 @@ export function PokemonCardHeader({
                  readOnly && "cursor-default"
                )}
                onClick={() => !readOnly && onToggleTerastallized(pokemon.id, isMyTeam)}
-               title={pokemon.isTerastallized ? "Teracristallisation active" : "Activer la Teracristallisation"}
+               title={pokemon.isTerastallized ? "Terastallization active" : "Activate Terastallization"}
               >
                 <div className="relative w-6 h-6 flex items-center justify-center">
                   <StarBadgeIcon
@@ -284,7 +303,7 @@ export function PokemonCardHeader({
                       "absolute inset-0 w-full h-full transition-all",
                       !pokemon.isTerastallized && "grayscale opacity-40"
                     )}
-                    style={{ color: pokemon.isTerastallized ? pokemonTypeColors[teraType] : "#94a3b8" }}
+                    style={{ color: pokemon.isTerastallized ? THEME.pokemon_types[teraType] : THEME.pokemon_card.header.tera_inactive }}
                   />
                   <div className="relative z-10 flex items-center justify-center w-full h-full scale-[0.65] transition-all">
                     <Image
@@ -305,8 +324,13 @@ export function PokemonCardHeader({
                 onClick={() => onToggleMega(pokemon.id, isMyTeam)}
                 icon={pokemon.isMega ? MegaColoredIcon : MegaUniIcon}
                 activeColor="bg-transparent"
-                inactiveColor="bg-white text-slate-400 hover:bg-gray-50"
-                title={pokemon.isMega ? "Méga-Évolution active" : "Activer la Méga-Évolution"}
+                inactiveColor="bg-transparent"
+                style={{ 
+                    borderColor: THEME.pokemon_card.header.mega_inactive,
+                    color: THEME.pokemon_card.header.mega_inactive,
+                    backgroundColor: THEME.common.white 
+                }}
+                title={pokemon.isMega ? "Mega-Evolution active" : "Activate Mega-Evolution"}
                 variant="outlined"
                 diameter={24}
                 iconRatio={0.8}
@@ -319,18 +343,29 @@ export function PokemonCardHeader({
                 isActive={isStarter || false}
                 onClick={() => onFlagClick(teamIndex, isMyTeam)}
                 icon={Swords}
-                activeColor={isMyTeam ? "bg-blue-500 text-white" : "bg-red-500 text-white"}
-                title={isStarter ? "Au combat" : "Cliquer pour sélectionner comme starter"}
+                activeColor="bg-transparent"
+                style={{ 
+                    backgroundColor: "transparent",
+                    color: isStarter 
+                        ? (isMyTeam ? THEME.common.ally : THEME.common.opponent) 
+                        : THEME.pokemon_card.header.move_icon,
+                    borderColor: isStarter
+                        ? (isMyTeam ? THEME.common.ally : THEME.common.opponent)
+                        : THEME.pokemon_card.header.move_icon
+                } as React.CSSProperties}
+                title={isStarter ? "In combat" : "Click to select as starter"}
                 variant="outlined"
                 diameter={Math.round(24 * 1)}
                 iconRatio={0.7}
                 readOnly={readOnly}
               />
               {isStarter && battleType !== "simple" && (
-                <div className={cn(
-                  "absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white",
-                  isMyTeam ? "bg-blue-600 text-white" : "bg-red-600 text-white"
-                )}>
+                <div 
+                    className={cn(
+                        "absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-white"
+                    )}
+                    style={{ backgroundColor: isMyTeam ? THEME.common.ally_text : THEME.common.opponent_text, color: THEME.common.white }}
+                >
                   {getSlotForPokemon(teamIndex, isMyTeam)}
                 </div>
               )}

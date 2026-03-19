@@ -3,9 +3,9 @@
 import { StarBadgeIcon } from "@/assets/badges/star-badge"
 import MegaColored from "@/assets/logos/mega/mega-colored.svg"
 import { CircularButton } from "@/components/shared/circular-button"
+import { THEME } from "@/lib/constants/color-constants"
 import { POKEMON_LOGOS } from "@/lib/constants/logos-constants"
 import { cn } from "@/lib/utils/cn"
-import { pokemonTypeColors } from "@/lib/utils/colors-utils"
 import { Effect, MegaTeraOperation, Pokemon } from "@/types/types"
 import { ArrowRight } from "lucide-react"
 import Image from "next/image"
@@ -42,7 +42,6 @@ const MegaUniIcon = ({ size, className }: { size?: number; className?: string })
 );
 
 interface MegaTeraEffectProps {
-
     effect: Effect
     onUpdate: (newEffect: Effect) => void
     readOnly?: boolean
@@ -88,7 +87,6 @@ export function MegaTeraEffect({
         }
 
         // Clean up: if newValue is same as initial, we can remove the operation
-        const initialValue = type === "SET_MEGA" ? !!initialPokemon.isMega : !!initialPokemon.isTerastallized
         const finalOps = newOps.filter(op => {
             if (op.type === "SET_MEGA") return op.value !== !!initialPokemon.isMega
             if (op.type === "SET_TERA") return op.value !== !!initialPokemon.isTerastallized
@@ -103,7 +101,7 @@ export function MegaTeraEffect({
 
     const renderBadges = (p: Pokemon) => {
         const hasBadges = p.isMega || (p.isTerastallized && p.teraType)
-        if (!hasBadges) return <span className="text-[10px] text-gray-400 italic">No form</span>
+        if (!hasBadges) return <span className="text-[10px] text-slate-400 italic">No form</span>
 
         return (
             <div className="flex items-center gap-1">
@@ -111,7 +109,7 @@ export function MegaTeraEffect({
                     <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
                         <StarBadgeIcon
                             className="absolute inset-0 w-full h-full"
-                            style={{ color: pokemonTypeColors[p.teraType] }}
+                            style={{ color: THEME.pokemon_types[p.teraType] }}
                         />
                         <div className="relative z-10 flex items-center justify-center w-full h-full scale-[0.65]">
                             <Image
@@ -125,7 +123,7 @@ export function MegaTeraEffect({
                     </div>
                 )}
                 {p.isMega && (
-                    <div className="bg-white rounded-full p-0.5 border border-gray-100 shadow-sm">
+                    <div className="bg-white rounded-full p-0.5 border border-slate-100 shadow-sm">
                         <MegaColoredIcon size={11} />
                     </div>
                 )}
@@ -139,12 +137,12 @@ export function MegaTeraEffect({
     return (
         <div className="flex items-stretch gap-3 w-full">
             {/* Visualization: Before -> After */}
-            <div className="flex items-center justify-center w-[150px] shrink-0 bg-white/50 px-2 py-1.5 rounded border border-gray-100 min-h-[40px] gap-1">
+            <div className="flex items-center justify-center w-[150px] shrink-0 bg-white/50 px-2 py-1.5 rounded border border-slate-100 min-h-[40px] gap-1">
                 <div className="flex-1 flex justify-end min-w-0">
                     {renderBadges(initialPokemon)}
                 </div>
                 
-                <ArrowRight className="h-3 w-3 text-gray-400 shrink-0 mx-1" />
+                <ArrowRight className="h-3 w-3 text-slate-400 shrink-0 mx-1" />
                 
                 <div className="flex-1 flex justify-start min-w-0">
                     {renderBadges(afterPokemon)}
@@ -152,10 +150,10 @@ export function MegaTeraEffect({
             </div>
 
             {/* Vertical separator */}
-            <div className="w-px bg-gray-200 my-1 rounded-full shrink-0" />
+            <div className="w-px bg-slate-200 my-1 rounded-full shrink-0" />
 
             {/* Toggles */}
-            <div className="flex-1 min-w-0 flex items-center justify-center bg-white/40 border border-gray-100 rounded px-2 py-1.5 min-h-[40px] gap-5">
+            <div className="flex-1 min-w-0 flex items-center justify-center bg-white/40 border border-slate-100 rounded px-2 py-1.5 min-h-[40px] gap-5">
                 {canTera && (
                     <div
                         className={cn(
@@ -172,7 +170,7 @@ export function MegaTeraEffect({
                                     "absolute inset-0 w-full h-full transition-all",
                                     !afterPokemon.isTerastallized && "grayscale opacity-40"
                                 )}
-                                style={{ color: afterPokemon.isTerastallized ? pokemonTypeColors[initialPokemon.teraType!] : "#94a3b8" }}
+                                style={{ color: afterPokemon.isTerastallized ? THEME.pokemon_types[initialPokemon.teraType!] : THEME.common.disabled }}
                             />
                             <div className="relative z-10 flex items-center justify-center w-full h-full scale-[0.65] transition-all">
                                 <Image
@@ -192,7 +190,7 @@ export function MegaTeraEffect({
                         onClick={() => handleToggle("SET_MEGA", !!afterPokemon.isMega)}
                         icon={afterPokemon.isMega ? MegaColoredIcon : MegaUniIcon}
                         activeColor="bg-transparent"
-                        inactiveColor="bg-white text-slate-400 hover:bg-gray-50"
+                        inactiveColor="bg-white text-slate-400 hover:bg-slate-50"
                         title={afterPokemon.isMega ? "Désactiver Méga" : "Activer la Méga-Évolution"}
                         variant="outlined"
                         diameter={24}
@@ -201,7 +199,7 @@ export function MegaTeraEffect({
                     />
                 )}
                 {!canMega && !canTera && (
-                    <span className="text-[10px] text-gray-400 italic">No Mega/Tera available</span>
+                    <span className="text-[10px] text-slate-400 italic">No Mega/Tera available</span>
                 )}
             </div>
         </div>

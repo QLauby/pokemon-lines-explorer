@@ -1,5 +1,6 @@
 "use client"
 
+import { THEME } from "@/lib/constants/color-constants";
 import { cn } from "@/lib/utils/cn";
 import { useState } from "react";
 
@@ -91,6 +92,7 @@ export function PokemonCard({
   const [localExpanded, setLocalExpanded] = useState(false)
   const isCardExpanded = onToggleExpansion ? isExpanded : localExpanded
   const handleToggle = onToggleExpansion || (() => setLocalExpanded(!localExpanded))
+  const isKO = pokemon.hpPercent === 0
 
   // State for counter animations
   const [isSleepCounterMounting, setIsSleepCounterMounting] = useState(pokemon.showSleepCounter || false)
@@ -243,8 +245,13 @@ export function PokemonCard({
     <div
       className={cn(
         "relative flex flex-col pt-3 pb-3 px-3 border rounded-lg transition-all duration-300",
-        isStarter ? (isMyTeam ? "border-blue-500 border-2" : "border-red-500 border-2") : "border-gray-200"
+        isKO ? "grayscale-[0.5]" : "bg-white",
+        !isKO && (isStarter ? "border-2" : "border")
       )}
+      style={{
+          borderColor: isKO ? THEME.ko.bordeaux : (isStarter ? (isMyTeam ? THEME.common.ally : THEME.common.opponent) : THEME.battlefield.main_border),
+          backgroundColor: isKO ? THEME.ko.bg : "white"
+      }}
     >
         <PokemonCardHeader 
             pokemon={pokemon}

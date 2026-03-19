@@ -261,7 +261,7 @@ export function HpChangeEffect({
     return (
         <div className="flex items-center gap-3">
             {/* HP Bar Visualization */}
-            <div className="flex-1 h-5 bg-gray-100 rounded-full overflow-hidden relative border border-gray-200">
+            <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden relative border border-slate-200">
                 {barContent}
             </div>
 
@@ -325,7 +325,7 @@ export function HpChangeEffect({
                         (readOnly || isLockedToPercent) ? "cursor-default opacity-80" : "cursor-pointer",
                         effectiveUnit === "hp"
                             ? "bg-violet-50 border-violet-200 text-violet-700 hover:bg-violet-100"
-                            : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100"
+                            : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
                     )}
                 >
                     {effectiveUnit === "hp" ? "HP" : "%"}

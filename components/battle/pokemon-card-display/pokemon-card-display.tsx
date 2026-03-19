@@ -1,7 +1,4 @@
-
-"use client"
-
-import { KO_BG_COLOR, KO_BORDEAUX } from "@/lib/constants/color-constants"
+import { THEME } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils/cn"
 import { Pokemon } from "@/types/types"
 import { ChevronDown, ChevronUp } from "lucide-react"
@@ -39,10 +36,10 @@ export function PokemonCardDisplay({
     <div 
       className={cn(
         "rounded-lg shadow-sm border overflow-hidden select-none relative", 
-        isKO ? "text-gray-600 grayscale-[0.5]" : "bg-white",
+        isKO ? "text-slate-600 grayscale-[0.5]" : "bg-white",
         className
       )}
-      style={isKO ? { borderColor: KO_BORDEAUX, backgroundColor: KO_BG_COLOR } : undefined}
+      style={isKO ? { borderColor: THEME.ko.bordeaux, backgroundColor: THEME.ko.bg } : undefined}
     >
       <div className="absolute top-1 right-1 z-10">
           <CircularButton
@@ -52,7 +49,7 @@ export function PokemonCardDisplay({
             activeColor="bg-transparent"
             inactiveColor={cn(
                 "bg-transparent",
-                isKO ? "text-gray-500 hover:text-gray-700" : "text-gray-400 hover:text-gray-600"
+                isKO ? "text-slate-500 hover:text-slate-700" : "text-slate-400 hover:text-slate-600"
             )}
             title={!isExpanded ? "Déployer la carte" : "Réduire la carte"}
             variant="filled"

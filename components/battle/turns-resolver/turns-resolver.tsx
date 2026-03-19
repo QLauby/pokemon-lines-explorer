@@ -89,12 +89,12 @@ export function TurnsResolver({
 
   return (
     <div className="space-y-6">
-      <div className="flex bg-gray-100 p-1 rounded-lg">
+      <div className="flex bg-slate-100 p-1 rounded-lg">
         <button
            onClick={() => setActiveTab("update")}
            className={cn(
              "flex-1 py-1.5 text-sm font-medium rounded-md transition-colors",
-             activeTab === "update" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+             activeTab === "update" ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
            )}
         >
            Update <span style={{ color: currentBranchColor }} className="font-bold">turn {currentTurn}</span>
@@ -103,7 +103,7 @@ export function TurnsResolver({
            onClick={() => setActiveTab("delete")}
            className={cn(
              "flex-1 py-1.5 text-sm font-medium rounded-md transition-colors",
-             activeTab === "delete" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+             activeTab === "delete" ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
            )}
         >
            Delete from <span style={{ color: currentBranchColor }} className="font-bold">turn {currentTurn}</span>
@@ -112,7 +112,7 @@ export function TurnsResolver({
            onClick={() => setActiveTab("next")}
            className={cn(
              "flex-1 py-1.5 text-sm font-medium rounded-md transition-colors",
-             activeTab === "next" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
+             activeTab === "next" ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
            )}
         >
            Set new <span style={{ color: nextBranchColor }} className="font-bold">turn {currentTurn + 1}</span>

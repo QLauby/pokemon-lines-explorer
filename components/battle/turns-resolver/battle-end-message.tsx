@@ -23,13 +23,13 @@ export function BattleEndMessage({ winner }: BattleEndMessageProps) {
           "text-4xl font-bold mb-2",
           isVictory ? "text-green-700" : "text-red-700"
         )}>
-          {isVictory ? "You won the battle!" : "Unfortunately you lost the battle."}
+          {isVictory ? "You won the battle !" : "Unfortunately you lost the battle."}
         </h2>
         
         <p className="text-lg text-muted-foreground">
           {isVictory 
-            ? "All opponent Pokémon have been defeated!" 
-            : "All your Pokémon have been defeated!"}
+            ? "All opponent Pokémon have been defeated !" 
+            : "All your Pokémon have been defeated !"}
         </p>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { exclusiveStatuses, independentStatuses, type PokemonStatus } from "@/li
 
 import { CircularButton } from "@/components/shared/circular-button"
 import { Counter } from "@/components/shared/counter"
+import { THEME } from "@/lib/constants/color-constants"
 import { Pokemon } from "@/types/types"
 
 
@@ -133,11 +134,10 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, 
   const statusHeight = 24
   const buttonDiameter = Math.round(statusHeight * 0.9)
   const toggleButtonDiameter = 10
-  const counterHeight = 22
 
   return (
     <div className={`flex items-center gap-1 flex-wrap ${centerItems ? "justify-center" : ""}`}>
-      {showLabel && <span className="text-xs text-gray-600 mr-1">Statut :</span>}
+      {showLabel && <span className="text-xs mr-1" style={{ color: THEME.pokemon_card.status.label }}>Status :</span>}
       {exclusiveStatuses.map(({ type, icon, activeColor, title }) => {
         if (type === "badly-poison") return null
 
@@ -170,12 +170,17 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, 
                       isActive={false}
                       onClick={handleToggleSleepCounter}
                       icon={showSleepCounter ? Minus : Plus}
-                      activeColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
-                      inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
-                      title={showSleepCounter ? "Masquer le compteur" : "Afficher le compteur"}
+                      activeColor="bg-[var(--toggle-bg)] text-[var(--toggle-text)] hover:bg-[var(--toggle-hover)]"
+                      inactiveColor="bg-[var(--toggle-bg)] text-[var(--toggle-text)] hover:bg-[var(--toggle-hover)]"
+                      title={showSleepCounter ? "Hide counter" : "Show counter"}
                       diameter={toggleButtonDiameter}
                       iconRatio={0.8}
                       variant="filled"
+                      style={{
+                        "--toggle-bg": THEME.pokemon_card.status.toggle_plus,
+                        "--toggle-text": THEME.pokemon_card.status.toggle_text,
+                        "--toggle-hover": THEME.pokemon_card.status.toggle_plus, // Using same for hover or a variant
+                      } as React.CSSProperties}
                     />
                   </div>
                 )}
@@ -201,9 +206,9 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, 
                     rounded={false}
                     mode="text"
                     visualMode="border"
-                    mainColor="#6B7280"
-                    darkTextColor="#000000"
-                    lightTextColor="#FFFFFF"
+                    mainColor={THEME.pokemon_card.status.counter_text}
+                    darkTextColor={THEME.common.black}
+                    lightTextColor={THEME.common.white}
                     transitionDuration="0.3s"
                   />
                 </div>
@@ -250,12 +255,17 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, 
                       isActive={false}
                       onClick={handleToggleConfusionCounter}
                       icon={showConfusionCounter ? Minus : Plus}
-                      activeColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
-                      inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
-                      title={showConfusionCounter ? "Masquer le compteur" : "Afficher le compteur"}
+                      activeColor="bg-[var(--toggle-bg)] text-[var(--toggle-text)] hover:bg-[var(--toggle-hover)]"
+                      inactiveColor="bg-[var(--toggle-bg)] text-[var(--toggle-text)] hover:bg-[var(--toggle-hover)]"
+                      title={showConfusionCounter ? "Hide counter" : "Show counter"}
                       diameter={toggleButtonDiameter}
                       iconRatio={0.8}
                       variant="filled"
+                      style={{
+                        "--toggle-bg": THEME.pokemon_card.status.toggle_plus,
+                        "--toggle-text": THEME.pokemon_card.status.toggle_text,
+                        "--toggle-hover": THEME.pokemon_card.status.toggle_plus,
+                      } as React.CSSProperties}
                     />
                   </div>
                 )}
@@ -283,9 +293,9 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, 
                     rounded={false}
                     mode="text"
                     visualMode="border"
-                    mainColor="#6B7280"
-                    darkTextColor="#000000"
-                    lightTextColor="#FFFFFF"
+                    mainColor={THEME.pokemon_card.status.counter_text}
+                    darkTextColor={THEME.common.black}
+                    lightTextColor={THEME.common.white}
                     transitionDuration="0.3s"
                   />
                 </div>

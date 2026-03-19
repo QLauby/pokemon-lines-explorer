@@ -4,6 +4,7 @@ import { Check, ChevronsUpDown } from "lucide-react"
 import * as React from "react"
 
 import { StarBadgeIcon } from "@/assets/badges/star-badge"
+import { THEME } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils/cn"
 import { PokemonType, pokemonTypeColors } from "@/lib/utils/colors-utils"
 import Image from "next/image"
@@ -95,15 +96,15 @@ export function PokemonTypeDropdown({ selectedType, onSelect, includeNull, class
   }, [])
 
   const currentIcon = selectedType ? typeIcons[selectedType] : null
-  const currentColor = selectedType ? pokemonTypeColors[selectedType] : "#d1d5db" // gray-300 for None
+  const currentColor = selectedType ? pokemonTypeColors[selectedType] : THEME.common.neutral
 
   return (
     <div className={cn("relative inline-block text-left", className)} ref={dropdownRef}>
       <button
         onClick={() => { if (!readOnly) setIsOpen(!isOpen) }}
         className={cn(
-          "flex items-center gap-2 rounded-md border border-gray-200 shadow-sm transition-colors bg-white min-w-[32px] justify-center",
-          !readOnly && "hover:bg-gray-50",
+          "flex items-center gap-2 rounded-md border border-slate-200 shadow-sm transition-colors bg-white min-w-[32px] justify-center",
+          !readOnly && "hover:bg-slate-50",
           readOnly && "cursor-default opacity-90",
           buttonClassName || "p-1"
         )}
@@ -122,16 +123,16 @@ export function PokemonTypeDropdown({ selectedType, onSelect, includeNull, class
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-[160px] bg-white rounded-md shadow-lg py-1 max-h-[300px] overflow-auto border border-gray-200 left-0">
+        <div className="absolute z-50 mt-1 w-[160px] bg-white rounded-md shadow-lg py-1 max-h-[300px] overflow-auto border border-slate-200 left-0">
           {(includeNull || true) && (
             <button
               onClick={() => {
                 onSelect(null)
                 setIsOpen(false)
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-slate-100"
             >
-              <BadgeContainer variant={variant} color="#d1d5db">
+              <BadgeContainer variant={variant} color={THEME.common.neutral}>
                 <span className="text-white text-xs font-bold">-</span>
               </BadgeContainer>
               <span>None</span>
@@ -145,7 +146,7 @@ export function PokemonTypeDropdown({ selectedType, onSelect, includeNull, class
                 onSelect(type as PokemonType)
                 setIsOpen(false)
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-slate-100"
             >
               <BadgeContainer variant={variant} color={pokemonTypeColors[type as PokemonType]}>
                   <Image src={icon} alt={type} width={12} height={12} className="brightness-0 invert" />

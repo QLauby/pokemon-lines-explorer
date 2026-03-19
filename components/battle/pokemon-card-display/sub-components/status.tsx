@@ -48,13 +48,13 @@ export function PokemonCardDisplayStatus({ pokemon }: PokemonCardDisplayStatusPr
                   {counter !== undefined && (
                       <div className="flex items-center">
                           <div 
-                              className="font-medium text-gray-400 select-none flex items-center justify-center translate-y-[-0.5px]" 
+                              className="font-medium text-slate-400 select-none flex items-center justify-center translate-y-[-0.5px]" 
                               style={{ fontSize: 8.5, height: 14.16, width: "8px" }}
                           >
                               :
                           </div>
                           <div 
-                              className="font-medium text-gray-900 select-none flex items-center justify-center translate-y-[-0.5px]"
+                              className="font-medium text-slate-900 select-none flex items-center justify-center translate-y-[-0.5px]"
                               style={{ fontSize: 8.5, height: 14.16 }}
                           >
                               {counter}

@@ -3,6 +3,7 @@ import { useMemo } from "react"
 
 import { CircularButton } from "@/components/shared/circular-button"
 import { CustomTag } from "@/components/shared/custom-tag"
+import { THEME } from "@/lib/constants/color-constants"
 import { BattleEngine } from "@/lib/logic/battle-engine"
 import { generateTagId } from "@/lib/utils/tags-utils"
 import { CustomTagData, Effect, OtherOperation } from "@/types/types"
@@ -106,12 +107,8 @@ export function OthersEffect({
   }
 
   // Shared palette with matched luminance (~56%) for visual harmony
-  const PALETTE = {
-    GREEN: "#10b981", // Emerald 500
-    BLUE: "#818cf8",  // Indigo 400
-    RED: "#f87171",   // Red 400
-    GRAY: "#94a3b8"   // Slate 400
-  };
+  const PALETTE = THEME.effects.markers
+
 
   const getTagStyleProps = (tag: CustomTagData) => {
     const initial = initialTags.find(t => t.id === tag.id);
@@ -123,31 +120,32 @@ export function OthersEffect({
 
     // 1. Base style (New vs Renamed vs Existing)
     let styleProps = {
-        className: "bg-gray-50 border-gray-200",
+        className: "bg-slate-50 border-slate-200",
         mainColor: undefined as string | undefined,
         toggleColor: undefined as string | undefined,
         counterColor: undefined as string | undefined
     };
 
     if (isNew) {
-        styleProps.mainColor = PALETTE.GREEN;
-        styleProps.className = "bg-emerald-50 border-emerald-200 shadow-sm ring-1 ring-emerald-500/10";
+        styleProps.mainColor = PALETTE.green;
+        styleProps.className = "shadow-sm ring-1 ring-emerald-500/10";
     } else if (initial.name !== tag.name) {
-        styleProps.mainColor = PALETTE.BLUE;
-        styleProps.className = "bg-indigo-50 border-indigo-200 shadow-sm ring-1 ring-indigo-500/5";
+        styleProps.mainColor = PALETTE.blue;
+        styleProps.className = "shadow-sm ring-1 ring-indigo-500/5";
     }
 
     // 2. Feedback (Toggle/Counter) - Includes new tags
     if (tag.showCount !== effectiveInitial.showCount) {
-        styleProps.toggleColor = tag.showCount ? PALETTE.GREEN : PALETTE.RED;
+        styleProps.toggleColor = tag.showCount ? PALETTE.green : PALETTE.red;
     }
 
     if (tag.count !== effectiveInitial.count) {
         const current = tag.count ?? 0;
         const prev = effectiveInitial.count ?? 0;
-        if (current > prev) styleProps.counterColor = PALETTE.GREEN;
-        else if (current < prev) styleProps.counterColor = PALETTE.RED;
+        if (current > prev) styleProps.counterColor = PALETTE.green;
+        else if (current < prev) styleProps.counterColor = PALETTE.red;
     }
+
     
     return styleProps;
   }
@@ -196,7 +194,8 @@ export function OthersEffect({
                     onClick={handleCreateTag}
                     icon={Plus}
                     activeColor=""
-                    inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    inactiveColor="bg-transparent"
+                    style={{ backgroundColor: THEME.common.neutral, color: THEME.pokemon_card.status.label }}
                     title="Ajouter un tag"
                     diameter={13} // Matching the ~13-14px average for 10px font
                     iconRatio={0.7}
@@ -209,7 +208,7 @@ export function OthersEffect({
         {/* Vertical Separator and Deleted Tags */}
         {deletedTags.length > 0 && !readOnly && (
             <>
-                <div className="w-[1px] h-4 bg-gray-200 mx-1" />
+                <div className="w-[1px] h-4 bg-slate-200 mx-1" />
                 
                 <div className="flex flex-wrap items-center gap-1.5">
                     {deletedTags.map((tag) => (

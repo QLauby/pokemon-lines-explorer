@@ -32,7 +32,7 @@ export function PokemonCardAbilityItem({
         <div className={cn("grid grid-cols-2 gap-2 items-center min-h-[32px]", !isCardExpanded ? "py-1" : "py-0.5")}>
              {/* Ability Section */}
              <div className="flex items-center min-w-0">
-                 <span className="text-xs text-gray-600 mr-1 shrink-0">Ability :</span>
+                 <span className="text-xs text-slate-600 mr-1 shrink-0">Ability :</span>
                  <div className="flex-1 min-w-0">
                      <EditableText
                         value={pokemon.abilityName || defaultAbilityName}
@@ -56,7 +56,7 @@ export function PokemonCardAbilityItem({
                         onClick={() => onToggleHeldItem(pokemon.id, isMyTeam)}
                         icon={pokemon.heldItem && pokemon.heldItemName === "Mega Stone" ? MegaColoredIcon : ShoppingBag}
                         activeColor={pokemon.heldItem && pokemon.heldItemName === "Mega Stone" ? "bg-transparent" : "bg-amber-700 text-white"}
-                        title={pokemon.heldItem ? (pokemon.heldItemName === "Mega Stone" ? "Méga-Gemme" : "Objet tenu") : "Aucun objet"}
+                        title={pokemon.heldItem ? (pokemon.heldItemName === "Mega Stone" ? "Mega Stone" : "Held Item") : "No item"}
                         variant="outlined"
                         diameter={Math.round(24 * 0.9)}
                         iconRatio={pokemon.heldItem && pokemon.heldItemName === "Mega Stone" ? 0.7 : 0.6}

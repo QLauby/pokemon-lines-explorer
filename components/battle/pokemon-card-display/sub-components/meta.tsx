@@ -20,9 +20,9 @@ interface PokemonCardDisplayMetaProps {
 
 export function PokemonCardDisplayMeta({ pokemon }: PokemonCardDisplayMetaProps) {
     return (
-        <div className="flex items-center gap-1 text-[8px] text-gray-400 truncate leading-tight mt-0.5">
+        <div className="flex items-center gap-1 text-[8px] text-slate-400 truncate leading-tight mt-0.5">
              {pokemon.abilityName && (
-                <span className="truncate text-gray-500">{pokemon.abilityName}</span>
+                <span className="truncate text-slate-500">{pokemon.abilityName}</span>
              )}
              {pokemon.abilityName && pokemon.heldItem && (
                 <span className="shrink-0 opacity-50">•</span>
@@ -34,7 +34,7 @@ export function PokemonCardDisplayMeta({ pokemon }: PokemonCardDisplayMetaProps)
                    ) : (
                       <ShoppingBag className="w-3 h-3 shrink-0 text-amber-700" />
                    )}
-                   <span className="truncate text-gray-500">{pokemon.heldItemName || "Objet"}</span>
+                   <span className="truncate text-slate-500">{pokemon.heldItemName || "Objet"}</span>
                 </div>
              )}
         </div>

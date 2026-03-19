@@ -11,6 +11,8 @@ import { CircularButton } from "./circular-button"
 import { Counter } from "./counter"
 import { EditableText } from "./editable-text"
 
+import { THEME } from "@/lib/constants/color-constants"
+
 interface CustomTagProps {
   tag: CustomTagData
   onUpdate: (newTag: CustomTagData) => void
@@ -59,8 +61,8 @@ export function CustomTag({
   mainColor,
   toggleColor,
   counterColor,
-  darkTextColor = "#000000",
-  lightTextColor = "#FFFFFF",
+  darkTextColor = THEME.common.black,
+  lightTextColor = THEME.common.white,
   transitionDuration = "0.3s",
   readOnly = false,
 }: CustomTagProps) {
@@ -143,12 +145,16 @@ export function CustomTag({
                 onClick={handleToggleCounter}
                 icon={showCounter ? Minus : Plus}
                 activeColor={toggleColor || ""}
-                inactiveColor={toggleColor || "bg-gray-200 text-gray-600 hover:bg-gray-300"}
-                title={showCounter ? "Masquer le compteur" : "Afficher le compteur"}
-                diameter={buttonDiameter}
-                iconRatio={0.7}
-                variant="filled"
-                style={toggleColor ? { color: "white" } : undefined}
+                 inactiveColor={toggleColor ? "bg-[var(--toggle-color)]" : "bg-[var(--btn-bg)] text-[var(--btn-text)] hover:bg-[var(--btn-bg)]"}
+                 title={showCounter ? "Masquer le compteur" : "Afficher le compteur"}
+                 diameter={buttonDiameter}
+                 iconRatio={0.7}
+                 variant="filled"
+                 style={{
+                    "--btn-bg": THEME.pokemon_card.status.toggle_plus,
+                    "--btn-text": THEME.pokemon_card.status.toggle_text,
+                    "--toggle-color": toggleColor,
+                 } as React.CSSProperties}
               />
             ) : showCounter && (
                null
@@ -166,8 +172,8 @@ export function CustomTag({
           >
             {readOnly && (
                <div 
-                className={cn("font-medium select-none flex items-center justify-center -translate-y-[0.5px]", !counterColor && "text-gray-400")} 
-                style={{ fontSize: numericFontSize, height: numericFontSize / fontSizeRatio, width: "8px", color: counterColor }}
+                className={cn("font-medium select-none flex items-center justify-center -translate-y-[0.5px]")} 
+                style={{ fontSize: numericFontSize, height: numericFontSize / fontSizeRatio, width: "8px", color: counterColor || THEME.pokemon_card.header.expand_icon }}
                >
                 :
                </div>
@@ -178,7 +184,7 @@ export function CustomTag({
                 style={{ 
                     fontSize: numericFontSize, 
                     height: numericFontSize / fontSizeRatio, 
-                    color: counterColor || "#6B7280"
+                    color: counterColor || THEME.pokemon_card.status.counter_text
                 }}
               >
                 {counterValue}
@@ -195,9 +201,9 @@ export function CustomTag({
                 rounded={false}
                 mode="text"
                 visualMode="border"
-                mainColor={counterColor || "#6B7280"}
-                darkTextColor={counterColor || "#000000"}
-                lightTextColor="#FFFFFF"
+                mainColor={counterColor || THEME.pokemon_card.status.counter_text}
+                darkTextColor={counterColor || THEME.common.black}
+                lightTextColor={THEME.common.white}
                 transitionDuration="0.3s"
                 readOnly={false}
                 fontSize={numericFontSize}

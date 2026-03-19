@@ -1,12 +1,12 @@
 "use client"
 
+import { THEME } from "@/lib/constants/color-constants"
+import { cn } from "@/lib/utils"
+import { CustomTagData } from "@/types/types"
 import { Plus } from "lucide-react"
 import { useEffect, useState } from "react"
-
 import { CircularButton } from "./circular-button"
 import { CustomTag } from "./custom-tag"
-
-import { CustomTagData } from "@/types/types"
 
 interface CustomTagsManagerProps {
   tags: CustomTagData[]
@@ -81,7 +81,7 @@ export function CustomTagsManager({
   return (
     <div className="">
       <div className="flex flex-wrap items-center gap-1 text-xs max-w-full">
-        {label && <span className="text-gray-600 mr-1">{label}</span>}
+        {label && <span className="mr-1" style={{ color: THEME.pokemon_card.status.label }}>{label}</span>}
         {animatedTags.map((animatedTag, index) => {
           const tagIndex = tags.findIndex((tag) => tag.id === animatedTag.id)
           if (tagIndex === -1) return null
@@ -118,7 +118,12 @@ export function CustomTagsManager({
             onClick={handleAddTag}
             icon={Plus}
             activeColor=""
-            inactiveColor="bg-gray-200 text-gray-600 hover:bg-gray-300"
+            inactiveColor={cn("bg-[var(--btn-bg)] text-[var(--btn-text)] hover:bg-[var(--btn-hover)]")}
+            style={{ 
+                "--btn-bg": THEME.common.neutral, 
+                "--btn-text": THEME.pokemon_card.status.label,
+                "--btn-hover": THEME.pokemon_card.status.label + "40"
+            } as React.CSSProperties}
             title="Ajouter un tag"
             diameter={Math.round((typeof fontSize === "number" ? fontSize : Number.parseFloat(fontSize as string) || 12) / 0.6 * 0.8)}
             iconRatio={0.7} // Ratio par défaut comme demandé

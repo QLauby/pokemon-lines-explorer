@@ -5,10 +5,10 @@ import type React from "react"
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
+import { THEME } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils/cn"
 import { darkenColor, getTextColorForBackground, lightenColor } from "@/lib/utils/colors-utils"
 import { floatToFraction } from "@/lib/utils/math-utils"
-
 
 interface EditableTextProps {
   value: string
@@ -53,9 +53,10 @@ interface EditableTextProps {
 }
 
 const DEFAULT_TEXT_IF_VOID = "Click to edit ..."
-const DEFAULT_MAIN_COLOR = "#E0E0E0"
-const DEFAULT_DARK_TEXT_COLOR = "#000000"
-const DEFAULT_LIGHT_TEXT_COLOR = "#ffffff"
+const DEFAULT_MAIN_COLOR = THEME.editable_text.default_main
+const DEFAULT_DARK_TEXT_COLOR = THEME.common.black
+const DEFAULT_LIGHT_TEXT_COLOR = THEME.common.white
+
 const DEFAULT_TRANSITION_DURATION = "0.8s"
 
 const evaluateExpression = (expr: string): number | null => {
@@ -582,7 +583,7 @@ export function EditableText({
       ) : (
         <span
           className={cn(
-            isPlaceholderLook && "text-gray-400 italic",
+            isPlaceholderLook && "text-slate-400 italic",
             "block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
           )}
           title={displayText}

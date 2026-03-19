@@ -69,17 +69,17 @@ export function StatsModifierEffect({
     }
 
     const getModifierColor = (value: number, key: string) => {
-        if (value === 0) return "text-gray-400";
+        if (value === 0) return "text-slate-400";
         return value > 0 ? "text-blue-500 font-bold" : "text-red-500 font-bold";
     };
 
     const getLabelColor = (value: number) => {
-        if (value === 0) return "text-gray-400";
+        if (value === 0) return "text-slate-400";
         return value > 0 ? "text-blue-600/70" : "text-red-600/70";
     };
 
     return (
-        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 py-2 px-3 bg-white/40 border border-gray-100 rounded min-h-[48px] w-full">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 py-2 px-3 bg-white/40 border border-slate-100 rounded min-h-[48px] w-full">
             {STAT_CONFIG.map((config) => {
                 const op = currentOperations.find(o => o.stat === config.key)
                 const deltaAmount = op?.amount ?? 0
@@ -119,7 +119,7 @@ export function StatsModifierEffect({
                         {initialPokemon && (
                             <span className={cn(
                                 "text-[9px] font-medium opacity-60",
-                                finalValue === 0 ? "text-gray-400" : (finalValue > 0 ? "text-blue-600" : "text-red-600")
+                                finalValue === 0 ? "text-slate-400" : (finalValue > 0 ? "text-blue-600" : "text-red-600")
                             )}>
                                 {finalValue}
                             </span>
@@ -129,10 +129,10 @@ export function StatsModifierEffect({
             })}
 
             {/* Light Reset Toggle */}
-            <div className="flex flex-col items-center gap-0.5 ml-1 pl-2 border-l border-gray-200">
+            <div className="flex flex-col items-center gap-0.5 ml-1 pl-2 border-l border-slate-200">
                 <span className={cn(
                     "text-[10px] font-bold tracking-tight transition-colors duration-300",
-                    delta.setAllToZero ? "text-orange-600" : "text-gray-400"
+                    delta.setAllToZero ? "text-orange-600" : "text-slate-400"
                 )}>
                     Reset
                 </span>
@@ -145,7 +145,7 @@ export function StatsModifierEffect({
                         "h-7 w-7 rounded-sm border transition-all duration-300",
                         delta.setAllToZero 
                             ? "bg-orange-50 border-orange-200 text-orange-600 shadow-sm" 
-                            : "bg-white/50 border-gray-100 text-gray-300 hover:text-gray-500 hover:bg-white"
+                            : "bg-white/50 border-slate-100 text-slate-300 hover:text-slate-500 hover:bg-white"
                     )}
                 >
                     <RotateCcw className={cn("h-3.5 w-3.5 transition-transform duration-500", delta.setAllToZero && "rotate-180")} />

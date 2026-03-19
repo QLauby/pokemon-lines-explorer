@@ -46,7 +46,7 @@ export default function SessionItemView({
         className={`group flex items-center justify-between p-2 rounded-lg transition-all border ${
           isActive 
             ? 'bg-primary/5 border-primary shadow-sm' 
-            : 'bg-white border-transparent hover:bg-gray-50'
+            : 'bg-white border-transparent hover:bg-slate-50'
         }`}
       >
         <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">

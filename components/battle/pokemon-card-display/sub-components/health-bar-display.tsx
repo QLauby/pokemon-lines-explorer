@@ -1,5 +1,4 @@
-"use client"
-
+import { THEME } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils/cn"
 
 interface HealthBarDisplayProps {
@@ -22,25 +21,25 @@ export function HealthBarDisplay({
   height = 6 
 }: HealthBarDisplayProps) {
   // Color logic
-  let colorClass = "bg-green-500" // >= 50%
+  let color: string = THEME.common.hp.high // >= 50%
   if (hpPercent < 20) {
-    colorClass = "bg-red-500"
+    color = THEME.common.hp.low
   } else if (hpPercent < 50) {
-    colorClass = "bg-orange-500"
+    color = THEME.common.hp.mid
   }
 
   return (
     <div className={cn("w-full flex items-center gap-1.5", className)}>
-      <div className={cn("flex-1 bg-gray-200 rounded-full overflow-hidden", `h-[${height}px]`)} style={{ height }}>
+      <div className={cn("flex-1 rounded-full overflow-hidden", `h-[${height}px]`)} style={{ height, backgroundColor: THEME.counter.bg /* reuse slate-200 */ }}>
         <div
-          className={cn("h-full transition-all duration-300 ease-in-out", colorClass)}
-          style={{ width: `${Math.max(0, Math.min(100, hpPercent))}%` }}
+          className={cn("h-full transition-all duration-300 ease-in-out")}
+          style={{ width: `${Math.max(0, Math.min(100, hpPercent))}%`, backgroundColor: color }}
         />
       </div>
       {showText && (
         <span className={cn(
             "text-[9px] font-bold text-right shrink-0",
-            hpPercent === 0 ? "text-gray-400" : "text-gray-700",
+            hpPercent === 0 ? "text-slate-400" : "text-slate-700",
             hpMode === "hp" ? "w-[42px]" : "w-[28px]"
         )}>
           {hpMode === "hp" && hpCurrent !== undefined

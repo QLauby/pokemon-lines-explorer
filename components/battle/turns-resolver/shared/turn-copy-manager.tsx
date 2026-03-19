@@ -82,7 +82,7 @@ export function TurnCopyManager({
 
   if (compatibleNodes.length === 0) {
       return (
-          <div className="flex items-center justify-between p-2.5 bg-gray-50/50 border rounded-lg mb-4 text-[11px] text-gray-400">
+          <div className="flex items-center justify-between p-2.5 bg-slate-50/50 border rounded-lg mb-4 text-[11px] text-slate-400">
               <div className="flex items-center gap-2">
                   <Search className="w-3.5 h-3.5 opacity-50" />
                   <span>No compatible turns found (same team required on field).</span>
@@ -105,9 +105,9 @@ export function TurnCopyManager({
     : []
 
   return (
-    <div className="flex flex-col gap-2.5 p-3 bg-gray-50/80 border rounded-xl mb-6 ring-1 ring-black/5 shadow-sm">
+    <div className="flex flex-col gap-2.5 p-3 bg-slate-50/80 border rounded-xl mb-6 ring-1 ring-black/5 shadow-sm">
       <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
               <Copy className="w-3.5 h-3.5 text-primary/70" />
               <span>Copy Existing Turn</span>
           </div>
@@ -115,7 +115,7 @@ export function TurnCopyManager({
             variant="ghost" 
             size="sm" 
             onClick={onReset} 
-            className="h-6 px-2 text-[10px] text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors uppercase font-bold tracking-tight"
+            className="h-6 px-2 text-[10px] text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors uppercase font-bold tracking-tight"
           >
               <RotateCcw className="w-3 h-3 mr-1" />
               Reset All
@@ -145,7 +145,7 @@ export function TurnCopyManager({
                                 <span className={cn(idx === currentBranchIndex && "font-bold")}>
                                     Branch {branchToLetter(idx)}
                                 </span>
-                                <span className="text-[9px] text-gray-400 ml-auto">({nodes.length})</span>
+                                <span className="text-[9px] text-slate-400 ml-auto">({nodes.length})</span>
                             </div>
                         </SelectItem>
                     )
@@ -154,7 +154,7 @@ export function TurnCopyManager({
               </Select>
           </div>
 
-          <div className="text-gray-300">
+          <div className="text-slate-300">
               <ChevronRight className="w-3 h-3" />
           </div>
 
@@ -165,7 +165,7 @@ export function TurnCopyManager({
                 onValueChange={setSelectedNodeId}
                 disabled={!selectedBranchIndex}
               >
-                <SelectTrigger className="h-8 text-[11px] bg-white ring-0 focus:ring-1 focus:ring-primary/20 disabled:bg-gray-50">
+                <SelectTrigger className="h-8 text-[11px] bg-white ring-0 focus:ring-1 focus:ring-primary/20 disabled:bg-slate-50">
                   <SelectValue placeholder="Turn" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
@@ -178,7 +178,7 @@ export function TurnCopyManager({
                                   T{node.turn}
                                 </span>
                                 {node.description && (
-                                    <span className="text-gray-400 truncate max-w-[120px]">
+                                    <span className="text-slate-400 truncate max-w-[120px]">
                                         {node.description}
                                     </span>
                                 )}

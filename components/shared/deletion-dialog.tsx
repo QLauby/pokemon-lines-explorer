@@ -16,8 +16,8 @@ export default function DeletionDialog({
   open,
   onOpenChange,
   onConfirm,
-  title = 'Delete?',
-  description = 'This action is irreversible. Do you want to continue?',
+  title = 'Delete ?',
+  description = 'This action is irreversible. Do you want to continue ?',
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
 }: {
