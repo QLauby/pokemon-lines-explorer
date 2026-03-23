@@ -226,6 +226,35 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
     }
   }
 
+  const importPokemons = (pokemons: Omit<Pokemon, "id">[], mode: "replace" | "add", isMyTeam: boolean) => {
+    const currentTeam = isMyTeam ? myTeam : enemyTeam;
+    const withIds: Pokemon[] = pokemons.map((p) => ({
+      ...p,
+      id: `import-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      status: null,
+      confusion: false,
+      love: false,
+      heldItem: !!p.heldItemName,
+      isTerastallized: false,
+      isMega: false,
+      customTags: [],
+      statsModifiers: BattleEngine.getStatsModifiersDefault(),
+    }));
+
+    let newTeam: Pokemon[];
+    if (mode === "replace") {
+      newTeam = withIds;
+    } else {
+      newTeam = [...currentTeam, ...withIds];
+    }
+
+    if (isMyTeam) {
+      updateInitialState({ myTeam: newTeam });
+    } else {
+      updateInitialState({ enemyTeam: newTeam });
+    }
+  }
+
   return {
       newMyPokemonName, setNewMyPokemonName,
       newOpponentPokemonName, setNewOpponentPokemonName,
@@ -258,6 +287,7 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
       startEditingPokemon,
       cancelEditing,
       getDefaultPokemonName,
-      movePokemon
+      movePokemon,
+      importPokemons,
   }
 }

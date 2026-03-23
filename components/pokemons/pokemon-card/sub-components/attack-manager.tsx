@@ -10,6 +10,9 @@ import { Attack, Pokemon } from "@/types/types"
 
 import { Counter } from "@/components/shared/counter"
 import { EditableText } from "@/components/shared/editable-text"
+import { AutocompleteEditable } from "@/components/shared/autocomplete-editable"
+import { type SuggestionItem } from "@/components/shared/suggestion-list"
+import { searchMoves, getMoveDetails } from "@/lib/utils/pokedex-utils"
 import { PokemonTypeDropdown } from "../shared/pokemon-type-dropdown"
 
 interface AttackManagerProps {
@@ -138,6 +141,27 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
     updateAttack(attackId, "name", finalName)
   }
 
+  const handleMoveSelect = (attackId: string, suggestion: SuggestionItem) => {
+    const updatedAttacks = pokemon.attacks.map((attack) => {
+      if (attack.id === attackId) {
+        const movePP = suggestion.metadata?.pp || attack.maxPP
+        return { 
+          ...attack, 
+          name: suggestion.label, 
+          type: (suggestion.types?.[0] || attack.type) as any,
+          maxPP: movePP,
+          currentPP: movePP
+        }
+      }
+      return attack
+    })
+
+    onUpdate({
+      ...pokemon,
+      attacks: updatedAttacks,
+    })
+  }
+
   return (
     <div className="mt-1">
       <div className="p-1.5 border rounded-lg bg-slate-50">
@@ -154,15 +178,54 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
                         {attack.type && (
                           <TypeLiseret types={[attack.type]} className="w-[3px] h-full mr-1" />
                         )}
-                        <EditableText
-                          value={attack.name}
-                          placeholder={defaultName}
-                          defaultValue={defaultName}
-                          onChange={(newName) => handleAttackNameChange(attack.id, newName)}
-                          autoWidth={false}
-                          width="100%"
-                          fontSize={12}
-                        />
+                        {(() => {
+                          const details = getMoveDetails(attack.name);
+                          const tooltipContent = details ? (
+                            <div className="space-y-1.5 p-1">
+                              <div className="font-bold text-sm border-b border-white/20 pb-1 flex justify-between items-center gap-4">
+                                <span>{details.name}</span>
+                                <span className="text-[10px] opacity-70 uppercase tracking-wider">{details.type}</span>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[10px]">
+                                  {details.category}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[10px]">
+                                  BP: {details.basePower || '--'}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[10px]">
+                                  Acc: {details.accuracy === true ? '100' : details.accuracy}%
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[10px]">
+                                  Pri: {details.priority > 0 ? `+${details.priority}` : details.priority}
+                                </span>
+                                {details.flags?.contact && (
+                                   <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[10px]">
+                                      Contact
+                                   </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-200 leading-snug italic">
+                                {details.shortDesc || details.desc}
+                              </p>
+                            </div>
+                          ) : null;
+
+                          return (
+                            <AutocompleteEditable
+                              value={attack.name}
+                              placeholder={defaultName}
+                              onChange={(newName) => handleAttackNameChange(attack.id, newName)}
+                              getSuggestions={searchMoves}
+                              onSuggestionSelect={(suggestion) => handleMoveSelect(attack.id, suggestion)}
+                              autoWidth={false}
+                              width="100%"
+                              fontSize={12}
+                              readOnly={readOnly}
+                              tooltip={tooltipContent}
+                            />
+                          );
+                        })()}
                       </div>
                       {!readOnly && (
                       <Button

@@ -261,7 +261,7 @@ export function PokemonAction({
               {actor && <TypeLiseret types={actor.pokemon.types} className="w-1 h-3 rounded-full mr-0.5" />}
 
               <div className={cn(
-                "text-[11px] font-extrabold truncate shrink-0 max-w-[120px]",
+                "text-[11px] font-extrabold truncate shrink-0 max-w-[65px]",
               )} 
               style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }}
               title={actor?.pokemon.name}

@@ -2,7 +2,8 @@
 
 import { Input } from "@/components/ui/input"
 import type React from "react"
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from "react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 
 import { THEME } from "@/lib/constants/color-constants"
@@ -50,6 +51,10 @@ interface EditableTextProps {
   rawEquationString?: string
   onEquationChange?: (eq: string | undefined) => void
   showPlusSign?: boolean
+  onEditingValueChange?: (value: string) => void
+  onEditModeChange?: (isEditing: boolean) => void
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
+  tooltip?: React.ReactNode
 }
 
 const DEFAULT_TEXT_IF_VOID = "Click to edit ..."
@@ -77,7 +82,13 @@ const evaluateExpression = (expr: string): number | null => {
 
 
 
-export function EditableText({
+export interface EditableTextRef {
+  finish: (finalValue?: string) => void;
+  cancel: () => void;
+  setEditingValue: (val: string) => void;
+}
+
+export const EditableText = forwardRef<EditableTextRef, EditableTextProps>(({
   value,
   onChange,
   type = "text",
@@ -117,7 +128,11 @@ export function EditableText({
   rawEquationString,
   onEquationChange,
   showPlusSign = false,
-}: EditableTextProps) {
+  onEditingValueChange,
+  onEditModeChange,
+  onKeyDown,
+  tooltip,
+}, ref) => {
   // 1. Hook State
   const [isEditing, setIsEditing] = useState(false)
   const [editingValue, setEditingValue] = useState("")
@@ -133,6 +148,12 @@ export function EditableText({
   const inputRef = useRef<HTMLInputElement | null>(null)
   const measurerRef = useRef<HTMLSpanElement | null>(null)
   const displayRef = useRef<HTMLDivElement | null>(null)
+
+  useImperativeHandle(ref, () => ({
+    finish: (finalValue?: string) => finishEditing(finalValue),
+    cancel: cancelEditing,
+    setEditingValue: (val: string) => setEditingValue(val)
+  }), [isEditing, editingValue, onChange]) // Ajout des dépendances pour la sécurité du handle
 
   // 3. Constants & Derived State
   const resolvedDefault = defaultValue || (type === "number" ? "0" : DEFAULT_TEXT_IF_VOID)
@@ -302,12 +323,18 @@ export function EditableText({
     }
   }, [isTransitioning, transitionDuration])
 
+  const wasEditingRef = useRef(false)
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus()
-      if (autoSelectOnClick && !emptyInputAtFocus) inputRef.current.select()
+      // On ne sélectionne le texte que si on vient de PASSER en mode édition
+      if (!wasEditingRef.current && autoSelectOnClick && !emptyInputAtFocus) {
+        inputRef.current.select()
+      }
     }
-  }, [isEditing, autoSelectOnClick, emptyInputAtFocus])
+    wasEditingRef.current = isEditing
+    onEditModeChange?.(isEditing)
+  }, [isEditing, autoSelectOnClick, emptyInputAtFocus, onEditModeChange])
 
   // 5. Functions
   const getDisplayStyles = () => {
@@ -403,6 +430,7 @@ export function EditableText({
       setEditingValue(initialValue)
       setIsHovered(false)
     }
+    onEditingValueChange?.(initialValue)
   }
 
   const handleStartEditing = () => {
@@ -410,8 +438,8 @@ export function EditableText({
     startEditing()
   }
 
-  const finishEditing = () => {
-    const current = editingValue
+  const finishEditing = (finalValue?: string | React.FocusEvent) => {
+    const current = typeof finalValue === "string" ? finalValue : editingValue
     let final: string
 
     if (current === "" || current.trim() === "") {
@@ -475,10 +503,13 @@ export function EditableText({
     }
     setIsEditing(false)
     setEditingValue("")
+    onEditingValueChange?.("")
     onCancel?.()
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    onKeyDown?.(e)
+    if (e.defaultPrevented) return
     if (e.key === "Enter") finishEditing()
     else if (e.key === "Escape") cancelEditing()
   }
@@ -557,6 +588,7 @@ export function EditableText({
                   }
               }
               setEditingValue(val)
+              onEditingValueChange?.(val)
           }}
           onBlur={finishEditing}
           onKeyDown={handleKeyDown}
@@ -581,15 +613,35 @@ export function EditableText({
           autoFocus
         />
       ) : (
-        <span
-          className={cn(
-            isPlaceholderLook && "text-slate-400 italic",
-            "block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
+        <>
+          {tooltip ? (
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <span
+                  className={cn(
+                    isPlaceholderLook && "text-slate-400 italic",
+                    "block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap cursor-help",
+                  )}
+                >
+                  {displayText}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[300px] whitespace-normal bg-slate-900 text-white border-slate-700 shadow-xl z-[100]">
+                {tooltip}
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <span
+              className={cn(
+                isPlaceholderLook && "text-slate-400 italic",
+                "block w-full min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
+              )}
+              title={displayText}
+            >
+              {displayText}
+            </span>
           )}
-          title={displayText}
-        >
-          {displayText}
-        </span>
+        </>
       )}
       {autoWidth && (
         <span
@@ -606,6 +658,6 @@ export function EditableText({
       )}
     </div>
   )
-}
+})
 
 export default EditableText

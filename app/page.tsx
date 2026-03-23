@@ -220,6 +220,7 @@ function InnerContent({
               onUpdatePlayerSideTags={actions.updatePlayerSideTags}
               onUpdateOpponentSideTags={actions.updateOpponentSideTags}
               hpMode={state.hpMode}
+              onImportPokemon={actions.importPokemons}
             />
     
           ) : (

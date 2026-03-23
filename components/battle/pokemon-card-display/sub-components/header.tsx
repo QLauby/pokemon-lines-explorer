@@ -6,6 +6,8 @@ import { TypeLiseret } from "@/components/shared/type-liseret"
 import { THEME } from "@/lib/constants/color-constants"
 import { POKEMON_LOGOS } from "@/lib/constants/logos-constants"
 import { Pokemon } from "@/types/types"
+import { PokemonSprite } from "@/components/shared/pokemon-sprite"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import Image from "next/image"
 
 const MegaColoredIcon = ({ size, className }: { size?: number; className?: string }) => (
@@ -24,15 +26,29 @@ interface PokemonCardDisplayHeaderProps {
 
 export function PokemonCardDisplayHeader({ pokemon }: PokemonCardDisplayHeaderProps) {
     const types = pokemon.types || []
+
     return (
-        <div className="flex items-center justify-between gap-1 h-3.5">
-             <div className="flex items-center gap-1 min-w-0 h-full">
-                <TypeLiseret types={pokemon.types} className="w-1 h-full" />
-                <span className="font-bold text-[11px] truncate h-full flex items-center" title={pokemon.name}>
-                   {pokemon.name}
-                </span>
+        <div className="flex items-center justify-between gap-1 h-3.5 mt-0.5">
+             <div className="flex items-center gap-1 min-w-0 h-full flex-1">
+                <TypeLiseret types={pokemon.types} className="w-1 h-full shrink-0 mr-1" />
+                
+                <PokemonSprite 
+                    name={pokemon.name} 
+                    className="h-[18px] w-auto shrink-0 mr-1" 
+                />
+
+                <Tooltip delayDuration={300}>
+                    <TooltipTrigger asChild>
+                        <span className="font-bold text-[11px] truncate min-w-0 flex-1 cursor-help" title={pokemon.name}>
+                           {pokemon.name}
+                        </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-slate-900 text-white border-slate-700 shadow-xl z-[100] text-[10px]">
+                        {pokemon.name}
+                    </TooltipContent>
+                </Tooltip>
              </div>
-             <div className="flex items-center gap-0.5 shrink-0 h-full">
+             <div className="flex items-center gap-0.5 shrink-0 h-full ml-1">
                 {pokemon.hpPercent > 0 ? (
                   <>
                     {pokemon.isTerastallized && pokemon.teraType && (

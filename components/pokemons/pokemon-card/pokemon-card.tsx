@@ -12,6 +12,7 @@ import { AttackManager } from "./sub-components/attack-manager";
 import { HealthBar } from "./sub-components/health-bar";
 import { PokemonCardAbilityItem } from "./sub-components/pokemon-card-ability-item";
 import { PokemonCardHeader } from "./sub-components/pokemon-card-header";
+import { type SuggestionItem } from "@/components/shared/suggestion-list";
 import { PokemonCardTypes } from "./sub-components/pokemon-card-types";
 import { StatsModifiersDisplay } from "./sub-components/stats-modifiers";
 import { StatusSelector } from "./sub-components/status-selector";
@@ -139,6 +140,15 @@ export function PokemonCard({
     onUpdateName(pokemon.id, finalName, isMyTeam)
   }
 
+  const handlePokemonSelect = (suggestion: SuggestionItem) => {
+    onUpdatePokemon({
+      ...pokemon,
+      name: suggestion.label,
+      types: suggestion.types || pokemon.types,
+      abilityName: suggestion.subtitle || pokemon.abilityName
+    }, isMyTeam)
+  }
+
   const activeStatusInfos = []
   if (pokemon.status) {
     const info = getStatusInfo(pokemon.status)
@@ -261,6 +271,7 @@ export function PokemonCard({
             battleType={battleType}
             defaultName={defaultName}
             handleNameChange={handleNameChange}
+            onPokemonSelect={handlePokemonSelect}
             activeStatusInfos={activeStatusInfos}
             onUpdateStatus={onUpdateStatus}
             onToggleHeldItem={onToggleHeldItem}

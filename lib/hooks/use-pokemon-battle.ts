@@ -99,7 +99,7 @@ export function usePokemonBattle() {
 
 
   const getAllPokemon = () => [...teamManager.myTeam, ...teamManager.enemyTeam]
-  const getTeamCounterDisplay = (len: number) => len <= 6 ? `${len}/6` : `${len}/${len}`
+  const getTeamCounterDisplay = (len: number) => `${len}/${Math.max(6, len)}`
 
   const resetBattleIfNeeded = () => {} // Placeholder if needed
 
@@ -165,7 +165,8 @@ export function usePokemonBattle() {
         duplicateSession,
         updateSessionName,
         updateSessionsOrder,
-        movePokemon: teamManager.movePokemon
+        movePokemon: teamManager.movePokemon,
+        importPokemons: teamManager.importPokemons,
     }
   }
 }

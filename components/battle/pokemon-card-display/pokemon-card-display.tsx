@@ -60,8 +60,10 @@ export function PokemonCardDisplay({
       </div>
 
       <div className="p-1.5 flex flex-col min-w-0 space-y-1.5">
-        <div className="flex flex-col min-w-0 pr-5">
-            <PokemonCardDisplayHeader pokemon={pokemon} />
+        <div className="flex flex-col min-w-0">
+            <div className="pr-5">
+                <PokemonCardDisplayHeader pokemon={pokemon} />
+            </div>
             <PokemonCardDisplayMeta pokemon={pokemon} />
         </div>
 

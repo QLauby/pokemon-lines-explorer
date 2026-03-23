@@ -53,6 +53,7 @@ interface TeamsViewProps {
   onUpdatePlayerSideTags: (tags: CustomTagData[]) => void
   onUpdateOpponentSideTags: (tags: CustomTagData[]) => void
   hpMode?: "percent" | "hp"
+  onImportPokemon: (pokemons: Omit<import("@/types/types").Pokemon, "id">[], mode: "replace" | "add", isMyTeam: boolean) => void
 }
 
 export function TeamsView({
@@ -88,6 +89,7 @@ export function TeamsView({
   onUpdatePlayerSideTags,
   onUpdateOpponentSideTags,
   hpMode = "percent",
+  onImportPokemon,
 }: TeamsViewProps) {
 
   return (
@@ -127,6 +129,7 @@ export function TeamsView({
           getTeamCounterDisplay={getTeamCounterDisplay}
           isStarterPokemon={isStarterPokemon}
           hpMode={hpMode}
+          onImportPokemon={onImportPokemon}
         />
 
         <TeamSection
@@ -154,6 +157,7 @@ export function TeamsView({
           getTeamCounterDisplay={getTeamCounterDisplay}
           isStarterPokemon={isStarterPokemon}
           hpMode={hpMode}
+          onImportPokemon={onImportPokemon}
         />
       </div>
     </>

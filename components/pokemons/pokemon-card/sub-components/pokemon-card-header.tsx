@@ -1,14 +1,17 @@
 import { StarBadgeIcon } from "@/assets/badges/star-badge";
 import MegaColored from "@/assets/logos/mega/mega-colored.svg";
+import { AutocompleteEditable } from "@/components/shared/autocomplete-editable";
 import { CircularButton } from "@/components/shared/circular-button";
 import { Counter } from "@/components/shared/counter";
-import { EditableText } from "@/components/shared/editable-text";
+import { PokemonSprite } from "@/components/shared/pokemon-sprite";
+import { type SuggestionItem } from "@/components/shared/suggestion-list";
 import { TypeLiseret } from "@/components/shared/type-liseret";
 import { Button } from "@/components/ui/button";
 import { THEME } from "@/lib/constants/color-constants";
 import { POKEMON_LOGOS } from "@/lib/constants/logos-constants";
 import { cn } from "@/lib/utils/cn";
 import { PokemonType } from "@/lib/utils/colors-utils";
+import { searchPokemon } from "@/lib/utils/pokedex-utils";
 import { Pokemon } from "@/types/types";
 import { ChevronDown, ChevronUp, Minus, Plus, Swords, Trash2 } from "lucide-react";
 import Image from "next/image";
@@ -52,6 +55,7 @@ interface PokemonCardHeaderProps {
     battleType: "simple" | "double"
     defaultName: string
     handleNameChange: (newName: string) => void
+    onPokemonSelect?: (suggestion: SuggestionItem) => void
     activeStatusInfos: any[]
     onUpdateStatus: (id: string, isMyTeam: boolean, updates: any) => void
     onToggleHeldItem: (id: string, isMyTeam: boolean) => void
@@ -83,6 +87,7 @@ export function PokemonCardHeader({
     battleType,
     defaultName,
     handleNameChange,
+    onPokemonSelect,
     activeStatusInfos,
     onUpdateStatus,
     onToggleHeldItem,
@@ -135,10 +140,10 @@ export function PokemonCardHeader({
           />
         </div>
 
-        <div className="flex justify-between items-center text-sm py-0.5">
-          <div className="flex-1 mr-2 h-6 flex items-center min-w-0">
+        <div className="flex justify-between items-center text-sm">
+          <div className="flex-1 mr-2 h-8 flex items-center min-w-0">
             {!readOnly && (
-               <div className="flex flex-col space-y-0.5 mr-2">
+               <div className="flex flex-col space-y-0.5 mr-2 shrink-0">
                   <Button 
                     variant="ghost" 
                     size="icon" 
@@ -161,21 +166,30 @@ export function PokemonCardHeader({
                   </Button>
                </div>
             )}
-            <TypeLiseret types={pokemon.types} className="w-1 h-full mr-1.5" />
-            <EditableText
-              value={pokemon.name || defaultName}
-              placeholder={defaultName}
-              defaultValue={defaultName}
-              onChange={handleNameChange}
-              autoWidth={false}
-              width="100%"
-              fontSize={14.4}
-              fontSizeRatio={0.6}
-              className="font-semibold"
-              readOnly={readOnly}
+            <TypeLiseret types={pokemon.types} className="w-1.5 h-full mr-2 shrink-0" />
+            
+            <PokemonSprite 
+                name={pokemon.name || defaultName} 
+                className="h-8 w-auto mr-2 shrink-0" 
             />
+
+            <div className="flex-1 min-w-0">
+              <AutocompleteEditable
+                value={pokemon.name || defaultName}
+                placeholder={defaultName}
+                onChange={handleNameChange}
+                getSuggestions={searchPokemon}
+                onSuggestionSelect={onPokemonSelect}
+                autoWidth={false}
+                width="100%"
+                fontSize={16.5}
+                fontSizeRatio={0.6}
+                className="font-bold text-slate-800"
+                readOnly={readOnly}
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             {activeStatusInfos.length > 0 && (
               <div className="flex items-center gap-1 mr-1">
                 {activeStatusInfos.map((status) => (

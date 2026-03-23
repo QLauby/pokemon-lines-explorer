@@ -1,8 +1,11 @@
+"use client"
+
 import { CircularButton } from "@/components/shared/circular-button";
-import { EditableText } from "@/components/shared/editable-text";
 import { cn } from "@/lib/utils/cn";
 import { Pokemon } from "@/types/types";
 import { ShoppingBag } from "lucide-react";
+import { AutocompleteEditable } from "@/components/shared/autocomplete-editable";
+import { searchAbilities, searchItems, getAbilityText, getItemText } from "@/lib/utils/pokedex-utils";
 import { MegaColoredIcon } from "./pokemon-card-header";
 
 interface PokemonCardAbilityItemProps {
@@ -34,17 +37,33 @@ export function PokemonCardAbilityItem({
              <div className="flex items-center min-w-0">
                  <span className="text-xs text-slate-600 mr-1 shrink-0">Ability :</span>
                  <div className="flex-1 min-w-0">
-                     <EditableText
-                        value={pokemon.abilityName || defaultAbilityName}
-                        placeholder={defaultAbilityName}
-                        defaultValue={defaultAbilityName}
-                        onChange={handleAbilityNameChange}
-                        autoWidth={false}
-                        width="100%"
-                        fontSize={12}
-                        fontSizeRatio={0.6}
-                        readOnly={readOnly}
-                     />
+                      {(() => {
+                          const text = getAbilityText(pokemon.abilityName || defaultAbilityName);
+                          const tooltip = text ? (
+                              <div className="space-y-1 p-1">
+                                  <div className="font-bold text-sm border-b border-white/20 pb-1">
+                                      {text.name}
+                                  </div>
+                                  <p className="text-[11px] text-slate-200 leading-snug italic">
+                                      {text.shortDesc || text.desc}
+                                  </p>
+                              </div>
+                          ) : null;
+                          return (
+                            <AutocompleteEditable
+                                value={pokemon.abilityName || defaultAbilityName}
+                                placeholder={defaultAbilityName}
+                                onChange={handleAbilityNameChange}
+                                getSuggestions={searchAbilities}
+                                autoWidth={false}
+                                width="100%"
+                                fontSize={12}
+                                fontSizeRatio={0.6}
+                                readOnly={readOnly}
+                                tooltip={tooltip}
+                            />
+                          );
+                      })()}
                  </div>
              </div>
 
@@ -65,17 +84,33 @@ export function PokemonCardAbilityItem({
                 </div>
                 {pokemon.heldItem && (
                      <div className="flex-1 min-w-0">
-                         <EditableText
-                            value={pokemon.heldItemName || defaultItemName}
-                            placeholder={defaultItemName}
-                            defaultValue={defaultItemName}
-                            onChange={handleItemNameChange}
-                            autoWidth={false}
-                            width="100%"
-                            fontSize={12}
-                            fontSizeRatio={0.6}
-                            readOnly={readOnly}
-                          />
+                          {(() => {
+                              const text = getItemText(pokemon.heldItemName || defaultItemName);
+                              const tooltip = text ? (
+                                  <div className="space-y-1 p-1">
+                                      <div className="font-bold text-sm border-b border-white/20 pb-1">
+                                          {text.name}
+                                      </div>
+                                      <p className="text-[11px] text-slate-200 leading-snug italic">
+                                          {text.shortDesc || text.desc}
+                                      </p>
+                                  </div>
+                              ) : null;
+                              return (
+                                 <AutocompleteEditable
+                                     value={pokemon.heldItemName || defaultItemName}
+                                     placeholder={defaultItemName}
+                                     onChange={handleItemNameChange}
+                                     getSuggestions={searchItems}
+                                     autoWidth={false}
+                                     width="100%"
+                                     fontSize={12}
+                                     fontSizeRatio={0.6}
+                                     readOnly={readOnly}
+                                     tooltip={tooltip}
+                                   />
+                              );
+                          })()}
                      </div>
                 )}
             </div>

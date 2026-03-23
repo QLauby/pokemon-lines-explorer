@@ -5,6 +5,7 @@ import { Plus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ImportDialog } from "@/components/shared/import-dialog"
 
 import { THEME } from "@/lib/constants/color-constants"
 import { PokemonStatus } from "@/lib/constants/logos-constants"
@@ -49,6 +50,7 @@ interface TeamSectionProps {
   getTeamCounterDisplay: (teamLength: number) => string
   isStarterPokemon: (pokemon: Pokemon, index: number, isMyTeam: boolean) => boolean
   hpMode?: "percent" | "hp"
+  onImportPokemon: (pokemons: Omit<Pokemon, "id">[], mode: "replace" | "add", isMyTeam: boolean) => void
 }
 
 
@@ -77,6 +79,7 @@ export function TeamSection({
   getTeamCounterDisplay,
   isStarterPokemon,
   hpMode = "percent",
+  onImportPokemon,
 }: TeamSectionProps) {
 
   return (
@@ -88,19 +91,27 @@ export function TeamSection({
       className="shadow-sm transition-all hover:shadow-md border rounded-xl"
     >
       <CardHeader className="pb-3">
-        <CardTitle 
-          className="flex items-center gap-2 leading-7 text-xl font-bold"
-          style={{ color: isMyTeam ? THEME.common.ally_text : THEME.common.opponent_text }}
-        >
-          {title}
-          <Badge 
-            variant="secondary" 
-            className="font-bold bg-white/50"
+        <div className="flex items-center justify-between">
+          <CardTitle 
+            className="flex items-center gap-2 leading-7 text-xl font-bold"
             style={{ color: isMyTeam ? THEME.common.ally_text : THEME.common.opponent_text }}
           >
-            {getTeamCounterDisplay(team.length)}
-          </Badge>
-        </CardTitle>
+            {title}
+            <Badge 
+              variant="secondary" 
+              className="font-bold bg-white/50"
+              style={{ color: isMyTeam ? THEME.common.ally_text : THEME.common.opponent_text }}
+            >
+              {getTeamCounterDisplay(team.length)}
+            </Badge>
+          </CardTitle>
+          <ImportDialog
+            isMyTeam={isMyTeam}
+            hpMode={hpMode}
+            currentTeamSize={team.length}
+            onImport={(pokemons, mode) => onImportPokemon(pokemons, mode, isMyTeam)}
+          />
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {team.map((pokemon, originalIndex) => {
