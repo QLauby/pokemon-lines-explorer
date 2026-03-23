@@ -10,6 +10,7 @@ export type EffectOption = {
   label: string
   value: SlotReference
   isAlly: boolean
+  types?: import("@/lib/utils/colors-utils").PokemonType[]
 }
 
 export type ActivePokemonEntry = {
@@ -69,6 +70,7 @@ export function generateEffectOptions(state: BattleState): EffectOption[] {
           label: pokemon.name,
           value: { type: "battlefield_slot", side: "my", slotIndex: battlefieldSlot },
           isAlly: true,
+          types: pokemon.types
         })
       }
     }
@@ -82,6 +84,7 @@ export function generateEffectOptions(state: BattleState): EffectOption[] {
           label: pokemon.name,
           value: { type: "battlefield_slot", side: "opponent", slotIndex: battlefieldSlot },
           isAlly: false,
+          types: pokemon.types
         })
       }
     }
@@ -171,7 +174,8 @@ export function getDynamicEffectTargets(
               teamOptions.push({
                   label: `[Team] ${pokemon.name}`,
                   value: { type: "team_index", side: actorSide, teamIndex: idx, slotIndex: -1 },
-                  isAlly: actorSide === "my"
+                  isAlly: actorSide === "my",
+                  types: pokemon.types
               });
           }
       });
@@ -188,7 +192,8 @@ export function getDynamicEffectTargets(
               switchOptions.push({
                   label: `[Out] ${team[outIdx].name}`,
                   value: { type: "team_index", side: actorSide, teamIndex: outIdx, slotIndex: -1 },
-                  isAlly: actorSide === "my"
+                  isAlly: actorSide === "my",
+                  types: team[outIdx].types
               });
           }
 
@@ -201,7 +206,8 @@ export function getDynamicEffectTargets(
                       switchOptions.push({
                           label: `[In] ${inMon.name}`,
                           value: { type: "battlefield_slot", side: action.target.side, slotIndex: action.target.slotIndex },
-                          isAlly: action.target.side === "my"
+                          isAlly: action.target.side === "my",
+                          types: inMon.types
                       });
                   }
               }
@@ -228,7 +234,8 @@ export function getDynamicEffectTargets(
           switchOptions.push({
               label: `[Out] ${team[outIdx].name}`,
               value: { type: "team_index", side: actorSide, teamIndex: outIdx, slotIndex: -1 },
-              isAlly: actorSide === "my"
+              isAlly: actorSide === "my",
+              types: team[outIdx].types
           });
       }
 
@@ -242,7 +249,8 @@ export function getDynamicEffectTargets(
                   switchOptions.push({
                       label: `[In] ${inMon.name}`,
                       value: { type: "battlefield_slot", side, slotIndex: slot },
-                      isAlly: side === "my"
+                      isAlly: side === "my",
+                      types: inMon.types
                   });
               }
           }

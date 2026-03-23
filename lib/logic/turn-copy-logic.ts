@@ -73,20 +73,26 @@ export function smartCopyTurnData(
     sourceTurnData: TurnData,
     initialState: BattleState
 ): TurnData {
-    // Deep copy initial state to simulate the turn
+    // Deep copy initial state: two versions
+    // - `initialStateSnapshot` for checking actor alive at turn start (never mutated)
+    // - `currentState` for progressive simulation (for effect validation)
+    const initialStateSnapshot = JSON.parse(JSON.stringify(initialState)) as BattleState
     let currentState = JSON.parse(JSON.stringify(initialState)) as BattleState
     
     const cleanActions: TurnAction[] = []
     
     // 1. Filter Actions
     for (const action of sourceTurnData.actions) {
-        // Resolve actor index
-        const actorIndex = BattleEngine.resolveTargetToTeamIndex(currentState, action.actor)
-        const team = action.actor.side === "my" ? currentState.myTeam : currentState.enemyTeam
+        // Resolve actor index — always check against the INITIAL snapshot
+        // so that mid-turn KOs don't silently remove the KO'd Pokemon's own action.
+        // useKoFusion is responsible for handling that fusion/restoration logic.
+        const actorIndex = BattleEngine.resolveTargetToTeamIndex(initialStateSnapshot, action.actor)
+        const team = action.actor.side === "my" ? initialStateSnapshot.myTeam : initialStateSnapshot.enemyTeam
         const actor = actorIndex !== null ? team[actorIndex] : null
         
-        // RULE: Actor must be alive to take action
+        // RULE: Actor must be alive at the START of the turn to take action
         if (!actor || actor.hpPercent <= 0) continue
+
         
         const cleanAction = JSON.parse(JSON.stringify(action)) as TurnAction
         

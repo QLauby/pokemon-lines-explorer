@@ -137,31 +137,59 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
           })
       } else if (type === 'DELETE_POKEMON') {
           const { id, isMyTeam } = payload
-          const currentTeam = isMyTeam ? session.initialState.myTeam : session.initialState.enemyTeam
+          const teamSide = isMyTeam ? 'myTeam' : 'enemyTeam'
+          const teamKey = isMyTeam ? 'myTeam' : 'opponentTeam'
+          
+          const currentTeam = (session.initialState as any)[teamSide] as Pokemon[]
+          const originalIndex = currentTeam.findIndex((p: Pokemon) => p.id === id)
           const newTeam = currentTeam.filter((p: Pokemon) => p.id !== id)
 
-          if (isMyTeam) {
-              onUpdateSession({ 
-                  initialState: { ...session.initialState, myTeam: newTeam },
-                  nodes: finalNodes
-              })
-          } else {
-               onUpdateSession({ 
-                  initialState: { ...session.initialState, enemyTeam: newTeam },
-                  nodes: finalNodes
-              })
+          // Update activeSlots (shift indices and clear deleted)
+          const newActiveSlots = { ...session.initialState.activeSlots }
+          const targetSlots = [...newActiveSlots[teamKey]]
+          for (let i = 0; i < targetSlots.length; i++) {
+              if (targetSlots[i] === originalIndex) {
+                  targetSlots[i] = null
+              } else if (targetSlots[i] !== null && (targetSlots[i] as number) > originalIndex) {
+                  targetSlots[i] = (targetSlots[i] as number) - 1
+              }
           }
+          newActiveSlots[teamKey] = targetSlots
+
+          onUpdateSession({ 
+              initialState: { 
+                  ...session.initialState, 
+                  [teamSide]: newTeam,
+                  activeSlots: newActiveSlots
+              },
+              nodes: finalNodes
+          })
       } else if (type === 'REORDER_POKEMON') {
           const { isMyTeam, oldIndex, newIndex } = payload as { isMyTeam: boolean, oldIndex: number, newIndex: number }
           const teamSide = isMyTeam ? 'myTeam' : 'enemyTeam'
-          const newTeam = [...session.initialState[teamSide]]
+          const teamKey = isMyTeam ? 'myTeam' : 'opponentTeam'
           
+          const currentState = session.initialState as any
+          const newTeam = [...currentState[teamSide]]
           const temp = newTeam[oldIndex]
           newTeam[oldIndex] = newTeam[newIndex]
           newTeam[newIndex] = temp
 
+          // Update activeSlots (swap indices)
+          const newActiveSlots = { ...session.initialState.activeSlots }
+          const targetSlots = [...newActiveSlots[teamKey]]
+          for (let i = 0; i < targetSlots.length; i++) {
+              if (targetSlots[i] === oldIndex) targetSlots[i] = newIndex
+              else if (targetSlots[i] === newIndex) targetSlots[i] = oldIndex
+          }
+          newActiveSlots[teamKey] = targetSlots
+
           onUpdateSession({
-              initialState: { ...session.initialState, [teamSide]: newTeam },
+              initialState: { 
+                  ...session.initialState, 
+                  [teamSide]: newTeam,
+                  activeSlots: newActiveSlots
+              },
               nodes: finalNodes
           })
       }

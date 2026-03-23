@@ -160,7 +160,7 @@ export function PokemonAction({
       
       return {
           label: p.name,
-          value: JSON.stringify({ type: "battlefield_slot", side: isAlly ? "my" : "opponent", slotIndex: idx }),
+          value: JSON.stringify({ type: "team_index", side: isAlly ? "my" : "opponent", teamIndex: idx, slotIndex: idx }),
           isAlly: isAlly,
           slotIndex: idx,
           pokemon: p,
@@ -334,7 +334,7 @@ export function PokemonAction({
                       >
                         <SelectTrigger 
                             className={cn(
-                                "h-6 w-[100px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden truncate",
+                                "h-6 w-[100px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden min-w-0",
                                 borderColorClass
                             )}
                             title={(() => {
@@ -391,7 +391,7 @@ export function PokemonAction({
                                        >
                                          <SelectTrigger 
                                             className={cn(
-                                                "h-6 w-[100px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden truncate",
+                                                "h-6 w-[100px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden min-w-0",
                                                 borderColorClass
                                             )}
                                             style={{ color: action.metadata?.attackName ? (isAlly ? THEME.common.ally_text : THEME.common.opponent_text) : THEME.common.neutral }}
@@ -477,7 +477,7 @@ export function PokemonAction({
                           >
                             <SelectTrigger 
                               className={cn(
-                                "h-6 w-[110px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden truncate",
+                                "h-6 w-[110px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden min-w-0",
                                 !isSwitchAfterKo && borderColorClass
                               )} 
                               title={(() => {

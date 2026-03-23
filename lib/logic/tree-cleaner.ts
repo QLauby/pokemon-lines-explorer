@@ -192,28 +192,58 @@ export function sanitizeTreeForModification(
         return nodes.map(node => {
             const newNode = JSON.parse(JSON.stringify(node)) as TreeNode
             
-            // Remap SWITCH deltas (these use team indices)
-            const remapDeltas = (effects: any[]) => {
-                effects.forEach(e => {
-                    if (!e.deltas) return
-                    e.deltas.forEach((d: any) => {
-                        if (d.type === 'SWITCH') {
-                            const sameSide = (d.side === 'my' && isMyTeam) || (d.side === 'opponent' && !isMyTeam)
-                            if (sameSide) {
-                                if (d.fromSlot === oldIndex) d.fromSlot = newIndex
-                                else if (d.fromSlot === newIndex) d.fromSlot = oldIndex
-                                
-                                if (d.toSlot === oldIndex) d.toSlot = newIndex
-                                else if (d.toSlot === newIndex) d.toSlot = oldIndex
-                            }
-                        }
-                    })
+            const remapRef = (ref?: any, forceRemapTeamIndex = false) => {
+                if (!ref) return
+                const sameSide = (ref.side === 'my' && isMyTeam) || (ref.side === 'opponent' && !isMyTeam)
+                if (!sameSide) return
+
+                // 1. Remap teamIndex (always safe)
+                if (ref.teamIndex !== undefined) {
+                    if (ref.teamIndex === oldIndex) ref.teamIndex = newIndex
+                    else if (ref.teamIndex === newIndex) ref.teamIndex = oldIndex
+                }
+                
+                // 2. Remap slotIndex
+                // If forceRemapTeamIndex is true (e.g. action.target for a switch), we remap it regardless of value
+                // Otherwise, we only remap if it's > 1 (bench in double battle)
+                const isLikelyTeamIndex = forceRemapTeamIndex || ref.type === 'team_index' || ref.slotIndex > 1
+                
+                if (ref.slotIndex !== undefined && isLikelyTeamIndex) {
+                    if (ref.slotIndex === oldIndex) ref.slotIndex = newIndex
+                    else if (ref.slotIndex === newIndex) ref.slotIndex = oldIndex
+                }
+            }
+
+            const remapDelta = (d: any) => {
+                const sameSide = (d.side === 'my' && isMyTeam) || (d.side === 'opponent' && !isMyTeam)
+                if (d.type === 'SWITCH' && sameSide) {
+                    if (d.fromSlot === oldIndex) d.fromSlot = newIndex
+                    else if (d.fromSlot === newIndex) d.fromSlot = oldIndex
+                    
+                    if (d.toSlot === oldIndex) d.toSlot = newIndex
+                    else if (d.toSlot === newIndex) d.toSlot = oldIndex
+                }
+                // For a SWITCH delta, any target is likely a team index
+                if (d.target) remapRef(d.target, d.type === 'SWITCH')
+            }
+
+            const remapAction = (a: TurnAction) => {
+                const isSwitch = a.type === 'switch' || a.type === 'switch-after-ko'
+                remapRef(a.actor) // Actor is always a field slot (0 or 1) except in post-turn sometimes, but slotIndex > 1 check inside remapRef handles it
+                remapRef(a.target, isSwitch) 
+                a.actionDeltas.forEach(remapDelta)
+                a.effects.forEach(e => {
+                    remapRef(e.target)
+                    e.deltas.forEach(remapDelta)
                 })
             }
 
-            remapDeltas(newNode.turnData.actions.flatMap(a => a.effects))
-            remapDeltas(newNode.turnData.endOfTurnEffects)
-            if (newNode.turnData.postTurnActions) remapDeltas(newNode.turnData.postTurnActions.flatMap(a => a.effects))
+            newNode.turnData.actions.forEach(remapAction)
+            newNode.turnData.endOfTurnEffects.forEach(e => {
+                remapRef(e.target)
+                e.deltas.forEach(remapDelta)
+            })
+            if (newNode.turnData.postTurnActions) newNode.turnData.postTurnActions.forEach(remapAction)
 
             return newNode
         })

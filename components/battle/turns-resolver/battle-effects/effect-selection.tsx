@@ -13,9 +13,20 @@ import { OthersEffect } from "./others-effect"
 import { StatsModifierEffect } from "./stats-modifier-effect"
 import { StatusChangeEffect } from "./status-change-effect"
 
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { TypeLiseret } from "@/components/shared/type-liseret"
+import { THEME } from "@/lib/constants/color-constants"
+import { EffectOption } from "@/lib/utils/turn-logic-helpers"
+
 interface EffectSelectionProps {
     effect: Effect
-    options: { label: string; value: SlotReference; isAlly: boolean }[]
+    options: EffectOption[]
     onUpdate: (newEffect: Effect) => void
     onRemove: () => void
     readOnly?: boolean
@@ -90,23 +101,24 @@ export function EffectSelection({
         })
     }
 
-    const handleTypeChange = (newType: EffectType) => {
-        if (newType === effect.type) return
+    const handleTypeChange = (newType: string) => {
+        const typedNewType = newType as EffectType
+        if (typedNewType === effect.type) return
         // Reset deltas when changing type
         onUpdate({
             ...effect,
-            type: newType,
-            deltas: newType === "hp-change" 
+            type: typedNewType,
+            deltas: typedNewType === "hp-change" 
                 ? [{ type: "HP_RELATIVE", target: effect.target, amount: 0, unit: hpMode }] 
-                : newType === "status-change"
+                : typedNewType === "status-change"
                 ? [{ type: "STATUS_DELTAS", target: effect.target, operations: [] }]
-                : newType === "stats-modifier"
+                : typedNewType === "stats-modifier"
                 ? [{ type: "STATS_MODIFIERS_DELTAS", target: effect.target, operations: [] }]
-                : (newType === "others" || newType === "terrain")
+                : (typedNewType === "others" || typedNewType === "terrain")
                 ? [{ type: "OTHERS_EFFECT_DELTAS", target: effect.target, operations: [] }]
-                : newType === "mega-tera"
+                : typedNewType === "mega-tera"
                 ? [{ type: "MEGA_TERA_DELTAS", target: effect.target, operations: [] }]
-                : newType === "ability-item"
+                : typedNewType === "ability-item"
                 ? [
                     { type: "ABILITY_CHANGE", target: effect.target, abilityName: getTargetPokemon()?.abilityName || "" },
                     { type: "ITEM_CHANGE", target: effect.target, heldItem: getTargetPokemon()?.heldItem || false, heldItemName: getTargetPokemon()?.heldItemName || "" }
@@ -168,39 +180,70 @@ export function EffectSelection({
                 isAlly ? "bg-blue-50/50" : "bg-red-50/50"
             )}>
                 {/* Type Dropdown (Now first) */}
-                <select
-                    className={cn(
-                        "h-6 text-[10px] bg-background/80 border rounded px-1 outline-none focus:ring-1 focus:ring-ring flex-1 shrink-0",
-                        isAlly ? "border-blue-200" : "border-red-200"
-                    )}
+                <Select
                     value={effect.type}
-                    onChange={(e) => handleTypeChange(e.target.value as EffectType)}
+                    onValueChange={handleTypeChange}
                     disabled={readOnly}
                 >
-                    {Object.entries(EFFECT_TYPE_LABELS).map(([value, label]) => (
-                        <option key={value} value={value}>{label}</option>
-                    ))}
-                </select>
+                    <SelectTrigger
+                        className={cn(
+                            "h-6 text-[10px] bg-background/80 px-1.5 flex-1 shrink-0 min-w-0 transition-colors",
+                            isAlly ? "border-blue-200" : "border-red-200"
+                        )}
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {Object.entries(EFFECT_TYPE_LABELS).map(([value, label]) => (
+                            <SelectItem key={value} value={value} className="text-[10px] py-1 px-2">
+                                {label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
 
                 {/* Target Dropdown (Now second) */}
-                <select
-                    className={cn(
-                        "h-6 text-[10px] font-medium bg-background/80 border rounded px-1 outline-none focus:ring-1 focus:ring-ring flex-1 min-w-0 truncate",
-                        isAlly ? "border-blue-200" : "border-red-200"
-                    )}
+                <Select
                     value={JSON.stringify(effect.target)}
-                    onChange={(e) => handleTargetChange(e.target.value)}
+                    onValueChange={handleTargetChange}
                     disabled={readOnly}
                 >
-                    {options.map((opt, idx) => (
-                        <option
-                            key={`target-${idx}`}
-                            value={JSON.stringify(opt.value)}
-                        >
-                            {opt.label}
-                        </option>
-                    ))}
-                </select>
+                    <SelectTrigger
+                        className={cn(
+                            "h-6 text-[10px] font-bold bg-background/80 px-1.5 flex-[1.5] min-w-0 transition-colors",
+                            isAlly ? "border-blue-200" : "border-red-200"
+                        )}
+                        style={{
+                            color: (() => {
+                                if (effect.target.type === "field") {
+                                    return effect.target.side === "my" ? THEME.common.ally_text : THEME.common.opponent_text
+                                }
+                                return isAlly ? THEME.common.ally_text : THEME.common.opponent_text
+                            })()
+                        }}
+                    >
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {options.map((opt, idx) => (
+                            <SelectItem
+                                key={`target-${idx}`}
+                                value={JSON.stringify(opt.value)}
+                                className="text-[10px] py-1 px-2"
+                            >
+                                <div className="flex items-center gap-2">
+                                    {opt.types && <TypeLiseret types={opt.types} className="w-1 h-3 rounded-full" />}
+                                    <span style={{ 
+                                        color: opt.isAlly ? THEME.common.ally_text : THEME.common.opponent_text,
+                                        fontWeight: opt.value.type === "field" ? "normal" : "bold"
+                                    }}>
+                                        {opt.label}
+                                    </span>
+                                </div>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
 
                 {/* Delete */}
                 {!readOnly && (
@@ -214,6 +257,7 @@ export function EffectSelection({
                     </Button>
                 )}
             </div>
+
 
             {/* Row 2: Effect-specific content */}
             <div className="px-2 py-1.5 bg-card/30">

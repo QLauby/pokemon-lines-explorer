@@ -157,7 +157,7 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" =
           type: "SWITCH",
           side: action.actor.side,
           fromSlot: -1,
-          toSlot: target ? target.slotIndex : -1,
+          toSlot: target ? (target.teamIndex ?? target.slotIndex) : -1,
           slotIndex: action.actor.slotIndex,
         },
       ]

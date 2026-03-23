@@ -255,6 +255,7 @@ export function BattleTree({
                                                 textAlign="center"
                                                 rounded={true}
                                                 mainColor={branchColor}
+                                                startInEditMode={true}
                                             />
                                         </div>
                                     </div>

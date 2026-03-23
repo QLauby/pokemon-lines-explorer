@@ -315,7 +315,8 @@ export function useKoFusion({
 
             // If a switch already exists, reuse it with updated actionDeltas
             if (existingSwitch) {
-                const toSlot = existingSwitch.target ? existingSwitch.target.slotIndex : -1
+                const target = existingSwitch.target as any
+                const toSlot = target ? (target.teamIndex ?? target.slotIndex ?? -1) : -1
                 const updatedSwitch: TurnAction = {
                     ...existingSwitch,
                     // Recompute actionDeltas with the correct battlefield slot
@@ -335,6 +336,9 @@ export function useKoFusion({
                 finalProcessedActions.push(updatedSwitch)
             } else {
                 // No existing switch, create a new one
+                const target = cachedSwitch?.target as any
+                const toSlot = hasNoAvailableSwitch ? -1 : (target?.teamIndex ?? target?.slotIndex ?? -1)
+                
                 const newSwitch: TurnAction = {
                     id: cachedSwitch?.id || crypto.randomUUID(),
                     type: "switch-after-ko",
@@ -345,7 +349,7 @@ export function useKoFusion({
                         type: "SWITCH",
                         side: req.side,
                         fromSlot: -1,
-                        toSlot: hasNoAvailableSwitch ? -1 : (cachedSwitch?.target?.slotIndex ?? -1),
+                        toSlot,
                         slotIndex: req.slotIndex
                     }],
                     // Preserve user-editable effects (HP changes etc.), stripping any legacy SWITCH dummy effects

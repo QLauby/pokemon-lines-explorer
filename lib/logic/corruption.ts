@@ -103,10 +103,11 @@ export function detectCorruption(
 
     if (modification.type === "REORDER_POKEMON") {
         const { isMyTeam, oldIndex, newIndex } = modification.payload as { isMyTeam: boolean, oldIndex: number, newIndex: number }
-        const maxStarters = originalSession.battleType === "simple" ? 1 : 2
+        const teamKey = isMyTeam ? "myTeam" : "opponentTeam"
+        const activeSlots = originalSession.initialState.activeSlots[teamKey]
         
-        // If we swap a Pokémon that is/was a starter at turn 0
-        const impactsStarter = oldIndex < maxStarters || newIndex < maxStarters
+        // If we swap a Pokémon that is currently an active starter in initialState
+        const impactsStarter = activeSlots.includes(oldIndex) || activeSlots.includes(newIndex)
         
         if (impactsStarter) {
             // Check if any node has actions
@@ -116,13 +117,12 @@ export function detectCorruption(
             )
 
             if (!isTreeEmpty) {
-                // Total corruption
-                console.log("REORDER CORRUPTION: Starter changed in non-empty tree.")
+                // Changing active starters in non-empty tree invalidates combat start
                 return ["root"]
             }
         }
         
-        return [] // Safe or silent
+        return [] // Safe or silent if not a starter or tree is empty
     }
 
     return []
