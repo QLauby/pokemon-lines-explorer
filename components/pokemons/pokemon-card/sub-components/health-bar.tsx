@@ -15,7 +15,7 @@ interface HealthBarProps {
   isMyTeam?: boolean
   onHpChange?: (updatedPokemon: Pokemon, isMyTeam: boolean) => void
   hpPercent?: number
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
   showText?: boolean
   editable?: boolean
 }
@@ -87,7 +87,7 @@ export function HealthBar({
         </div>
 
         {/* ── EDITABLE — HP mode ── */}
-        {showText && canEdit && hpMode === "hp" ? (
+        {showText && canEdit && (hpMode === "hp" || hpMode === "rolls") ? (
           <div className="ml-2 flex-shrink-0 h-6 flex items-center gap-0.5">
             {/* current HP */}
             <EditableText
@@ -150,7 +150,7 @@ export function HealthBar({
         /* ── READ-ONLY display ── */
         ) : showText ? (
           <span className="text-xs font-medium w-12 text-center ml-2 flex-shrink-0 h-6 flex items-center justify-center">
-            {hpMode === "hp" && pokemon
+            {(hpMode === "hp" || hpMode === "rolls") && pokemon
               ? `${hpCurrent}/${hpMax}`
               : `${hpPercent.toFixed(1)}%`
             }

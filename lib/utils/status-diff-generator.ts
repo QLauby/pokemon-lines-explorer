@@ -57,7 +57,14 @@ export function computeStatusOperations(oldPokemon: Pokemon, newPokemon: Pokemon
          operations.push({ type: "COUNTER_TOGGLE", status: "confusion", show: newShowConf })
     }
 
-    // 6. SLEEP COUNTER VALUE (relative diff)
+    const oldShowToxic = !!oldPokemon.showToxicCounter
+    const newShowToxic = !!newPokemon.showToxicCounter
+    // 6. TOXIC COUNTER TOGGLE
+    if (oldShowToxic !== newShowToxic) {
+         operations.push({ type: "COUNTER_TOGGLE", status: "toxic", show: newShowToxic })
+    }
+
+    // 7. SLEEP COUNTER VALUE (relative diff)
     const oldSleepVal = oldPokemon.sleepCounter ?? 0
     const newSleepVal = newPokemon.sleepCounter ?? 0
     if (oldSleepVal !== newSleepVal) {
@@ -67,13 +74,23 @@ export function computeStatusOperations(oldPokemon: Pokemon, newPokemon: Pokemon
         }
     }
 
-    // 7. CONFUSION COUNTER VALUE (relative diff)
+    // 8. CONFUSION COUNTER VALUE (relative diff)
     const oldConfVal = oldPokemon.confusionCounter ?? 0
     const newConfVal = newPokemon.confusionCounter ?? 0
     if (oldConfVal !== newConfVal) {
         const diff = newConfVal - oldConfVal
         if (diff !== 0) {
             operations.push({ type: "COUNTER_RELATIVE", status: "confusion", amount: diff })
+        }
+    }
+
+    // 9. TOXIC COUNTER VALUE (relative diff)
+    const oldToxicVal = oldPokemon.toxicCounter ?? 0
+    const newToxicVal = newPokemon.toxicCounter ?? 0
+    if (oldToxicVal !== newToxicVal) {
+        const diff = newToxicVal - oldToxicVal
+        if (diff !== 0) {
+            operations.push({ type: "COUNTER_RELATIVE", status: "toxic", amount: diff })
         }
     }
 

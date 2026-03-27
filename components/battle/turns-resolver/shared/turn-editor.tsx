@@ -29,7 +29,7 @@ interface TurnEditorProps {
   turnNumber: number
   battleFormat?: "simple" | "double"
   autoSave?: boolean
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 export function TurnEditor({

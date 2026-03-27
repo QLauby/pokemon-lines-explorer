@@ -22,6 +22,7 @@ import { THEME } from "@/lib/constants/color-constants"
 import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
 import { cn } from "@/lib/utils/cn"
 import { darkenColor, lightenColor } from "@/lib/utils/colors-utils"
+import { formatKoRisk } from "@/lib/utils/hp-utils"
 import { TreeNode } from "@/types/types"
 import { getTreeBranchColor } from "./battle-view"
 
@@ -33,6 +34,7 @@ interface BattleTreeProps {
   onUpdateNode?: (nodeId: string, updates: Partial<TreeNode>) => void
   highlightedNodeIds?: string[]
   previewNodeId?: string | null
+  koNodesInfo?: Map<string, { events: { name: string, type: "ko" | "range", probability: number, isTriggered: boolean }[] }>
 }
 
 export function BattleTree({
@@ -43,6 +45,7 @@ export function BattleTree({
   onUpdateNode,
   highlightedNodeIds = [],
   previewNodeId = null,
+  koNodesInfo = new Map(),
 }: BattleTreeProps) {
   const [zoom, setZoom] = useState(1)
   const [isRestartDialogOpen, setIsRestartDialogOpen] = useState(false)
@@ -226,13 +229,13 @@ export function BattleTree({
                                             </div>
                                         </PopoverTrigger>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">
+                                    <TooltipContent side="top" className="bg-slate-900 text-white border-slate-700 shadow-xl z-[100] p-2">
                                         <div className="flex flex-col items-center">
-                                            <p className="font-bold text-xs">Probability : {(() => {
+                                            <p className="font-bold text-[11px]">Probability : {(() => {
                                                 const val = node.probability * 100
                                                 return (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1))
                                             })()} %</p>
-                                            <p className="text-[10px]" style={{ color: THEME.battle_tree.description_text }}>Click to edit</p>
+                                            <p className="text-[9px] text-slate-400">Click to edit</p>
                                         </div>
                                     </TooltipContent>
                                 </Tooltip>
@@ -311,22 +314,86 @@ export function BattleTree({
                                     {node.turn}
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent side="bottom" className="max-w-[200px] text-center p-2 space-y-1">
+                            <TooltipContent side="bottom" className="bg-slate-900 text-white border-slate-700 shadow-xl z-[100] max-w-[220px] text-center p-2 space-y-1">
                                 <div className="font-bold flex items-center justify-between gap-4">
-                                    <span className="tabular-nums">
+                                    <span className="tabular-nums text-[11px]">
                                         P(<span style={{ color: branchColor }}>{node.turn}</span>) = {(() => {
                                             const val = node.cumulativeProbability * 100
                                             return (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1))
                                         })()} %
                                     </span>
                                 </div>
+                                {koNodesInfo.has(node.id) && (
+                                    <div className="flex flex-col gap-1 mt-1.5 w-full text-left">
+                                        {koNodesInfo.get(node.id)!.events.map((event, idx) => {
+                                            const isKO = event.type === "ko"
+                                            return (
+                                                <div 
+                                                    key={idx} 
+                                                    className={cn(
+                                                        "text-[9px] px-2 py-1 rounded-[4px] font-medium flex items-center justify-between gap-1.5 shadow-sm border",
+                                                        isKO 
+                                                            ? "bg-red-950/40 text-red-200 border-red-500/30" 
+                                                            : "bg-orange-950/40 text-orange-200 border-orange-500/30"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-1.5 overflow-hidden">
+                                                        <span className={cn("text-[10px]", isKO ? "text-red-400" : "text-orange-400")}>
+                                                            {isKO ? "☠" : "⚠"}
+                                                        </span>
+                                                        <span className="leading-tight font-black uppercase tracking-tight shrink-0">
+                                                            {isKO ? "K.O." : "Range"}{" "} :
+                                                        </span>
+                                                        <span className="leading-tight truncate">{event.name}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 shrink-0">
+                                                        <span className="font-bold tabular-nums">
+                                                            {isKO ? "100" : formatKoRisk(event.probability)}%
+                                                        </span>
+                                                        {event.isTriggered && (
+                                                            <span 
+                                                                className="text-[7px] text-white px-1 rounded-[2px] font-black uppercase animate-pulse"
+                                                                style={{ backgroundColor: THEME.ko.bordeaux }}
+                                                            >
+                                                                Triggered
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                )}
                                 {node.description && (
-                                    <p className="text-[10px] italic border-t pt-1 line-clamp-3" style={{ color: THEME.battle_tree.description_text }}>
+                                    <p className="text-[10px] italic border-t border-white/10 pt-1.5 mt-1.5 line-clamp-3 text-slate-400">
                                         {node.description}
                                     </p>
                                 )}
                             </TooltipContent>
                         </Tooltip>
+                        {koNodesInfo.has(node.id) && koNodesInfo.get(node.id)!.events.length > 0 && (
+                            <div 
+                                className="absolute -top-[4.5px] -right-[7px] text-white rounded-[2px] px-[2.5px] py-0.5 flex items-center justify-center text-[7px] font-black z-[60] leading-none select-none tracking-tight border border-white shadow-sm pointer-events-none"
+                                style={{ 
+                                    backgroundColor: koNodesInfo.get(node.id)!.events.some(e => e.type === "ko" || e.isTriggered) 
+                                        ? THEME.ko.bordeaux 
+                                        : THEME.ko.uncertain 
+                                }}
+                            >
+                                KO
+                            </div>
+                        )}
+                        {node.description && node.description.trim().length > 0 && (
+                            <div 
+                                className="absolute -bottom-[3px] -right-[3px] rounded-full w-[11px] h-[11px] flex items-center justify-center text-[7px] font-black z-[60] leading-none select-none border border-white shadow-sm pointer-events-none"
+                                style={{ 
+                                    backgroundColor: THEME.battle_tree.node_description_badge,
+                                    color: THEME.battle_tree.node_description_badge_text
+                                }}
+                            >
+                                d
+                            </div>
+                        )}
                     </div>
                 )
                 })}

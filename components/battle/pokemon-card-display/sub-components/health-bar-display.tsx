@@ -1,14 +1,16 @@
-import { THEME } from "@/lib/constants/color-constants"
+import { StatHpBar } from "../../shared/stat-hp-bar"
 import { cn } from "@/lib/utils/cn"
+import { DistributionEngine } from "@/lib/logic/distribution-engine"
 
 interface HealthBarDisplayProps {
   hpPercent: number
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
   hpMax?: number
   hpCurrent?: number
   showText?: boolean
   className?: string
   height?: number
+  statProfile?: import("@/types/types").StatProfile
 }
 
 export function HealthBarDisplay({ 
@@ -18,35 +20,33 @@ export function HealthBarDisplay({
   hpCurrent,
   showText = true, 
   className,
-  height = 6 
+  height = 10,
+  statProfile
 }: HealthBarDisplayProps) {
-  // Color logic
-  let color: string = THEME.common.hp.high // >= 50%
-  if (hpPercent < 20) {
-    color = THEME.common.hp.low
-  } else if (hpPercent < 50) {
-    color = THEME.common.hp.mid
-  }
+  
+  const stats = (statProfile && statProfile.distribution) ? DistributionEngine.getProfileStats(statProfile.distribution) : null
+  const hasVariance = !!stats && stats.minHp < stats.maxHp
+  const currentMeanHp = stats ? stats.meanHp : (hpCurrent ?? (hpPercent * hpMax / 100))
 
   return (
     <div className={cn("w-full flex items-center gap-1.5", className)}>
-      <div className={cn("flex-1 rounded-full overflow-hidden", `h-[${height}px]`)} style={{ height, backgroundColor: THEME.counter.bg /* reuse slate-200 */ }}>
-        <div
-          className={cn("h-full transition-all duration-300 ease-in-out")}
-          style={{ width: `${Math.max(0, Math.min(100, hpPercent))}%`, backgroundColor: color }}
-        />
-      </div>
-      {showText && (
-        <span className={cn(
-            "text-[9px] font-bold text-right shrink-0",
-            hpPercent === 0 ? "text-slate-400" : "text-slate-700",
-            hpMode === "hp" ? "w-[42px]" : "w-[28px]"
-        )}>
-          {hpMode === "hp" && hpCurrent !== undefined
-            ? `${hpCurrent}/${hpMax}`
-            : `${hpPercent % 1 === 0 ? hpPercent.toFixed(0) : hpPercent.toFixed(1)}%`
-          }
-        </span>
+      <StatHpBar
+        hpMax={hpMax}
+        hpPercent={hpPercent}
+        hpCurrent={hpCurrent}
+        statProfile={hpMode === "rolls" ? statProfile : undefined}
+        barHeight={height}
+        className="flex-1"
+      />
+      
+      {/* Show numeric values only if there's no uncertainty */}
+      {showText && !hasVariance && (
+        <div className="flex items-center text-[10px] font-bold text-slate-700 tabular-nums shrink-0 mt-[1px]">
+          <span className="flex items-baseline gap-0.5">
+             <span className="text-[11px] font-bold">{Math.round(currentMeanHp)}</span>
+             <span className="text-slate-400 text-[9px] font-medium">/{hpMax}</span>
+          </span>
+        </div>
       )}
     </div>
   )

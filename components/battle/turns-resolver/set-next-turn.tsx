@@ -25,7 +25,7 @@ interface SetNextTurnProps {
   battleType: "simple" | "double"
   currentBattleState?: BattleState
   sessionInitialState?: BattleState
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 

@@ -42,7 +42,7 @@ interface ActionItemProps {
   // Movement capabilities from parent
   canMoveUp: boolean
   canMoveDown: boolean
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 export function ActionItem({

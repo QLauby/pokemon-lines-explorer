@@ -178,3 +178,23 @@ export function resolveHpMaxFromState(
 
     return getEffectiveHpMax(pokemon)
 }
+// ---------------------------------------------------------------------------
+// Visualization helpers (used by tooltips/editors)
+// ---------------------------------------------------------------------------
+
+/**
+ * Formats a KO risk (0 to 1) into a user-friendly string (percentage).
+ * Handles extreme cases with < 0.1% and > 99.9% for clarity.
+ */
+export function formatKoRisk(koRisk: number): string {
+    const rawPct = koRisk * 100;
+    
+    if (koRisk === 0) return "0";
+    if (koRisk === 1) return "100";
+    
+    // Exact checks to avoid floating point issues
+    if (rawPct < 0.1) return "< 0.1";
+    if (rawPct > 99.9) return "> 99.9";
+    
+    return rawPct.toFixed(1);
+}

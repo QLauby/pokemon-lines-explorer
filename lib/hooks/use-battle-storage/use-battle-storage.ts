@@ -90,7 +90,7 @@ export function useBattleStorage() {
       initialState: {
         myTeam: [],
         enemyTeam: [],
-        activeSlots: { myTeam: [0, 1], opponentTeam: [0, 1] },
+        activeSlots: { myTeam: [0], opponentTeam: [0] },
         battlefieldState: { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } },
       },
       nodes: [{

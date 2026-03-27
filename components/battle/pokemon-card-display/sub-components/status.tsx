@@ -29,6 +29,7 @@ export function PokemonCardDisplayStatus({ pokemon }: PokemonCardDisplayStatusPr
        {statusInfos.map(info => {
            const counter = 
               (info.type === "sleep" && pokemon.showSleepCounter) ? pokemon.sleepCounter : 
+              (info.type === "badly-poison" && pokemon.showToxicCounter) ? pokemon.toxicCounter : 
               (info.type === "confusion" && pokemon.showConfusionCounter) ? pokemon.confusionCounter : 
               undefined;
 

@@ -30,7 +30,7 @@ interface TurnsResolverProps {
   nextBattleState?: BattleState
   sessionInitialState?: BattleState
   readOnly?: boolean
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 type Tab = "update" | "delete" | "next"
@@ -58,6 +58,7 @@ export function TurnsResolver({
   nextBattleState,
   sessionInitialState,
   hpMode = "percent",
+  readOnly = false,
 }: TurnsResolverProps) {
   const [activeTab, setActiveTab] = useState<Tab>("next")
   const selectedNode = nodes.get(selectedNodeId)

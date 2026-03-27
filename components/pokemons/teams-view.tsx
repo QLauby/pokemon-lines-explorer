@@ -30,8 +30,10 @@ interface TeamsViewProps {
       love?: boolean
       sleepCounter?: number
       confusionCounter?: number
+      toxicCounter?: number
       showSleepCounter?: boolean
       showConfusionCounter?: boolean
+      showToxicCounter?: boolean
     },
   ) => void
   onUpdatePokemon: (updatedPokemon: Pokemon, isMyTeam: boolean) => void
@@ -52,8 +54,8 @@ interface TeamsViewProps {
   onUpdateBattlefieldTags: (tags: CustomTagData[]) => void
   onUpdatePlayerSideTags: (tags: CustomTagData[]) => void
   onUpdateOpponentSideTags: (tags: CustomTagData[]) => void
-  hpMode?: "percent" | "hp"
-  onImportPokemon: (pokemons: Omit<import("@/types/types").Pokemon, "id">[], mode: "replace" | "add", isMyTeam: boolean) => void
+  hpMode?: "percent" | "hp" | "rolls"
+  onImportPokemon: (pokemons: Omit<Pokemon, "id">[], mode: "replace" | "add", isMyTeam: boolean) => void
 }
 
 export function TeamsView({

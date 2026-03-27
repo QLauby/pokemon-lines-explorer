@@ -20,7 +20,8 @@ interface UpdateCurrentTurnProps {
   onChange?: (update: { mode: "add" | "update"; turnData: TurnData | null }) => void
   battleType: "simple" | "double"
   sessionInitialState?: BattleState
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
+  readOnly?: boolean
 }
 
 
@@ -36,6 +37,7 @@ export function UpdateCurrentTurn({
   battleType,
   sessionInitialState,
   hpMode = "percent",
+  readOnly = false,
 }: UpdateCurrentTurnProps) {
   const selectedNode = nodes.get(selectedNodeId)
   const { isCorrupted } = useCorruptionHandler()

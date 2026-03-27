@@ -416,6 +416,8 @@ export const THEME = {
     zoom_label_bg: PALETTE.slate[50],
     container_bg: PALETTE.slate[50],
     description_text: PALETTE.slate[500],
+    node_description_badge: PALETTE.amber[400],
+    node_description_badge_text: PALETTE.amber[900],
   },
 
   // --- COMPONENT: COUNTER ---
@@ -458,6 +460,15 @@ export const THEME = {
   // --- KO SPECIFIC ---
   ko: {
     bordeaux: PALETTE.rose[900],
+    uncertain: PALETTE.orange[500],
     bg: PALETTE.slate[100],
+  },
+
+  // --- COMPONENT: ROLLS HP BAR ---
+  rolls_hp_bar: {
+    avant_bar: PALETTE.indigo[400],
+    apres_bar: PALETTE.green[500],
+    ko_zone_base: PALETTE.red[500],
+    mean_marker: PALETTE.white,
   }
 } as const;

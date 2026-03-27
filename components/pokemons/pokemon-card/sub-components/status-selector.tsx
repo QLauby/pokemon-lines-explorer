@@ -24,8 +24,10 @@ interface StatusSelectorProps {
       love?: boolean
       sleepCounter?: number
       confusionCounter?: number
+      toxicCounter?: number
       showSleepCounter?: boolean
       showConfusionCounter?: boolean
+      showToxicCounter?: boolean
     },
   ) => void
   readOnly?: boolean
@@ -37,8 +39,10 @@ interface StatusSelectorProps {
 export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, showLabel = true, centerItems = false }: StatusSelectorProps) {
   const showSleepCounter = pokemon.showSleepCounter
   const showConfusionCounter = pokemon.showConfusionCounter
+  const showToxicCounter = pokemon.showToxicCounter
   const [isCounterMounting, setIsCounterMounting] = useState(showSleepCounter)
   const [isConfusionCounterMounting, setIsConfusionCounterMounting] = useState(showConfusionCounter)
+  const [isToxicCounterMounting, setIsToxicCounterMounting] = useState(showToxicCounter)
 
   // Synchronize mounting state for animations
   if (showSleepCounter !== isCounterMounting) {
@@ -47,7 +51,9 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, 
   if (showConfusionCounter !== isConfusionCounterMounting) {
       setTimeout(() => setIsConfusionCounterMounting(showConfusionCounter), 10)
   }
-
+  if (showToxicCounter !== isToxicCounterMounting) {
+      setTimeout(() => setIsToxicCounterMounting(showToxicCounter), 10)
+  }
   const handleExclusiveStatusClick = (statusType: PokemonStatus) => {
     if (readOnly) return;
     let newStatus: PokemonStatus = null
@@ -66,12 +72,22 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, 
       newStatus = pokemon.status === statusType ? null : statusType
     }
 
-    if (statusType === "sleep" && newStatus !== "sleep") {
+    const updates: any = { status: newStatus }
+
+    if (pokemon.status === "sleep" && newStatus !== "sleep") {
       setIsCounterMounting(false)
-      onUpdate(pokemon.id, isMyTeam, { status: newStatus, sleepCounter: 0, showSleepCounter: false })
-    } else {
-      onUpdate(pokemon.id, isMyTeam, { status: newStatus })
+      updates.sleepCounter = 0
+      updates.showSleepCounter = false
     }
+    
+    // Explicitly reset toxic counter if we leave badly-poison
+    if (pokemon.status === "badly-poison" && newStatus !== "badly-poison") {
+        setIsToxicCounterMounting(false)
+        updates.toxicCounter = 0
+        updates.showToxicCounter = false
+    }
+
+    onUpdate(pokemon.id, isMyTeam, updates)
   }
 
   const handleIndependentStatusClick = (statusType: "confusion" | "love") => {
@@ -128,6 +144,29 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, 
     setIsConfusionCounterMounting(false)
     setTimeout(() => {
       onUpdate(pokemon.id, isMyTeam, { confusionCounter: 0, showConfusionCounter: false })
+    }, 300)
+  }
+
+  const handleToggleToxicCounter = () => {
+    if (showToxicCounter) {
+      setIsToxicCounterMounting(false)
+      setTimeout(() => {
+        onUpdate(pokemon.id, isMyTeam, { toxicCounter: 0, showToxicCounter: false })
+      }, 300)
+    } else {
+      onUpdate(pokemon.id, isMyTeam, { toxicCounter: 0, showToxicCounter: true })
+    }
+  }
+
+  const handleToxicCounterChange = (newValue: string) => {
+    const numValue = Number.parseInt(newValue) || 0
+    onUpdate(pokemon.id, isMyTeam, { toxicCounter: numValue })
+  }
+
+  const handleToxicCounterValidateEmpty = () => {
+    setIsToxicCounterMounting(false)
+    setTimeout(() => {
+      onUpdate(pokemon.id, isMyTeam, { toxicCounter: 0, showToxicCounter: false })
     }, 300)
   }
 
@@ -217,6 +256,75 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, 
           )
         }
 
+        if (type === "poison") {
+          const isBadlyPoisoned = pokemon.status === "badly-poison"
+          return (
+            <div key={type} className={`inline-flex items-center gap-2 ${isActive && !showToxicCounter ? "mr-2" : ""}`}>
+              <div className="relative inline-flex items-center">
+                <CircularButton
+                  isActive={isActive}
+                  onClick={() => handleExclusiveStatusClick(type as PokemonStatus)}
+                  icon={icon}
+                  activeColor={displayColor}
+                  title={isBadlyPoisoned ? "Badly Poisoned" : title}
+                  variant="filled"
+                  diameter={buttonDiameter}
+                  readOnly={readOnly}
+                />
+
+                {isBadlyPoisoned && (
+                  <div className="absolute -bottom-1 -right-2">
+                    <CircularButton
+                      isActive={false}
+                      onClick={handleToggleToxicCounter}
+                      icon={showToxicCounter ? Minus : Plus}
+                      activeColor="bg-[var(--toggle-bg)] text-[var(--toggle-text)] hover:bg-[var(--toggle-hover)]"
+                      inactiveColor="bg-[var(--toggle-bg)] text-[var(--toggle-text)] hover:bg-[var(--toggle-hover)]"
+                      title={showToxicCounter ? "Hide counter" : "Show counter"}
+                      diameter={toggleButtonDiameter}
+                      iconRatio={0.8}
+                      variant="filled"
+                      style={{
+                        "--toggle-bg": THEME.pokemon_card.status.toggle_plus,
+                        "--toggle-text": THEME.pokemon_card.status.toggle_text,
+                        "--toggle-hover": THEME.pokemon_card.status.toggle_plus,
+                      } as React.CSSProperties}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {showToxicCounter && isBadlyPoisoned && (
+                <div
+                  className={`flex items-center transition-all duration-300 ease-in-out ${
+                    isToxicCounterMounting ? "opacity-100 translate-x-0 scale-100" : "opacity-0 -translate-x-2 scale-95"
+                  }`}
+                >
+                  <Counter
+                    value={(pokemon.toxicCounter || 0).toString()}
+                    onChange={handleToxicCounterChange}
+                    onValidateEmpty={handleToxicCounterValidateEmpty}
+                    min={1}
+                    max={15}
+                    doubleClickStep={2}
+                    autoSelectOnClick={true}
+                    defaultValue="1"
+                    placeholder="1"
+                    autoWidth={true}
+                    rounded={false}
+                    mode="text"
+                    visualMode="border"
+                    mainColor={THEME.pokemon_card.status.counter_text}
+                    darkTextColor={THEME.common.black}
+                    lightTextColor={THEME.common.white}
+                    transitionDuration="0.3s"
+                  />
+                </div>
+              )}
+            </div>
+          )
+        }
+
         return (
           <CircularButton
             key={type}
@@ -224,9 +332,10 @@ export function StatusSelector({ pokemon, isMyTeam, onUpdate, readOnly = false, 
             onClick={() => handleExclusiveStatusClick(type as PokemonStatus)}
             icon={icon}
             activeColor={displayColor}
-            title={pokemon.status === "badly-poison" && type === "poison" ? "Badly Poisoned" : title}
+            title={title}
             variant="filled"
             diameter={buttonDiameter}
+            readOnly={readOnly}
           />
         )
       })}

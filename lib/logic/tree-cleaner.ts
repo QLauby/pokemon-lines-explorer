@@ -164,9 +164,18 @@ export function sanitizeTreeForModification(
     }
     
     if (type === 'CHANGE_HP_MODE') {
-        const { newHpMode, initialState } = payload as { newHpMode: "percent" | "hp"; initialState: BattleState }
+        const { newHpMode, currentHpMode, initialState } = payload as { 
+            newHpMode: "percent" | "hp" | "rolls"
+            currentHpMode: "percent" | "hp" | "rolls"
+            initialState: BattleState 
+        }
 
-        if (newHpMode === "hp") return nodes
+        // ── percent → hp : no tree changes needed (corruption handler normalises initialState) ──
+        if (newHpMode === "hp" || newHpMode === "rolls") return nodes
+
+        // ── rolls → hp → (handled by rolls-to-hp conversion below) ──
+        // ── rolls → percent : convert rollProfiles to %, handled below ──
+        // ── hp → percent : convert HP deltas to % ──
 
         // Deep copy nodes to mutate them safely in place during traversal
         const clonedNodes = JSON.parse(JSON.stringify(nodes)) as TreeNode[]
@@ -174,11 +183,12 @@ export function sanitizeTreeForModification(
         traverseTreeWithState(clonedNodes, initialState, {
             onBeforeDelta: (delta, currentState) => {
                 if (delta.type === 'HP_RELATIVE' && delta.unit === 'hp') {
-                    // Critical fix: We use currentState, not initialState, to get the HP Max
                     const hpMax = resolveHpMaxFromState(currentState, delta.target)
-                    // Preserve sign; no rounding here — the stored value is the precise %
+                    // Preserve sign; no rounding — the stored value is the precise %
                     delta.amount = (delta.amount / hpMax) * 100
                     delta.unit = 'percent'
+                    // Clear rollProfile if converting away from rolls (% is incompatible)
+                    ;(delta as any).rollProfile = undefined
                 }
             }
         })

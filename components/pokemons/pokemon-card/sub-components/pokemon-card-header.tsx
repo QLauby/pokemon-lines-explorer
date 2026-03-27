@@ -73,10 +73,13 @@ interface PokemonCardHeaderProps {
     teraType?: PokemonType | null
     isSleepCounterMounting?: boolean
     isConfusionCounterMounting?: boolean
+    isToxicCounterMounting?: boolean
     handleSleepCounterChange: (newValue: string) => void
     handleConfusionCounterChange: (newValue: string) => void
+    handleToxicCounterChange: (newValue: string) => void
     handleToggleSleepCounter: () => void
     handleToggleConfusionCounter: () => void
+    handleToggleToxicCounter: () => void
 }
 
 export function PokemonCardHeader({
@@ -105,10 +108,13 @@ export function PokemonCardHeader({
     teraType,
     isSleepCounterMounting,
     isConfusionCounterMounting,
+    isToxicCounterMounting,
     handleSleepCounterChange,
     handleConfusionCounterChange,
+    handleToxicCounterChange,
     handleToggleSleepCounter,
-    handleToggleConfusionCounter
+    handleToggleConfusionCounter,
+    handleToggleToxicCounter
 }: PokemonCardHeaderProps) {
     const types = pokemon.types || []
 
@@ -197,7 +203,9 @@ export function PokemonCardHeader({
                     key={status.type} 
                     className={cn(
                       "flex items-center",
-                      (status.type === "sleep" && !pokemon.showSleepCounter) || (status.type === "confusion" && !pokemon.showConfusionCounter) ? "mr-2" : ""
+                      (status.type === "sleep" && !pokemon.showSleepCounter) || 
+                      (status.type === "confusion" && !pokemon.showConfusionCounter) ||
+                      (status.type === "badly-poison" && !pokemon.showToxicCounter) ? "mr-2" : ""
                     )}
                   >
                     <div className="relative inline-flex items-center">
@@ -208,6 +216,8 @@ export function PokemonCardHeader({
                             onUpdateStatus(pokemon.id, isMyTeam, { confusion: false, confusionCounter: 0, showConfusionCounter: false })
                           } else if (status.type === "love") {
                             onUpdateStatus(pokemon.id, isMyTeam, { love: false })
+                          } else if (status.type === "badly-poison") {
+                            onUpdateStatus(pokemon.id, isMyTeam, { status: null, toxicCounter: 0, showToxicCounter: false })
                           } else {
                             onUpdateStatus(pokemon.id, isMyTeam, { status: null, sleepCounter: 0, showSleepCounter: false })
                           }
@@ -220,16 +230,28 @@ export function PokemonCardHeader({
                         iconRatio={0.7}
                         readOnly={readOnly}
                       />
-                      {(status.type === "sleep" || status.type === "confusion") && (
+                      {(status.type === "sleep" || status.type === "confusion" || status.type === "badly-poison") && (
                         <div className="absolute -bottom-1 -right-2">
                           <CircularButton
                             isActive={false}
-                            onClick={status.type === "sleep" ? handleToggleSleepCounter : handleToggleConfusionCounter}
-                            icon={(status.type === "sleep" ? pokemon.showSleepCounter : pokemon.showConfusionCounter) ? Minus : Plus}
+                            onClick={
+                                status.type === "sleep" ? handleToggleSleepCounter : 
+                                status.type === "confusion" ? handleToggleConfusionCounter : 
+                                handleToggleToxicCounter
+                            }
+                            icon={(
+                                status.type === "sleep" ? pokemon.showSleepCounter : 
+                                status.type === "confusion" ? pokemon.showConfusionCounter : 
+                                pokemon.showToxicCounter
+                            ) ? Minus : Plus}
                             activeColor="bg-transparent"
                             inactiveColor="bg-transparent"
                             style={{ backgroundColor: THEME.pokemon_card.status.toggle_plus, color: THEME.pokemon_card.status.toggle_text }}
-                            title={(status.type === "sleep" ? pokemon.showSleepCounter : pokemon.showConfusionCounter) ? "Hide counter" : "Show counter"}
+                            title={(
+                                status.type === "sleep" ? pokemon.showSleepCounter : 
+                                status.type === "confusion" ? pokemon.showConfusionCounter : 
+                                pokemon.showToxicCounter
+                            ) ? "Hide counter" : "Show counter"}
                             diameter={10}
                             iconRatio={0.8}
                             variant="filled"
@@ -278,6 +300,30 @@ export function PokemonCardHeader({
                           autoSelectOnClick={true}
                           defaultValue="0"
                           placeholder="0"
+                          autoWidth={true}
+                          rounded={false}
+                          mode="text"
+                          visualMode="default"
+                          mainColor={THEME.pokemon_card.status.counter_text}
+                          className="w-4 h-4 text-xs"
+                        />
+                      </div>
+                    )}
+                    {status.type === "badly-poison" && pokemon.showToxicCounter && (
+                      <div
+                        className={`flex items-center ml-2 transition-all duration-300 ease-in-out ${
+                          isToxicCounterMounting ? "opacity-100 translate-x-0 scale-100" : "opacity-0 -translate-x-2 scale-95"
+                        }`}
+                      >
+                        <Counter
+                          value={(pokemon.toxicCounter || 0).toString()}
+                          onChange={handleToxicCounterChange}
+                          min={1}
+                          max={15}
+                          doubleClickStep={2}
+                          autoSelectOnClick={true}
+                          defaultValue="1"
+                          placeholder="1"
                           autoWidth={true}
                           rounded={false}
                           mode="text"

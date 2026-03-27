@@ -5,11 +5,11 @@ import { Layers } from "lucide-react"
 interface AppHeaderProps {
   currentView: "teams" | "combat"
   battleType: "simple" | "double"
-  hpMode: "percent" | "hp"
+  hpMode: "percent" | "hp" | "rolls"
   battleStarted: boolean
   onViewChange: (view: "teams" | "combat") => void
   onBattleTypeChange: (type: "simple" | "double") => void
-  onHpModeChange: (mode: "percent" | "hp") => void
+  onHpModeChange: (mode: "percent" | "hp" | "rolls") => void
   onResetBattle: () => void
   onOpenSessions: () => void
   navigationDisabled?: boolean
@@ -39,7 +39,7 @@ export function AppHeader({
           <span>Sessions</span>
         </button>
         <div className="flex-1 text-center">
-            <h1 className="text-3xl font-bold tracking-tight">Pokémon Lines Explorer</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Pokemon Lines Explorer</h1>
             <p className="text-base text-slate-500 font-medium italic mt-0.5">Trace your path to victory !</p>
         </div>
         <div className="w-[100px]" /> {/* Spacer to balance the header */}
@@ -129,6 +129,17 @@ export function AppHeader({
                 }`}
               >
                 Work in HP
+              </button>
+              <button
+                onClick={() => onHpModeChange("rolls")}
+                title="Le mode Rolls (variance) permet d'entrer les dégâts Min et Max (issus de votre calculateur) pour simuler les ranges de K.O. La répartition des 16 rolls (85% à 100%) est reconstruite pour vous alerter des probabilités de survie. Les calculs asymétriques assurent une approche conservatrice (pire scénario pour vous)."
+                className={`text-xs font-semibold px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                  hpMode === "rolls"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Work with Rolls
               </button>
             </div>
           </div>

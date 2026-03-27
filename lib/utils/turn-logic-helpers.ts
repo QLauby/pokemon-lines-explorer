@@ -395,8 +395,9 @@ export function getPokemonHpFromState(
     const hpMax = pokemon.hpMax ?? 100
     const hpPercent = pokemon.hpPercent
     const hpCurrent = pokemon.hpCurrent ?? Math.round(hpPercent * hpMax / 100)
+    const statProfile = pokemon.statProfile
 
-    return { hpPercent, hpMax, hpCurrent }
+    return { hpPercent, hpMax, hpCurrent, statProfile }
 }
 
 /**
@@ -438,8 +439,9 @@ export function getPokemonHpByTeamIndexFromState(
     const hpMax = pokemon.hpMax ?? 100
     const hpPercent = pokemon.hpPercent
     const hpCurrent = pokemon.hpCurrent ?? Math.round(hpPercent * hpMax / 100)
+    const statProfile = pokemon.statProfile
 
-    return { hpPercent, hpMax, hpCurrent }
+    return { hpPercent, hpMax, hpCurrent, statProfile }
 }
 
 /**

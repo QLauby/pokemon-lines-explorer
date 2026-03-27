@@ -5,12 +5,47 @@ import { traverseTreeWithState } from "./tree-traversal";
 type SlotReference = { side: "my" | "opponent"; slotIndex: number }
 
 /**
+ * Helpers to check if any node has actual strategic content (actions, effects).
+ */
+export function isTreeSignificant(nodes: any[]): boolean {
+    if (!nodes || nodes.length === 0) return false;
+    
+    // A tree is only significant if at least one node has actual USER-ENTERED content
+    return nodes.some(node => {
+        // Actions are significant if they have a move selected, a target OR manual deltas
+        const hasActions = (node.turnData?.actions || []).some((a: any) => 
+            a.metadata?.attackName || 
+            a.metadata?.itemName ||
+            a.target || // Even if no move, selecting a target is an intent
+            (a.actionDeltas || []).length > 0 || 
+            (a.effects || []).some((e: any) => (e.deltas || []).length > 0)
+        );
+        
+        const hasEffects = (node.turnData?.endOfTurnEffects || []).some((e: any) => (e.deltas || []).length > 0);
+        const hasPostActions = (node.turnData?.postTurnActions || []).some((a: any) => 
+            a.metadata?.attackName || 
+            a.metadata?.itemName ||
+            a.target ||
+            (a.actionDeltas || []).length > 0 || 
+            (a.effects || []).some((e: any) => (e.deltas || []).length > 0)
+        );
+        
+        return hasActions || hasEffects || hasPostActions;
+    });
+}
+
+/**
  * Detects which nodes become invalid (corrupted) based on a specific modification.
  */
 export function detectCorruption(
   originalSession: CombatSession,
   modification: { type: ModificationType; payload: any }
 ): string[] {
+    // If the entire tree has no data (even if 10 nodes exist), it's safe to modify roster/slots (silently)
+    if (!isTreeSignificant(originalSession.nodes)) {
+        return [];
+    }
+
     const corruptedIds: string[] = []
     
     // Helper to add uniquely
@@ -28,15 +63,25 @@ export function detectCorruption(
         traverseTreeWithState(originalSession.nodes, originalSession.initialState, {
             onNodeStart: (node) => {
                 if (node.turn === 0) {
-                    const hasActionDeltas = node.turnData.actions.some(a => a.effects.some(e => e.deltas.length > 0))
-                    const hasEndOfTurnDeltas = node.turnData.endOfTurnEffects.length > 0
-                    if (hasActionDeltas || hasEndOfTurnDeltas) {
+                    // Turn 0: Any action with a move or target is corrupted if deployment changes
+                    const hasStrategicIntent = (node.turnData.actions || []).some(a => 
+                        a.metadata?.attackName || 
+                        a.metadata?.itemName ||
+                        a.target || 
+                        (a.actionDeltas || []).length > 0 || 
+                        (a.effects || []).some(e => (e.deltas || []).length > 0)
+                    )
+                    const hasEndOfTurnDeltas = (node.turnData.endOfTurnEffects || []).some(e => (e.deltas || []).length > 0)
+                    const hasPostTurnActions = (node.turnData.postTurnActions || []).length > 0
+
+                    if (hasStrategicIntent || hasEndOfTurnDeltas || hasPostTurnActions) {
                         markCorrupted(node.id)
                         return false // Stop branch
                     }
                 } else {
+                    // Turn 1+ is corrupted if it has ANY content (checked by global guard anyway)
                     markCorrupted(node.id)
-                    return false // Turn 1+ is always corrupted
+                    return false 
                 }
             }
         })
@@ -44,12 +89,7 @@ export function detectCorruption(
     }
 
     if (modification.type === "DELETE_POKEMON") {
-        const payload = modification.payload as { originalIndex: number, isMyTeam: boolean }
-
-        // Determine which Pokemon ID is being deleted by looking at initialState
-        const targetTeam = payload.isMyTeam ? originalSession.initialState.myTeam : originalSession.initialState.enemyTeam
-        const deletedPokemonId = targetTeam[payload.originalIndex]?.id
-
+        const { id: deletedPokemonId } = modification.payload as { id: string, isMyTeam: boolean }
         if (!deletedPokemonId) return []
 
         // Traverse the tree to precisely find any step where the deleted Pokemon is involved
@@ -102,27 +142,17 @@ export function detectCorruption(
     }
 
     if (modification.type === "REORDER_POKEMON") {
-        const { isMyTeam, oldIndex, newIndex } = modification.payload as { isMyTeam: boolean, oldIndex: number, newIndex: number }
+        const { oldIndex, newIndex, isMyTeam } = modification.payload as { isMyTeam: boolean, oldIndex: number, newIndex: number }
         const teamKey = isMyTeam ? "myTeam" : "opponentTeam"
-        const activeSlots = originalSession.initialState.activeSlots[teamKey]
+        const activeSlots = (originalSession.initialState.activeSlots as any)[teamKey]
         
-        // If we swap a Pokémon that is currently an active starter in initialState
-        const impactsStarter = activeSlots.includes(oldIndex) || activeSlots.includes(newIndex)
-        
+        // Changing active starters in non-empty tree invalidates combat start
+        const impactsStarter = (activeSlots || []).includes(oldIndex) || (activeSlots || []).includes(newIndex)
         if (impactsStarter) {
-            // Check if any node has actions
-            const isTreeEmpty = originalSession.nodes.every(n => 
-                n.turnData.actions.length === 0 && 
-                n.turnData.endOfTurnEffects.length === 0
-            )
-
-            if (!isTreeEmpty) {
-                // Changing active starters in non-empty tree invalidates combat start
-                return ["root"]
-            }
+            return ["root"]
         }
         
-        return [] // Safe or silent if not a starter or tree is empty
+        return [] 
     }
 
     return []

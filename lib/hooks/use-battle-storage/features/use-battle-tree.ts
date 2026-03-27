@@ -129,9 +129,12 @@ export function useBattleTree({
   const updateNode = (nodeId: string, updates: Partial<TreeNode>) => {
     if (!currentSession) return
 
-    const updatedNodes = currentSession.nodes.map((node: TreeNode) => 
+    let updatedNodes = currentSession.nodes.map((node: TreeNode) => 
         node.id === nodeId ? { ...node, ...updates } : node
     )
+    
+    // Recalculate probabilities and coordinates after update
+    updatedNodes = recalculateTreeLayout(updatedNodes)
     
     saveSession({ ...currentSession, nodes: updatedNodes })
   }

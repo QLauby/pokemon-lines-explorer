@@ -16,7 +16,7 @@ interface EffectsListProps {
   onRemove: (index: number) => void
   readOnly?: boolean
   baseState?: BattleState
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 export function EffectsList({
@@ -28,7 +28,7 @@ export function EffectsList({
   onAdd,
   onUpdate,
   onRemove,
-  readOnly,
+  readOnly = false,
   baseState,
   hpMode = "percent"
 }: EffectsListProps) {
@@ -39,7 +39,7 @@ export function EffectsList({
       const stateBeforeThisEffect = currentState;
       if (currentState) {
           for(const delta of effect.deltas) {
-              currentState = BattleEngine.applyDelta(currentState, delta)
+              currentState = BattleEngine.applyDelta(currentState, delta, hpMode)
           }
       }
       return stateBeforeThisEffect;

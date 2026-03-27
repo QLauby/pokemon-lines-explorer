@@ -22,7 +22,7 @@ interface UseTurnInitializationProps {
   setActions: Dispatch<SetStateAction<TurnAction[]>>
   setEndOfTurnEffects: Dispatch<SetStateAction<Effect[]>>
   setPostTurnActions: Dispatch<SetStateAction<TurnAction[]>>
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 export function useTurnInitialization({
@@ -35,7 +35,7 @@ export function useTurnInitialization({
   setActions,
   setEndOfTurnEffects,
   setPostTurnActions,
-  hpMode,
+  hpMode = "percent",
 }: UseTurnInitializationProps) {
   useEffect(() => {
     // ── Case 1: Load existing data ──────────────────────────────

@@ -53,33 +53,39 @@ export function usePokemonBattle() {
       return currentSession.initialState
     }
 
-    // Convert nodes array to Map for Engine
     const nodesMap = new Map(currentSession.nodes.map((n: TreeNode) => [n.id, n]))
-    
-    // helper: generate order array [active..., inactive...]
-    const getOrder = (team: any[], starters: (number | null)[]) => {
-         const activeIndices = starters.filter(i => i !== null && i !== undefined && i < team.length && i >= 0) as number[];
-         const activeSet = new Set(activeIndices);
+    const battleType = currentSession.battleType || "simple"
+    const hpMode = (currentSession.hpMode ?? "percent") as "percent" | "hp" | "rolls"
+
+    // Storage is already normalized, but we still need to compute the engine's internal order
+    // to place active pokemons at indices 0, 1 for the simulation loop.
+    const activeSlots = currentSession.initialState.activeSlots;
+    const myStarters = (activeSlots.myTeam || []) as number[];
+    const enemyStarters = (activeSlots.opponentTeam || []) as number[];
+
+    const getOrder = (team: any[], starters: number[]) => {
+         const activeSet = new Set(starters);
          const inactiveIndices = team.map((_, i) => i).filter(i => !activeSet.has(i));
-         return [...activeIndices, ...inactiveIndices];
+         return [...starters, ...inactiveIndices];
     }
 
-    const activeSlots = currentSession.initialState.activeSlots || (currentSession.initialState as any).activeStarters || { myTeam: [0, 1], opponentTeam: [0, 1] }
+    const myOrder = getOrder(currentSession.initialState.myTeam, myStarters);
+    const enemyOrder = getOrder(currentSession.initialState.enemyTeam, enemyStarters);
 
-    const myOrder = getOrder(currentSession.initialState.myTeam, activeSlots.myTeam);
-    const enemyOrder = getOrder(currentSession.initialState.enemyTeam, activeSlots.opponentTeam);
-
-    // Prepare state for engine (active mons at 0, 1)
+    // Prepare state for engine (active mons MUST be at indices 0, 1 for it to work)
     const engineInitialState = {
         ...currentSession.initialState,
         myTeam: myOrder.map(i => currentSession.initialState.myTeam[i]),
         enemyTeam: enemyOrder.map(i => currentSession.initialState.enemyTeam[i]),
-        activeSlots: { myTeam: [0, 1], opponentTeam: [0, 1] } // Mock consistent starters for engine
+        activeSlots: { 
+            myTeam: myStarters.length > 0 ? myStarters.map((_, i) => i) : [], 
+            opponentTeam: enemyStarters.length > 0 ? enemyStarters.map((_, i) => i) : [] 
+        }
     }
 
-    const engineResult = BattleEngine.computeState(engineInitialState, nodesMap, battleTree.selectedNodeId || "root")
+    const engineResult = BattleEngine.computeState(engineInitialState, nodesMap, battleTree.selectedNodeId || "root", hpMode, battleType)
 
-    // Restore original order
+    // Restore original roster order for UI consistency
     const restoreTeam = (computedTeam: any[], order: number[]) => {
         const restored = new Array(computedTeam.length);
         order.forEach((originalIndex, computedIndex) => {
@@ -92,22 +98,19 @@ export function usePokemonBattle() {
         ...engineResult,
         myTeam: restoreTeam(engineResult.myTeam, myOrder),
         enemyTeam: restoreTeam(engineResult.enemyTeam, enemyOrder),
-        activeSlots: activeSlots // Restore original starters
+        activeSlots: { myTeam: myStarters, opponentTeam: enemyStarters }
     }
 
   }, [currentSession, currentView, battleTree.selectedNodeId])
 
 
-  const getAllPokemon = () => [...teamManager.myTeam, ...teamManager.enemyTeam]
   const getTeamCounterDisplay = (len: number) => `${len}/${Math.max(6, len)}`
-
-  const resetBattleIfNeeded = () => {} // Placeholder if needed
 
   return {
     state: {
         currentView,
         battleType: currentSession?.battleType || "simple",
-        hpMode: (currentSession?.hpMode ?? "percent") as "percent" | "hp",
+        hpMode: (currentSession?.hpMode ?? "percent") as "percent" | "hp" | "rolls",
         myTeam: currentState.myTeam,
         enemyTeam: currentState.enemyTeam,
         nodes: new Map((currentSession?.nodes || []).map((n: TreeNode) => [n.id, n])),
@@ -118,7 +121,11 @@ export function usePokemonBattle() {
         editingPokemonId: teamManager.editingPokemonId,
         editingPokemonName: teamManager.editingPokemonName,
         activeSlots: currentState.activeSlots,
-        getSlotForPokemon: teamManager.getSlotForPokemon,
+        getSlotForPokemon: (idx: number, isMyTeam: boolean) => {
+            const slots = (isMyTeam ? currentState.activeSlots.myTeam : currentState.activeSlots.opponentTeam) as number[];
+            const slotIdx = slots.indexOf(idx);
+            return slotIdx !== -1 ? slotIdx + 1 : null;
+        },
         battlefieldState: currentState.battlefieldState,
         currentSession,
         sessions,
@@ -134,39 +141,41 @@ export function usePokemonBattle() {
         setCurrentSessionId,
     },
     actions: {
-        addPokemon: teamManager.addPokemon,
-        removePokemon: teamManager.removePokemon,
-        setPokemonHealth: teamManager.setPokemonHealth,
-        updatePokemonHealth: (id: string, isMy: boolean, change: number) => {}, 
-        setPokemonStatus: teamManager.setPokemonStatus,
-        updatePokemonName: teamManager.updatePokemonName,
-        startEditingPokemon: teamManager.startEditingPokemon,
-        cancelEditing: teamManager.cancelEditing,
-        addAction: battleTree.addAction,
-        updateNode: battleTree.updateNode,
-        deleteNode: battleTree.deleteNode,
-        getAllPokemon,
-        resetBattle: battleTree.resetBattle,
-        resetBattleIfNeeded,
+        ...teamManager, // Keep all team management actions
         getTeamCounterDisplay,
-        updatePokemon: teamManager.updatePokemon,
-        toggleHeldItem: teamManager.toggleHeldItem,
-        toggleTerastallized: teamManager.toggleTerastallized,
-        toggleMega: teamManager.toggleMega,
-        isStarterPokemon: teamManager.isStarterPokemon,
-        handleFlagClick: teamManager.handleFlagClick,
-        getDefaultPokemonName: teamManager.getDefaultPokemonName,
-        updateBattlefieldTags: teamManager.updateBattlefieldTags,
-        updatePlayerSideTags: teamManager.updatePlayerSideTags,
-        updateOpponentSideTags: teamManager.updateOpponentSideTags,
         overwriteSession: saveSession,
         createSession,
         deleteSession,
         duplicateSession,
         updateSessionName,
         updateSessionsOrder,
-        movePokemon: teamManager.movePokemon,
-        importPokemons: teamManager.importPokemons,
+        addAction: battleTree.addAction,
+        updateNode: battleTree.updateNode,
+        deleteNode: battleTree.deleteNode,
+        resetBattle: battleTree.resetBattle,
+        resetBattleIfNeeded: () => {},
+        isStarterPokemon: (p: any, idx: number, isMyTeam: boolean) => {
+            const slots = (isMyTeam ? currentState.activeSlots.myTeam : currentState.activeSlots.opponentTeam) as number[];
+            return slots.includes(idx);
+        },
+        handleFlagClick: (index: number, isMyTeam: boolean) => {
+            if (!currentSession) return;
+            
+            // Rule: Index 0 is ALWAYS active and non-toggable
+            if (index === 0) return;
+            
+            const battleFormat = currentSession.battleType || "simple";
+            if (battleFormat === "simple") return; // No toggling in simple mode
+
+            // Double: Toggling Slot 2
+            const teamKey = isMyTeam ? "myTeam" : "opponentTeam";
+            const slots = [...((currentSession.initialState.activeSlots as any)?.[teamKey] || [0])];
+            
+            // Set as the new slot 2.
+            slots[1] = index;
+            
+            updateInitialState({ activeSlots: { ...currentSession.initialState.activeSlots, [teamKey]: slots } as any });
+        }
     }
   }
 }

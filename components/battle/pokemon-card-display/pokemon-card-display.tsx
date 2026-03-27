@@ -17,7 +17,7 @@ interface PokemonCardDisplayProps {
   mode: "deployed" | "compact"
   isMyTeam: boolean
   className?: string
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 export function PokemonCardDisplay({ 
@@ -25,7 +25,7 @@ export function PokemonCardDisplay({
   mode, 
   isMyTeam, 
   className,
-  hpMode = "percent" 
+  hpMode = "percent",
 }: PokemonCardDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(mode === "deployed")
   const isKO = pokemon.hpPercent === 0
@@ -87,8 +87,8 @@ export function PokemonCardDisplay({
               hpMode={hpMode}
               hpMax={hpMax}
               hpCurrent={hpCurrent}
+              statProfile={pokemon.statProfile}
               showText={true} 
-              height={4} 
           />
         </div>
 

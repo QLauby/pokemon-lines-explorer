@@ -35,8 +35,10 @@ interface TeamSectionProps {
       love?: boolean
       sleepCounter?: number
       confusionCounter?: number
+      toxicCounter?: number
       showSleepCounter?: boolean
       showConfusionCounter?: boolean
+      showToxicCounter?: boolean
     },
   ) => void
   onUpdatePokemon: (updatedPokemon: Pokemon, isMyTeam: boolean) => void
@@ -49,7 +51,7 @@ interface TeamSectionProps {
   getDefaultPokemonName: (team: Pokemon[], teamType: "my" | "opponent") => string
   getTeamCounterDisplay: (teamLength: number) => string
   isStarterPokemon: (pokemon: Pokemon, index: number, isMyTeam: boolean) => boolean
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
   onImportPokemon: (pokemons: Omit<Pokemon, "id">[], mode: "replace" | "add", isMyTeam: boolean) => void
 }
 

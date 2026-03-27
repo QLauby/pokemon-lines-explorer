@@ -10,12 +10,13 @@ interface UseTurnSimulationProps {
   myTeam: Pokemon[]
   enemyTeam: Pokemon[]
   activeSlotsCount?: number
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 export interface KODetected {
   pokemon: Pokemon
   isAlly: boolean
+  slotIndex: number // The field slot (0 or 1) the Pokémon occupied
   causedByEntryHazards?: boolean
 }
 
@@ -90,17 +91,25 @@ export function useTurnSimulation({
         const checkTeam = (isAlly: boolean) => {
             const team = isAlly ? stateAfter.myTeam : stateAfter.enemyTeam
             const prevTeam = isAlly ? stateBefore.myTeam : stateBefore.enemyTeam
+            const activeSlots = isAlly ? stateBefore.activeSlots?.myTeam : stateBefore.activeSlots?.opponentTeam
             
             // Iterate the entire team to detect any HP dropping to 0
             team.forEach((p_after, idx) => {
                 const p_before = prevTeam[idx]
                 if (p_before && p_after) {
                     if (p_before.hpPercent > 0 && p_after.hpPercent === 0) {
-                        currentKOs.push({ 
-                            pokemon: p_after, 
-                            isAlly, 
-                            causedByEntryHazards: isSwitch || (isPostMain && i > actions.length)
-                        })
+                        // Find the slot index for this team index
+                        const slotIndex = (activeSlots || []).indexOf(idx)
+                        
+                        // We only process KOs of Pokémon that were on the field
+                        if (slotIndex !== -1) {
+                            currentKOs.push({ 
+                                pokemon: p_after, 
+                                isAlly, 
+                                slotIndex,
+                                causedByEntryHazards: isSwitch || (isPostMain && i > actions.length)
+                            })
+                        }
                     }
                 }
             })

@@ -29,7 +29,7 @@ function getMoveMaxPP(moveName: string): number {
 
 function parsedToPokemons(
   parsed: ParsedPokemon[],
-  hpMode: "percent" | "hp"
+  hpMode: "percent" | "hp" | "rolls"
 ): Omit<Pokemon, "id">[] {
   return parsed.map((p) => {
     const hpMax = calculateMaxHp(p.baseHp, p.ivs.hp, p.evs.hp, p.level);
@@ -48,8 +48,8 @@ function parsedToPokemons(
       heldItemName: p.item,
       abilityName: p.ability,
       hpPercent: 100,
-      hpMax: hpMode === "hp" ? hpMax : undefined,
-      hpCurrent: hpMode === "hp" ? hpMax : undefined,
+      hpMax: hpMax,
+      hpCurrent: hpMax,
       attacks,
       status: null,
       confusion: false,
@@ -72,14 +72,20 @@ const TOOLTIP_CONTENT = (
     </div>
     <div>
       <p className="font-bold text-[11px] mb-1">📊 Table Format (Excel/Doc)</p>
-      <p className="text-slate-300">Copy-paste a table from Excel or Google Sheets. Each column = 1 Pokemon. Lines are analyzed automatically (name, ability, item, moves...).</p>
+      <p className="text-slate-300">Copy-paste a table from Excel or Google Sheets. Each column = 1 Pokemon.</p>
+    </div>
+    <div className="pt-1 border-t border-white/10 mt-1">
+      <p className="text-amber-400 font-bold flex items-center gap-1">
+        <AlertCircle className="h-2.5 w-2.5" /> Note on Health points
+      </p>
+      <p className="text-slate-400 italic">If IV/EV data is missing, HP is calculated using 31 IV and 0 EV (competitive standard).</p>
     </div>
   </div>
 );
 
 interface ImportDialogProps {
   isMyTeam: boolean;
-  hpMode?: "percent" | "hp";
+  hpMode?: "percent" | "hp" | "rolls";
   currentTeamSize: number;
   onImport: (pokemons: Omit<Pokemon, "id">[], mode: "replace" | "add") => void;
 }

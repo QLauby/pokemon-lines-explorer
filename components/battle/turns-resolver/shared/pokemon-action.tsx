@@ -48,7 +48,8 @@ interface PokemonActionProps {
   canMoveUp?: boolean
   canMoveDown?: boolean
   canDefuse?: boolean
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
+  readOnly?: boolean
   baseState?: BattleState
 }
 
@@ -79,6 +80,7 @@ export function PokemonAction({
   canMoveDown = true,
   canDefuse = false,
   hpMode = "percent",
+  readOnly = false,
   baseState,
 }: PokemonActionProps) {
   const isAlly = action.actor.side === "my"

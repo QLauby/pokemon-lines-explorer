@@ -184,7 +184,7 @@ export default function BattleSessionMenu({
                 New Battle Session
             </Button>
             <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-medium opacity-50">
-                Pokémon Lines Explorer
+                Pokemon Lines Explorer
             </p>
         </div>
       </div>

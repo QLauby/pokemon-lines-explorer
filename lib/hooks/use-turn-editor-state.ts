@@ -9,7 +9,7 @@
 import { Effect, SlotReference, TurnAction, TurnActionType } from "@/types/types"
 import { useState } from "react"
 
-export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" = "percent") {
+export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" | "rolls" = "percent") {
   const [actions, setActions] = useState<TurnAction[]>([])
   const [endOfTurnEffects, setEndOfTurnEffects] = useState<Effect[]>([])
   const [postTurnActions, setPostTurnActions] = useState<TurnAction[]>([])
@@ -271,7 +271,7 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" =
     const newEffect: Effect = {
       type: "hp-change",
       target: { ...defaultTarget },
-      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: 0, unit: hpMode }],
+      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: 0, unit: hpMode === "rolls" ? "hp" : hpMode }],
     }
 
     newActions[actionIndex] = { ...action, effects: [...action.effects, newEffect] }
@@ -311,7 +311,7 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" =
     const newEffect: Effect = {
       type: "hp-change",
       target: { ...defaultTarget },
-      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: 0, unit: hpMode }],
+      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: 0, unit: hpMode === "rolls" ? "hp" : hpMode }],
     }
     setEndOfTurnEffects(prev => [...prev, newEffect])
   }

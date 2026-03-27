@@ -1,6 +1,7 @@
 import { BattleState } from "@/types/types"
 import { useEffect, useMemo, useState } from "react"
 import { useBattleStorage } from "../use-battle-storage"
+import { BattleEngine } from "../../../logic/battle-engine"
 
 export function useBattleSession() {
   const { 
@@ -37,18 +38,24 @@ export function useBattleSession() {
   )
 
   const setBattleType = (type: "simple" | "double") => {
-      if(currentSession) saveSession({ ...currentSession, battleType: type })
+      if(currentSession) {
+          const normalized = BattleEngine.normalizeActiveSlots(currentSession.initialState, type)
+          saveSession({ ...currentSession, battleType: type, initialState: normalized })
+      }
   }
 
-  const setHpMode = (mode: "percent" | "hp") => {
+  const setHpMode = (mode: "percent" | "hp" | "rolls") => {
       if(currentSession) saveSession({ ...currentSession, hpMode: mode })
   }
 
   const updateInitialState = (updates: Partial<BattleState>) => {
     if (!currentSession) return
+    const mergedState = { ...currentSession.initialState, ...updates }
+    const normalized = BattleEngine.normalizeActiveSlots(mergedState, currentSession.battleType)
+    
     const newSession = {
       ...currentSession,
-      initialState: { ...currentSession.initialState, ...updates }
+      initialState: normalized
     }
     saveSession(newSession)
   }

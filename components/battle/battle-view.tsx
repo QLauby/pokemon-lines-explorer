@@ -4,10 +4,20 @@ import { useMemo, useState } from "react"
 
 import { THEME } from "@/lib/constants/color-constants"
 import { BattleEngine } from "@/lib/logic/battle-engine"
+import { DistributionEngine } from "@/lib/logic/distribution-engine"
 import { recalculateTreeLayout } from "@/lib/logic/tree-layout"
 import { getCyclicColor } from "@/lib/utils/colors-utils"
-import type { CombatSession, Pokemon, TreeNode } from "@/types/types"
+import type { BattleState, CombatSession, Pokemon, TreeNode } from "@/types/types"
 import { TurnData } from "@/types/types"
+
+export type NodeKOInfo = { 
+  events: {
+    name: string,
+    type: "ko" | "range",
+    probability: number,
+    isTriggered: boolean
+  }[]
+}
 
 export function getTreeBranchColor(branchIndex: number): string {
   return getCyclicColor(THEME.battle_tree.branch_base, 10, "shortList", branchIndex + 1)
@@ -99,7 +109,7 @@ export function CombatView({
          branchIndex: 0, 
          probability: 0, 
          cumulativeProbability: 0,
-         description: "Preview",
+         description: "",
          createdAt: Date.now(),
          x: 0, 
          y: 0 
@@ -132,7 +142,8 @@ export function CombatView({
             currentSession.initialState,
             nodes,
             selectedNode.parentId,
-            currentSession.hpMode
+            currentSession.hpMode,
+            currentSession.battleType
          )
       }
       
@@ -162,7 +173,8 @@ export function CombatView({
       currentSession.initialState, 
       displayNodes, 
       targetNodeId || "root",
-      currentSession.hpMode
+      currentSession.hpMode,
+      currentSession.battleType
   )
 
   const { battlefieldState } = currentSession.initialState
@@ -176,7 +188,8 @@ export function CombatView({
         currentSession.initialState,
         nodes, // Use pure nodes, not displayNodes to avoid preview recursion/contamination
         selectedNodeId,
-        currentSession.hpMode
+        currentSession.hpMode,
+        currentSession.battleType
      )
   }, [currentSession.initialState, nodes, selectedNodeId])
 
@@ -197,6 +210,146 @@ export function CombatView({
      ]
   }, [selectedNodeState, currentSession.battleType])
 
+  const koNodesInfo = useMemo(() => {
+      const koMap = new Map<string, NodeKOInfo>()
+      const stateCache = new Map<string, BattleState>()
+      stateCache.set("root", currentSession.initialState)
+
+      const sortedNodes = Array.from(displayNodes.values()).sort((a,b) => a.turn - b.turn)
+
+      for (const node of sortedNodes) {
+          if (!node.parentId) continue
+          
+          let parentState = stateCache.get(node.parentId)
+          if (!parentState) {
+              parentState = BattleEngine.computeState(currentSession.initialState, nodes, node.parentId, currentSession.hpMode)
+              stateCache.set(node.parentId, parentState)
+          }
+
+          let state = stateCache.get(node.id)
+          if (!state) {
+              state = BattleEngine.computeStateAtNode(node, parentState, currentSession.hpMode ?? "percent")
+              stateCache.set(node.id, state)
+          }
+          
+          const events: NodeKOInfo["events"] = []
+          
+          // Track the status of each pokemon DURING the node simulation
+          // Key: "my-0", Value: { type: "healthy" | "range" | "ko", prob: number }
+          const lastStatusInNode = new Map<string, { type: "healthy" | "range" | "ko", prob: number, triggered: boolean }>()
+
+          const getPokemonKey = (side: "my" | "opponent", idx: number) => `${side}-${idx}`
+
+          const checkTransition = (
+              pSide: "my" | "opponent", 
+              pIdx: number, 
+              prev: Pokemon, 
+              cur: Pokemon
+          ) => {
+              const key = getPokemonKey(pSide, pIdx)
+              
+              // 1. Determine current status in this step
+              let curType: "healthy" | "range" | "ko" = "healthy"
+              let curProb = 0
+              let curTriggered = false
+
+              if (currentSession.hpMode === "rolls" && cur.statProfile) {
+                  const stats = DistributionEngine.getProfileStats(cur.statProfile.distribution)
+                  if (stats.maxHp <= 0) {
+                      curType = "ko"
+                      curProb = 1
+                  } else if (stats.minHp <= 0) {
+                      curType = "range"
+                      curProb = stats.koRisk
+                      curTriggered = cur.hpPercent === 0
+                  }
+              } else if (cur.hpPercent <= 0) {
+                  curType = "ko"
+                  curProb = 1
+              }
+
+              // 2. Determine initial status BEFORE the node (from parentState)
+              if (!lastStatusInNode.has(key)) {
+                  const prevStats = prev.statProfile ? DistributionEngine.getProfileStats(prev.statProfile.distribution) : null
+                  let initialType: "healthy" | "range" | "ko" = "healthy"
+                  let initialProb = 0
+                  let initialTriggered = false
+
+                  if (currentSession.hpMode === "rolls" && prev.statProfile && prevStats) {
+                      if (prevStats.maxHp <= 0) {
+                          initialType = "ko"
+                          initialProb = 1
+                      } else if (prevStats.minHp <= 0) {
+                          initialType = "range"
+                          initialProb = prevStats.koRisk
+                          initialTriggered = prev.hpPercent === 0
+                      }
+                  } else if (prev.hpPercent <= 0) {
+                      initialType = "ko"
+                      initialProb = 1
+                  }
+                  lastStatusInNode.set(key, { type: initialType, prob: initialProb, triggered: initialTriggered })
+              }
+
+              // 3. Compare with last known status in this node
+              const last = lastStatusInNode.get(key)!
+              
+              if (curType === "healthy") {
+                  lastStatusInNode.set(key, { type: "healthy", prob: 0, triggered: false })
+                  return
+              }
+
+              const typeChanged = curType !== last.type
+              // For range, also check if prob changed or if it was triggered
+              const probChanged = curType === "range" && (Math.abs(curProb - last.prob) > 0.001 || curTriggered !== last.triggered)
+
+              if (typeChanged || probChanged) {
+                  events.push({ 
+                    name: cur.name, 
+                    type: curType === "ko" ? "ko" : "range", 
+                    probability: curProb, 
+                    isTriggered: curTriggered 
+                  })
+                  lastStatusInNode.set(key, { type: curType, prob: curProb, triggered: curTriggered })
+              }
+          }
+
+          // CHRONOLOGICAL ANALYSIS:
+          if (node.turnData) {
+              let tempState = JSON.parse(JSON.stringify(parentState)) as BattleState
+              
+              // We simulate sequentially all components of the turn
+              const allStages = [
+                  ...(node.turnData.actions || []).map(a => ({ actions: [a] })),
+                  ...(node.turnData.endOfTurnEffects ? [{ endOfTurnEffects: node.turnData.endOfTurnEffects }] : []),
+                  ...(node.turnData.postTurnActions || []).map(a => ({ postTurnActions: [a] }))
+              ]
+
+              for (const stage of allStages) {
+                  const nextState = BattleEngine.computeStateAtNode({ 
+                      ...node, 
+                      turnData: { actions: [], endOfTurnEffects: [], postTurnActions: [], ...stage } 
+                  } as any, tempState, currentSession.hpMode ?? "percent")
+
+                  // Compare tempState vs nextState for transitions
+                  for (let i = 0; i < nextState.myTeam.length; i++) {
+                      checkTransition("my", i, tempState.myTeam[i], nextState.myTeam[i])
+                  }
+                  for (let i = 0; i < nextState.enemyTeam.length; i++) {
+                      checkTransition("opponent", i, tempState.enemyTeam[i], nextState.enemyTeam[i])
+                  }
+
+                  tempState = nextState
+              }
+          }
+
+          if (events.length > 0) {
+              koMap.set(node.id, { events })
+          }
+      }
+      return koMap
+  }, [displayNodes, currentSession, nodes])
+
   return (
     <div className="w-full p-2 bg-slate-50/50 min-h-screen">
        {/* Main Grid: Left (Tree + Battle) | Right (Actions) */}
@@ -216,6 +369,7 @@ export function CombatView({
                     onUpdateNode={onUpdateNode}
                     highlightedNodeIds={highlightedNodeIds}
                     previewNodeId={targetNodeId === "preview-node" ? "preview-node" : null}
+                    koNodesInfo={koNodesInfo}
                   />
               </div>
 

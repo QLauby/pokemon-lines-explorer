@@ -36,7 +36,7 @@ export function usePostTurnSwitches({
         const team = ko.isAlly ? myTeam : enemyTeam
         const teamIndex = team.findIndex(p => p.id === ko.pokemon.id)
         
-        return action.actor.side === koSide && action.actor.slotIndex === teamIndex
+        return action.actor.side === koSide && action.actor.slotIndex === ko.slotIndex
       })
     })
 
@@ -54,7 +54,7 @@ export function usePostTurnSwitches({
       if (teamIndex === -1) return // Should not happen
 
       const existingActionIndex = nextActions.findIndex(
-        a => a.actor.side === koSide && a.actor.slotIndex === teamIndex
+        a => a.actor.side === koSide && a.actor.slotIndex === ko.slotIndex
       )
 
       if (existingActionIndex === -1) {
@@ -62,12 +62,13 @@ export function usePostTurnSwitches({
         const newAction: TurnAction = {
           id: crypto.randomUUID(),
           type: "switch-after-ko",
-          actor: { side: koSide, slotIndex: teamIndex },
+          actor: { side: koSide, slotIndex: ko.slotIndex },
           target: undefined,
           actionDeltas: [],
           effects: [],
           isCollapsed: true,
-          metadata: {}
+          metadata: {},
+          faintedPokemonId: ko.pokemon.id
         }
         nextActions.push(newAction)
         changed = true

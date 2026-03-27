@@ -75,7 +75,7 @@ function InnerContent({
         }
     }
 
-    const handleTryChangeHpMode = (mode: 'percent' | 'hp') => {
+    const handleTryChangeHpMode = (mode: 'percent' | 'hp' | 'rolls') => {
         if (mode === state.hpMode) return
         // Routes through the corruption pipeline:
         requestModification('CHANGE_HP_MODE', { newHpMode: mode })

@@ -219,12 +219,12 @@ function classifyCell(cell: string): { role: CellRole; score: number } {
  * Returns an array of ParsedPokemon.
  */
 export function parseTableFormat(text: string): ParsedPokemon[] {
-  // Split by tabs and detect columns
-  const lines = text.trim().split("\n").map(l => l.trim()).filter(Boolean);
+  // Split by rows WITHOUT trimming each line (to preserve leading tabs/empty columns)
+  const lines = text.split(/\r?\n/).filter(l => l.length > 0);
   if (lines.length === 0) return [];
 
-  // Detect separator: tab or multiple spaces
-  const hasTabs = lines[0].includes("\t");
+  // Detect separator: tabs have priority if present anywhere in the text
+  const hasTabs = text.includes("\t");
   const rows: string[][] = lines.map(line =>
     hasTabs ? line.split("\t") : line.split(/\s{2,}/)
   ).map(row => row.map(c => c.trim().replace(/^"|"$/g, "").trim()));

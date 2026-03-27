@@ -2,6 +2,7 @@ import { updatePokemonHpPercent } from "@/lib/utils/hp-utils"
 import { BattleState, CustomTagData, Pokemon } from "@/types/types"
 import { useState } from "react"
 import { BattleEngine } from "../../../logic/battle-engine"
+import { DistributionEngine } from "../../../logic/distribution-engine"
 
 interface UseTeamManagerProps {
   currentSession: any // Using specific type import in real code or implicit
@@ -49,6 +50,9 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
       hpPercent: 100,
       hpMax: 100,
       hpCurrent: 100,
+      statProfile: {
+        distribution: DistributionEngine.createInitialDistribution(100, 100)
+      },
       attacks: [],
       status: null,
       confusion: false,
@@ -228,18 +232,30 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
 
   const importPokemons = (pokemons: Omit<Pokemon, "id">[], mode: "replace" | "add", isMyTeam: boolean) => {
     const currentTeam = isMyTeam ? myTeam : enemyTeam;
-    const withIds: Pokemon[] = pokemons.map((p) => ({
-      ...p,
-      id: `import-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      status: null,
-      confusion: false,
-      love: false,
-      heldItem: !!p.heldItemName,
-      isTerastallized: false,
-      isMega: false,
-      customTags: [],
-      statsModifiers: BattleEngine.getStatsModifiersDefault(),
-    }));
+    const withIds: Pokemon[] = pokemons.map((p) => {
+      const max = p.hpMax && p.hpMax > 0 ? p.hpMax : 100;
+      const cur = p.hpCurrent !== undefined ? p.hpCurrent : max;
+      const pct = Math.max(0, Math.min(100, (cur / max) * 100));
+      
+      return {
+        ...p,
+        id: `import-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        hpMax: max,
+        hpCurrent: cur,
+        hpPercent: pct,
+        statProfile: {
+          distribution: DistributionEngine.createInitialDistribution(cur, max)
+        },
+        status: p.status || null,
+        confusion: !!p.confusion,
+        love: !!p.love,
+        heldItem: !!p.heldItemName,
+        isTerastallized: !!p.isTerastallized,
+        isMega: !!p.isMega,
+        customTags: p.customTags || [],
+        statsModifiers: p.statsModifiers || BattleEngine.getStatsModifiersDefault(),
+      };
+    });
 
     let newTeam: Pokemon[];
     if (mode === "replace") {

@@ -32,6 +32,19 @@ export type PokemonHpInfo = {
   hpMax?: number
   hpCurrent?: number
   rawHpExpression?: string
+  statProfile?: StatProfile
+}
+
+export interface StatProfile {
+  /** Discrete distribution of HP. Index is the HP, value is the probability.
+   *  Indices range from 0 to maxHp. */
+  distribution: number[]
+}
+
+/** The discrete rolls for a single damage instance. */
+export interface RollProfile {
+  /** All damage values (standardly 16, but supports any discrete set) */
+  rolls: readonly number[]
 }
 
 export interface Pokemon extends PokemonHpInfo {
@@ -47,6 +60,8 @@ export interface Pokemon extends PokemonHpInfo {
   status: PokemonStatus
   sleepCounter?: number
   showSleepCounter?: boolean
+  toxicCounter?: number
+  showToxicCounter?: boolean
   confusion: boolean
   confusionCounter?: number
   showConfusionCounter?: boolean
@@ -104,8 +119,8 @@ export type StatModifierOperation = {
 export type StatusOperation =
   | { type: "ADD"; status: PokemonStatus | "confusion" | "love" }
   | { type: "REMOVE"; status: PokemonStatus | "confusion" | "love" }
-  | { type: "COUNTER_RELATIVE"; status: "sleep" | "confusion"; amount: number }
-  | { type: "COUNTER_TOGGLE"; status: "sleep" | "confusion"; show: boolean }
+  | { type: "COUNTER_RELATIVE"; status: "sleep" | "confusion" | "toxic"; amount: number }
+  | { type: "COUNTER_TOGGLE"; status: "sleep" | "confusion" | "toxic"; show: boolean }
 
 export type OtherOperation =
   | { type: "CREATE"; id: string; name: string }
@@ -119,8 +134,14 @@ export type MegaTeraOperation =
   | { type: "SET_TERA"; value: boolean }
 
 export type BattleDelta =
-  | { type: "HP_RELATIVE"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string }
-  | { type: "HP_SET"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string }
+  | { type: "HP_RELATIVE"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string;
+      /** Present only in hpMode="rolls" when the user has configured a min/max range.
+       *  The scalar `amount` always equals -rollProfile.mean (negative = damage).
+       *  Absent for fixed-damage lines (treated identically to hpMode="hp"). */
+      rollProfile?: RollProfile;
+      isForcedKo?: boolean; }
+  | { type: "HP_SET"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string;
+      isForcedKo?: boolean; }
   | { type: "SWITCH"; side: "my" | "opponent"; fromSlot: number; toSlot: number; slotIndex?: number }
   | { type: "PP_CHANGE"; target: SlotReference; moveName: string; amount: number }
   | { type: "STATUS_DELTAS"; target: SlotReference; operations: StatusOperation[] }
@@ -138,6 +159,7 @@ export interface Effect {
   target: SlotReference
   type: EffectType
   deltas: BattleDelta[]
+  description?: string
 }
 
 export interface TurnAction {
@@ -178,7 +200,10 @@ export interface CombatSession {
   id: string
   name: string
   battleType: "simple" | "double"
-  hpMode?: "percent" | "hp"  // Default: "percent"
+  /** "percent" — all deltas in fractional %
+   *  "hp"      — all deltas in raw HP integers
+   *  "rolls"   — raw HP integers; individual damage lines may carry a RollProfile */
+  hpMode?: "percent" | "hp" | "rolls"
   initialState: BattleState
   nodes: TreeNode[]
   lastSelectedNodeId?: string

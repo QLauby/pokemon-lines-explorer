@@ -1,10 +1,53 @@
 import { getEffectiveHpMax } from "@/lib/utils/hp-utils"
-import { BattleDelta, BattleState, CustomTagData, OtherOperation, SlotReference, StatsModifiers, TreeNode } from "@/types/types"
+import { BattleDelta, BattleState, CustomTagData, OtherOperation, Pokemon, SlotReference, StatsModifiers, TreeNode } from "@/types/types"
+import { DistributionEngine } from "./distribution-engine"
 
 export class BattleEngine {
-  static computeState(initialState: BattleState, nodes: Map<string, TreeNode>, targetNodeId: string, hpMode: "percent" | "hp" = "percent"): BattleState {
+  static normalizeActiveSlots(state: BattleState, battleType: "simple" | "double"): BattleState {
+    const newState = JSON.parse(JSON.stringify(state)) as BattleState;
+    
+    if (!newState.battlefieldState) {
+        newState.battlefieldState = { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } };
+    }
+    
+    if (!newState.activeSlots) {
+        newState.activeSlots = { myTeam: [], opponentTeam: [] };
+    }
+
+    const normalizeSide = (team: any[], currentSlots: (number | null)[]): number[] => {
+        if (team.length === 0) return [];
+        
+        // Rule: First pokemon (index 0) is ALWAYS slot 1
+        const first = 0;
+        
+        if (battleType === "simple") {
+            return [first];
+        } else {
+            // Double: [0, Choice]
+            // Choice: current second slot if valid AND not 0, otherwise default to 1 (if available)
+            let second = currentSlots.length > 1 ? currentSlots[1] : null;
+            
+            // Validate second slot
+            if (second === null || second === undefined || second === 0 || second >= team.length) {
+                // Default to 1 if team has more than 1 pokemon
+                second = team.length > 1 ? 1 : null;
+            }
+            
+            const result = [first];
+            if (second !== null) result.push(second);
+            return result;
+        }
+    }
+
+    newState.activeSlots.myTeam = normalizeSide(newState.myTeam || [], newState.activeSlots.myTeam || []);
+    newState.activeSlots.opponentTeam = normalizeSide(newState.enemyTeam || [], newState.activeSlots.opponentTeam || []);
+    
+    return newState;
+  }
+
+  static computeState(initialState: BattleState, nodes: Map<string, TreeNode>, targetNodeId: string, hpMode: "percent" | "hp" | "rolls" = "percent", battleType: "simple" | "double" = "simple"): BattleState {
     if (!targetNodeId || !nodes.has(targetNodeId)) {
-      return initialState
+      return this.normalizeActiveSlots(initialState, battleType)
     }
 
     // 1. Trace path from target to root
@@ -17,18 +60,27 @@ export class BattleEngine {
       currentId = node.parentId
     }
 
-    // 2. Apply turn data sequentially
-    let currentState = JSON.parse(JSON.stringify(initialState)) as BattleState // Deep copy initial state
-    
-    // Normalize state (for old sessions missing battlefieldState)
-    if (!currentState.battlefieldState) {
-        currentState.battlefieldState = { customTags: [], playerSide: { customTags: [] }, opponentSide: { customTags: [] } };
+    // 2. Apply turn data sequentially from root
+    let currentState = this.normalizeActiveSlots(initialState, battleType)
+    for (const node of path) {
+       currentState = this.computeStateAtNode(node, currentState, hpMode)
     }
 
-    for (const node of path) {
-      
-      // Process TurnData if visible
-      if (node.turnData) {
+    return currentState
+  }
+
+  /**
+   * Computes the new BattleState by applying a single node's TurnData to a parent state.
+   * This allows for O(N) incremental tree traversals instead of O(N^2) full path re-processing.
+   */
+  static computeStateAtNode(
+    node: TreeNode, 
+    parentState: BattleState, 
+    hpMode: "percent" | "hp" | "rolls" = "percent"
+  ): BattleState {
+    let currentState = JSON.parse(JSON.stringify(parentState)) as BattleState
+
+    if (node.turnData) {
         // 1. Process Ordered Actions
         for (const action of node.turnData.actions) {
             // 1. Action-level deltas first (SWITCH, PP_CHANGE)
@@ -44,16 +96,14 @@ export class BattleEngine {
         }
         
         // 2. Process End of Turn
-        const eotEffects = node.turnData.endOfTurnEffects || []
-        for (const effect of eotEffects) {
+        for (const effect of (node.turnData.endOfTurnEffects || [])) {
              for (const delta of effect.deltas) {
                  currentState = this.applyDelta(currentState, delta, hpMode)
              }
         }
 
         // 3. Process Post-Turn Actions (Switches after KO)
-        const postActions = node.turnData.postTurnActions || []
-        for (const action of postActions) {
+        for (const action of (node.turnData.postTurnActions || [])) {
             for (const delta of (action.actionDeltas || [])) {
                 currentState = this.applyDelta(currentState, delta, hpMode)
             }
@@ -63,7 +113,6 @@ export class BattleEngine {
                 }
             }
         }
-      }
     }
 
     return currentState
@@ -132,7 +181,64 @@ export class BattleEngine {
     return activeSlots[battlefieldSlot] ?? null
   }
 
-  static applyDelta(state: BattleState, delta: BattleDelta, hpMode: "percent" | "hp" = "percent"): BattleState {
+  /**
+   * Computes the new HP statistical profile after applying a delta to a given starting profile.
+   * This is used for UI previews (e.g., in effect editors) without modifying the actual state.
+   */
+  static computeStatProfileAfterDelta(
+      profile: import("@/types/types").StatProfile,
+      delta: any, // Use any to access custom fields minAmount/maxAmount
+      hpMax: number
+  ): import("@/types/types").StatProfile {
+      if (delta.type !== "HP_RELATIVE" && delta.type !== "HP_SET") return { ...profile }
+
+      // Initialize distribution if missing
+      let dist = profile.distribution
+      if (!dist || dist.length === 0) {
+          // Fallback construction (empty/default handled by engine)
+          dist = DistributionEngine.createInitialDistribution(0, hpMax);
+      }
+
+      let nextDist: number[]
+
+      if (delta.type === "HP_SET") {
+          const numAmount = delta.amount
+          const target = delta.unit === "percent" ? (numAmount * hpMax / 100) : numAmount
+          nextDist = DistributionEngine.applySetHp(dist, target, hpMax)
+      } else {
+          // HP RELATIVE
+          if (delta.unit === "hp" && delta.rollProfile) {
+              const isHeal = delta.amount > 0
+              nextDist = DistributionEngine.applyDiscreteDamage(dist, delta.rollProfile.rolls, isHeal, hpMax)
+          } else {
+              // Generic amount or percent
+              let deltaHp = 0
+              if (delta.unit === "hp") {
+                  deltaHp = delta.amount
+              } else {
+                  deltaHp = (delta.amount / 100) * hpMax
+              }
+              
+              if (delta.minAmount !== undefined && delta.maxAmount !== undefined) {
+                  // Fallback for custom ranges (fake discrete uniform distribution). Simplified to mean.
+                  nextDist = DistributionEngine.applyFixedDamage(dist, deltaHp, hpMax)
+              } else {
+                  nextDist = DistributionEngine.applyFixedDamage(dist, deltaHp, hpMax)
+              }
+          }
+      }
+
+      // We NO LONGER overwrite nextDist with 0-HP here if forcedKo.
+      // Forced KO is handled as a separate state flag or by setting hpCurrent=0 while keeping distribution for context.
+
+      const stats = DistributionEngine.getProfileStats(nextDist)
+
+      return {
+          distribution: nextDist
+      }
+  }
+
+  static applyDelta(state: BattleState, delta: BattleDelta, hpMode: "percent" | "hp" | "rolls" = "percent"): BattleState {
     const newState = { 
         ...state, 
         myTeam: [...state.myTeam], 
@@ -176,8 +282,10 @@ export class BattleEngine {
         let newHpCurrent: number;
         let newHpPercent: number;
 
-        if (hpMode === "hp") {
-            // --- HP MODE (HP IS KING) ---
+        let newStatProfile = targetPokemon.statProfile ? { ...targetPokemon.statProfile } : undefined;
+
+        if (hpMode === "hp" || hpMode === "rolls") {
+            // --- HP / ROLLS MODE (HP IS KING) ---
             // 1. Determine absolute HP magnitude of change
             let deltaHp: number;
             if (delta.type === "HP_SET") {
@@ -194,11 +302,27 @@ export class BattleEngine {
             const currentHp = targetPokemon.hpCurrent ?? hpMax
             if (delta.type === "HP_SET") {
                 newHpCurrent = Math.max(0, Math.min(hpMax, deltaHp))
+                newStatProfile = undefined // Reset variance
             } else {
                 newHpCurrent = Math.max(0, Math.min(hpMax, currentHp + deltaHp))
+
+                if (hpMode === "rolls") {
+                    if (!newStatProfile) {
+                        newStatProfile = { 
+                            distribution: DistributionEngine.createInitialDistribution(currentHp, hpMax)
+                        }
+                    }
+                    
+                    newStatProfile = BattleEngine.computeStatProfileAfterDelta(newStatProfile, delta, hpMax);
+
+                    const stats = DistributionEngine.getProfileStats(newStatProfile.distribution)
+                    if (stats.minHp === stats.maxHp) {
+                        newStatProfile = undefined; // No variance left, return to fixed
+                    }
+                }
             }
 
-            // 3. Percentage is a mere consequence for display
+            // 3. Percentage calculation
             newHpPercent = (newHpCurrent / hpMax) * 100
         } else {
             // --- PERCENT MODE (PERCENT IS KING) ---
@@ -226,10 +350,27 @@ export class BattleEngine {
             newHpCurrent = Math.round((newHpPercent * hpMax) / 100)
         }
 
-        team[teamIndex] = { ...targetPokemon, hpPercent: newHpPercent, hpCurrent: newHpCurrent }
+        // CRITICAL: Determine if certain K.O. (100% chance or forced)
+        const isCertainKo = newHpPercent === 0 && (
+             !newStatProfile || 
+             DistributionEngine.getProfileStats(newStatProfile.distribution).maxHp === 0 || 
+             delta.isForcedKo
+        );
 
-        // If the PokÃ©mon just fainted and was on the battlefield, remove it.
-        if (newHpPercent === 0) {
+        if (delta.isForcedKo) {
+            newHpCurrent = 0
+            newHpPercent = 0
+            // We NO LONGER overwrite the distribution. We want to keep it visible for the user.
+        } else if (hpMode === "rolls" && newHpCurrent === 0 && !isCertainKo) {
+            // HP current is 0 (median) but we have survival chances in the distribution.
+            // We set a tiny hpPercent to prevent the UI from showing "IS KO" status badges and auto-triggers.
+            newHpPercent = 0.0001; 
+        }
+
+        team[teamIndex] = { ...targetPokemon, hpPercent: newHpPercent, hpCurrent: newHpCurrent, statProfile: newStatProfile }
+
+        // If the Pokémon fainted (certainly or forced) and was on the battlefield, remove it.
+        if (isCertainKo) {
             if (!delta.target.type || delta.target.type === "battlefield_slot") {
                 const slots = delta.target.side === "my"
                     ? newState.activeSlots.myTeam
@@ -323,32 +464,63 @@ export class BattleEngine {
                         if (op.status === "confusion" || op.status === "love") {
                             targetPokemon[op.status] = true
                         } else {
+                            // Reset counters when changing primary status
+                            if (targetPokemon.status === "sleep") {
+                                targetPokemon.sleepCounter = undefined
+                                targetPokemon.showSleepCounter = false
+                            } else if (targetPokemon.status === "badly-poison") {
+                                targetPokemon.toxicCounter = undefined
+                                targetPokemon.showToxicCounter = false
+                            }
+
                             targetPokemon.status = op.status
+
+                            // Initialize counters if necessary
+                            if (op.status === "sleep") {
+                                targetPokemon.sleepCounter = 0
+                                targetPokemon.showSleepCounter = true
+                            } else if (op.status === "badly-poison") {
+                                targetPokemon.toxicCounter = 0 // Changed from 1 to 0
+                                targetPokemon.showToxicCounter = true
+                            }
                         }
                         break
                     case "REMOVE":
                         if (op.status === "confusion" || op.status === "love") {
                             targetPokemon[op.status] = false
                         } else {
+                            if (targetPokemon.status === "sleep") {
+                                targetPokemon.sleepCounter = undefined
+                                targetPokemon.showSleepCounter = false
+                            } else if (targetPokemon.status === "badly-poison") {
+                                targetPokemon.toxicCounter = undefined
+                                targetPokemon.showToxicCounter = false
+                            }
                             targetPokemon.status = null
                         }
                         break
                     case "COUNTER_RELATIVE": {
-                        const counterKey = op.status === "sleep" ? "sleepCounter" : "confusionCounter"
-                        const currentValue = targetPokemon[counterKey] ?? 0
+                        const counterKey = op.status === "sleep" ? "sleepCounter" : 
+                                         op.status === "confusion" ? "confusionCounter" : "toxicCounter"
+                        const currentValue = targetPokemon[counterKey as keyof Pokemon] as number ?? 0
+                        // @ts-ignore
                         targetPokemon[counterKey] = currentValue + op.amount
                         break
                     }
                     case "COUNTER_TOGGLE": {
-                        const showKey = op.status === "sleep" ? "showSleepCounter" : "showConfusionCounter"
-                        const counterKey = op.status === "sleep" ? "sleepCounter" : "confusionCounter"
+                        const showKey = op.status === "sleep" ? "showSleepCounter" : 
+                                      op.status === "confusion" ? "showConfusionCounter" : "showToxicCounter"
+                        const counterKey = op.status === "sleep" ? "sleepCounter" : 
+                                         op.status === "confusion" ? "confusionCounter" : "toxicCounter"
                         
+                        // @ts-ignore
                         targetPokemon[showKey] = op.show
                         
-                        // Safety: if we toggle ON and it's undefined, init to 0. If OFF, reset to undefined.
-                        if (op.show === true && targetPokemon[counterKey] === undefined) {
-                            targetPokemon[counterKey] = 0
+                        if (op.show === true && targetPokemon[counterKey as keyof Pokemon] === undefined) {
+                            // @ts-ignore
+                            targetPokemon[counterKey] = 1
                         } else if (op.show === false) {
+                            // @ts-ignore
                             targetPokemon[counterKey] = undefined
                         }
                         break
@@ -480,7 +652,7 @@ export class BattleEngine {
    * Returns an array where index i corresponds to the state BEFORE action i,
    * and the last element corresponds to the state AFTER the last action.
    */
-  static computeTurnSequence(initialState: BattleState, actions: any[], hpMode: "percent" | "hp" = "percent"): BattleState[] {
+  static computeTurnSequence(initialState: BattleState, actions: any[], hpMode: "percent" | "hp" | "rolls" = "percent"): BattleState[] {
     const states: BattleState[] = []
     
     // State 0: Initial

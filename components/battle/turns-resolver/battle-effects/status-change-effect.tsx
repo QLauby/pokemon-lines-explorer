@@ -46,18 +46,25 @@ export function StatusChangeEffect({
                 }
                 break
             case "COUNTER_RELATIVE": {
-                const counterKey = op.status === "sleep" ? "sleepCounter" : "confusionCounter"
-                const currentValue = afterPokemon[counterKey] ?? 0
+                const counterKey = op.status === "sleep" ? "sleepCounter" : 
+                                 op.status === "confusion" ? "confusionCounter" : "toxicCounter"
+                const currentValue = afterPokemon[counterKey as keyof Pokemon] as number ?? 0
+                // @ts-ignore
                 afterPokemon[counterKey] = currentValue + op.amount
                 break
             }
             case "COUNTER_TOGGLE": {
-                const showKey = op.status === "sleep" ? "showSleepCounter" : "showConfusionCounter"
-                const counterKey = op.status === "sleep" ? "sleepCounter" : "confusionCounter"
+                const showKey = op.status === "sleep" ? "showSleepCounter" : 
+                              op.status === "confusion" ? "showConfusionCounter" : "showToxicCounter"
+                const counterKey = op.status === "sleep" ? "sleepCounter" : 
+                                 op.status === "confusion" ? "confusionCounter" : "toxicCounter"
+                // @ts-ignore
                 afterPokemon[showKey] = op.show
-                if (op.show === true && afterPokemon[counterKey] === undefined) {
+                if (op.show === true && afterPokemon[counterKey as keyof Pokemon] === undefined) {
+                    // @ts-ignore
                     afterPokemon[counterKey] = 0
                 } else if (op.show === false) {
+                    // @ts-ignore
                     afterPokemon[counterKey] = undefined
                 }
                 break
@@ -74,23 +81,25 @@ export function StatusChangeEffect({
             love?: boolean
             sleepCounter?: number
             confusionCounter?: number
+            toxicCounter?: number
             showSleepCounter?: boolean
             showConfusionCounter?: boolean
+            showToxicCounter?: boolean
         }
     ) => {
         if (readOnly) return
 
-        // Create the hypothetical new pokemon with updates
         const newPokemon = { ...afterPokemon }
         
-        // Use 'in' to perfectly capture null or false updates
         if ('status' in updates) newPokemon.status = updates.status
         if ('confusion' in updates) newPokemon.confusion = updates.confusion!
         if ('love' in updates) newPokemon.love = updates.love!
         if ('sleepCounter' in updates) newPokemon.sleepCounter = updates.sleepCounter
         if ('confusionCounter' in updates) newPokemon.confusionCounter = updates.confusionCounter
+        if ('toxicCounter' in updates) newPokemon.toxicCounter = updates.toxicCounter
         if ('showSleepCounter' in updates) newPokemon.showSleepCounter = updates.showSleepCounter
         if ('showConfusionCounter' in updates) newPokemon.showConfusionCounter = updates.showConfusionCounter
+        if ('showToxicCounter' in updates) newPokemon.showToxicCounter = updates.showToxicCounter
 
         // Compute relative diffs from initial to new
         const operations = computeStatusOperations(initialPokemon, newPokemon)

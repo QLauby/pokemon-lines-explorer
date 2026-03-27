@@ -40,8 +40,10 @@ interface PokemonCardProps {
       love?: boolean
       sleepCounter?: number
       confusionCounter?: number
+      toxicCounter?: number
       showSleepCounter?: boolean
       showConfusionCounter?: boolean
+      showToxicCounter?: boolean
     },
   ) => void
   onUpdatePokemon: (updatedPokemon: Pokemon, isMyTeam: boolean) => void
@@ -57,7 +59,7 @@ interface PokemonCardProps {
   isFirst?: boolean
   isLast?: boolean
   onToggleExpansion?: () => void
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 export function PokemonCard({
@@ -98,6 +100,7 @@ export function PokemonCard({
   // State for counter animations
   const [isSleepCounterMounting, setIsSleepCounterMounting] = useState(pokemon.showSleepCounter || false)
   const [isConfusionCounterMounting, setIsConfusionCounterMounting] = useState(pokemon.showConfusionCounter || false)
+  const [isToxicCounterMounting, setIsToxicCounterMounting] = useState(pokemon.showToxicCounter || false)
 
   // Synchronize mounting state for animations
   if (pokemon.showSleepCounter !== isSleepCounterMounting) {
@@ -105,6 +108,9 @@ export function PokemonCard({
   }
   if (pokemon.showConfusionCounter !== isConfusionCounterMounting) {
     setTimeout(() => setIsConfusionCounterMounting(pokemon.showConfusionCounter || false), 10)
+  }
+  if (pokemon.showToxicCounter !== isToxicCounterMounting) {
+    setTimeout(() => setIsToxicCounterMounting(pokemon.showToxicCounter || false), 10)
   }
 
   const handleUpdateCustomTags = (newTags: CustomTagData[]) => {
@@ -237,6 +243,11 @@ export function PokemonCard({
     onUpdateStatus(pokemon.id, isMyTeam, { confusionCounter: numValue })
   }
 
+  const handleToxicCounterChange = (newValue: string) => {
+    const numValue = Number.parseInt(newValue) || 0
+    onUpdateStatus(pokemon.id, isMyTeam, { toxicCounter: numValue })
+  }
+
   const handleToggleSleepCounter = () => {
     onUpdateStatus(pokemon.id, isMyTeam, { 
       showSleepCounter: !pokemon.showSleepCounter,
@@ -248,6 +259,13 @@ export function PokemonCard({
     onUpdateStatus(pokemon.id, isMyTeam, { 
       showConfusionCounter: !pokemon.showConfusionCounter,
       confusionCounter: !pokemon.showConfusionCounter ? 0 : pokemon.confusionCounter
+    })
+  }
+
+  const handleToggleToxicCounter = () => {
+    onUpdateStatus(pokemon.id, isMyTeam, { 
+      showToxicCounter: !pokemon.showToxicCounter,
+      toxicCounter: !pokemon.showToxicCounter ? 0 : pokemon.toxicCounter
     })
   }
 
@@ -289,10 +307,13 @@ export function PokemonCard({
             teraType={teraType}
             isSleepCounterMounting={isSleepCounterMounting}
             isConfusionCounterMounting={isConfusionCounterMounting}
+            isToxicCounterMounting={isToxicCounterMounting}
             handleSleepCounterChange={handleSleepCounterChange}
             handleConfusionCounterChange={handleConfusionCounterChange}
+            handleToxicCounterChange={handleToxicCounterChange}
             handleToggleSleepCounter={handleToggleSleepCounter}
             handleToggleConfusionCounter={handleToggleConfusionCounter}
+            handleToggleToxicCounter={handleToggleToxicCounter}
         />
 
          {isCardExpanded && !readOnly && (

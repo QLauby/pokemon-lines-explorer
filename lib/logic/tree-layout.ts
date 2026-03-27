@@ -53,7 +53,8 @@ export function recalculateTreeLayout(nodes: TreeNode[]): TreeNode[] {
     node.branchIndex = inheritedBranchIndex // Apply inherited (or root) index
     
     // Calculate cumulative probability
-    node.cumulativeProbability = parentCumulativeProb * (node.probability ?? 1)
+    const nodeProb = (typeof node.probability === "number" && !isNaN(node.probability)) ? node.probability : 1
+    node.cumulativeProbability = parentCumulativeProb * nodeProb
 
     const children = childrenMap.get(node.id) || []
 

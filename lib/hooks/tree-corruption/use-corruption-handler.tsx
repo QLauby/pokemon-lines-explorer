@@ -1,9 +1,52 @@
 "use client"
 
-import { CombatSession, Pokemon, TreeNode } from "@/types/types"
+import { CombatSession, BattleState, Pokemon, TreeNode } from "@/types/types"
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react"
-import { detectCorruption } from "../../logic/corruption"
+import { detectCorruption, isTreeSignificant } from "../../logic/corruption"
 import { ModificationType, pruneTree, sanitizeTreeForModification } from "../../logic/tree-cleaner"
+import { BattleEngine } from "../../logic/battle-engine"
+/**
+ * Convert all rollProfile deltas back to fixed HP scalars using Nuzlocke asymmetry:
+ * - target is player's mon → keep maxDmg (worst case for player)
+ * - target is opponent's mon → keep minDmg (best roll for opponent = min damage dealt)
+ */
+function stripRollProfiles(nodes: TreeNode[], _initialState: BattleState): TreeNode[] {
+  const cloned: TreeNode[] = JSON.parse(JSON.stringify(nodes))
+
+  const applyToDeltas = (deltas: any[]) => {
+    for (const delta of deltas) {
+      if (delta.type === 'HP_RELATIVE' && delta.rollProfile) {
+        const targetSide: "my" | "opponent" = delta.target?.side ?? "opponent"
+        // Nuzlocke rule: use worst case for our team (maxDmg), best case for opponent (minDmg)
+        const fixedDmg = targetSide === "my"
+          ? delta.rollProfile.maxDmg
+          : delta.rollProfile.minDmg
+        delta.amount = -fixedDmg
+        delta.rollProfile = undefined
+      }
+    }
+  }
+
+  for (const node of cloned) {
+    for (const action of node.turnData.actions) {
+      applyToDeltas(action.actionDeltas ?? [])
+      for (const effect of action.effects ?? []) {
+        applyToDeltas(effect.deltas ?? [])
+      }
+    }
+    for (const effect of node.turnData.endOfTurnEffects ?? []) {
+      applyToDeltas(effect.deltas ?? [])
+    }
+    for (const action of node.turnData.postTurnActions ?? []) {
+      applyToDeltas(action.actionDeltas ?? [])
+      for (const effect of action.effects ?? []) {
+        applyToDeltas(effect.deltas ?? [])
+      }
+    }
+  }
+
+  return cloned
+}
 
 // Define the shape of a pending modification
 export type ModificationRequest = 
@@ -83,7 +126,11 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
   const applyModification = (type: string, payload: any, currentNodes: TreeNode[]) => {
       let finalNodes = currentNodes
       
-      // a. Pruning: already done via currentNodes
+      // ARBRE PROPRE: If the original tree was not significant, wipe all except root
+      if (!isTreeSignificant(session.nodes)) {
+          finalNodes = currentNodes.filter(n => n.id === 'root')
+      }
+
       // b. Sanitize
       const enrichedPayload = type === 'CHANGE_HP_MODE'
           ? { ...payload, initialState: session.initialState }
@@ -93,10 +140,16 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
 
       // c. Apply
       if (type === 'CHANGE_HP_MODE') {
-          const { newHpMode } = payload as { newHpMode: "percent" | "hp" }
+          const { newHpMode } = payload as { newHpMode: "percent" | "hp" | "rolls" }
+          const currentHpMode = session.hpMode ?? "percent"
 
+          if (newHpMode === currentHpMode) {
+              setPendingModification(null)
+              return
+          }
+
+          // ── percent → hp ──
           if (newHpMode === 'hp') {
-              // % → HP: sanitizeTree was a no-op on the tree.
               const normalizeTeam = (team: Pokemon[]): Pokemon[] =>
                   team.map(p => ({
                       ...p,
@@ -113,25 +166,44 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
                       enemyTeam: normalizeTeam(session.initialState.enemyTeam),
                   },
               })
+
+          // ── hp → rolls ──
+          // No tree conversion: existing deltas stay as fixed scalars (opt-in per line)
+          } else if (newHpMode === 'rolls') {
+              onUpdateSession({ hpMode: newHpMode, nodes: finalNodes })
+
+          // ── rolls → hp ──
+          // Convert every rollProfile to its Nuzlocke-asymmetric fixed scalar
+          } else if (newHpMode === 'percent' && currentHpMode === 'rolls') {
+              // Two-step: rolls → hp → percent
+              // Step 1: strip rollProfiles (convert to fixed HP using asymmetric rule)
+              const nodesWithStrippedRolls = stripRollProfiles(finalNodes, session.initialState)
+              // Step 2: convert HP deltas to percent (reuse existing sanitize path)
+              const enrichedPayload = { newHpMode: 'percent', currentHpMode: 'hp', initialState: session.initialState }
+              const percentNodes = sanitizeTreeForModification(nodesWithStrippedRolls, 'CHANGE_HP_MODE', enrichedPayload)
+              onUpdateSession({ hpMode: 'percent', nodes: percentNodes })
+
+          // ── hp → percent ──
           } else {
-              // HP → %: sanitizeTree converted deltas using the existing hpMax values.
-              // No initialState change needed.
               onUpdateSession({
                   hpMode: newHpMode,
                   nodes:  finalNodes,
               })
           }
       } else if (type === 'CHANGE_DEPLOYMENT') {
+
           const { newActiveSlots, newBattleType } = payload as { 
               newActiveSlots: { myTeam: number[], opponentTeam: number[] },
               newBattleType?: "simple" | "double"
           }
 
+          const normalized = BattleEngine.normalizeActiveSlots({
+              ...session.initialState,
+              activeSlots: newActiveSlots
+          }, newBattleType || session.battleType)
+
           onUpdateSession({
-              initialState: {
-                  ...session.initialState,
-                  activeSlots: newActiveSlots
-              },
+              initialState: normalized,
               battleType: newBattleType || session.battleType,
               nodes: finalNodes
           })
@@ -144,24 +216,23 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
           const originalIndex = currentTeam.findIndex((p: Pokemon) => p.id === id)
           const newTeam = currentTeam.filter((p: Pokemon) => p.id !== id)
 
-          // Update activeSlots (shift indices and clear deleted)
+          // Update activeSlots (shift indices and filter deleted)
           const newActiveSlots = { ...session.initialState.activeSlots }
-          const targetSlots = [...newActiveSlots[teamKey]]
-          for (let i = 0; i < targetSlots.length; i++) {
-              if (targetSlots[i] === originalIndex) {
-                  targetSlots[i] = null
-              } else if (targetSlots[i] !== null && (targetSlots[i] as number) > originalIndex) {
-                  targetSlots[i] = (targetSlots[i] as number) - 1
-              }
+          const targetSlots = [...(newActiveSlots[teamKey] || [])]
+              .filter(idx => idx !== originalIndex) // Remove deleted
+              .map(idx => (idx !== null && idx > originalIndex) ? idx - 1 : idx)
+
+          const initialStateAfterDelete = {
+              ...session.initialState,
+              [teamSide]: newTeam,
+              activeSlots: { ...newActiveSlots, [teamKey]: targetSlots }
           }
-          newActiveSlots[teamKey] = targetSlots
+          
+          // CRITICAL: Normalize to fill the gap if needed
+          const normalized = BattleEngine.normalizeActiveSlots(initialStateAfterDelete, session.battleType)
 
           onUpdateSession({ 
-              initialState: { 
-                  ...session.initialState, 
-                  [teamSide]: newTeam,
-                  activeSlots: newActiveSlots
-              },
+              initialState: normalized,
               nodes: finalNodes
           })
       } else if (type === 'REORDER_POKEMON') {
@@ -169,27 +240,30 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
           const teamSide = isMyTeam ? 'myTeam' : 'enemyTeam'
           const teamKey = isMyTeam ? 'myTeam' : 'opponentTeam'
           
-          const currentState = session.initialState as any
-          const newTeam = [...currentState[teamSide]]
+          const currentStateStore = session.initialState as any
+          const newTeam = [...currentStateStore[teamSide]]
           const temp = newTeam[oldIndex]
           newTeam[oldIndex] = newTeam[newIndex]
           newTeam[newIndex] = temp
 
           // Update activeSlots (swap indices)
           const newActiveSlots = { ...session.initialState.activeSlots }
-          const targetSlots = [...newActiveSlots[teamKey]]
-          for (let i = 0; i < targetSlots.length; i++) {
-              if (targetSlots[i] === oldIndex) targetSlots[i] = newIndex
-              else if (targetSlots[i] === newIndex) targetSlots[i] = oldIndex
+          const targetSlots = [...(newActiveSlots[teamKey] || [])].map(idx => {
+              if (idx === oldIndex) return newIndex
+              if (idx === newIndex) return oldIndex
+              return idx
+          })
+
+          const initialStateAfterReorder = {
+              ...session.initialState,
+              [teamSide]: newTeam,
+              activeSlots: { ...newActiveSlots, [teamKey]: targetSlots }
           }
-          newActiveSlots[teamKey] = targetSlots
+
+          const normalized = BattleEngine.normalizeActiveSlots(initialStateAfterReorder, session.battleType)
 
           onUpdateSession({
-              initialState: { 
-                  ...session.initialState, 
-                  [teamSide]: newTeam,
-                  activeSlots: newActiveSlots
-              },
+              initialState: normalized,
               nodes: finalNodes
           })
       }
@@ -227,15 +301,15 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
      // So count is number of branches impacted.
      
      if (pendingModification.type === 'DELETE_POKEMON') {
-         return `Deleting this Pokémon impacts ${count} active turn branch(es).`
+         return `Deleting this Pokémon impacts ${count} turn(s) in the battle tree.`
      }
       if (pendingModification.type === 'CHANGE_DEPLOYMENT') {
-          return `Changing deployment invalidates ${count} turns.`
+          return `Changing deployment impacts ${count} turn(s) in the battle tree.`
       }
       if (pendingModification.type === 'REORDER_POKEMON') {
-          return `Changing character order impact the combat sequence.`
+          return `Changing roster order impacts ${count} turn(s) in the battle tree.`
       }
-     return "Modification causes conflicts."
+     return "Modification causes conflicts in the battle tree."
   }, [isCorrupted, pendingModification, corruptedNodeIds])
 
 

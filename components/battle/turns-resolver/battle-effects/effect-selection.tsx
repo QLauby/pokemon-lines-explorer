@@ -29,13 +29,13 @@ interface EffectSelectionProps {
     options: EffectOption[]
     onUpdate: (newEffect: Effect) => void
     onRemove: () => void
+    hpMode?: "percent" | "hp" | "rolls"
     readOnly?: boolean
     getPokemonHp?: (side: "my" | "opponent", slotIndex: number) => PokemonHpInfo | undefined
     getPokemon?: (side: "my" | "opponent", slotIndex: number) => Pokemon | undefined
     getPokemonHpByTeamIndex?: (side: "my" | "opponent", teamIndex: number) => PokemonHpInfo | undefined
     getPokemonByTeamIndex?: (side: "my" | "opponent", teamIndex: number) => Pokemon | undefined
     getBattlefieldTags?: (target: "global" | "my_side" | "opponent_side") => CustomTagData[]
-    hpMode?: "percent" | "hp"
 }
 
 const EFFECT_TYPE_LABELS: Record<EffectType, string> = {
@@ -53,13 +53,13 @@ export function EffectSelection({
     options,
     onUpdate,
     onRemove,
-    readOnly,
     getPokemonHp,
     getPokemon,
     getPokemonHpByTeamIndex,
     getPokemonByTeamIndex,
     getBattlefieldTags,
-    hpMode = "percent"
+    hpMode = "percent",
+    readOnly = false,
 }: EffectSelectionProps) {
     
     const isSameTarget = (t1: SlotReference, t2: SlotReference) => {
@@ -109,7 +109,7 @@ export function EffectSelection({
             ...effect,
             type: typedNewType,
             deltas: typedNewType === "hp-change" 
-                ? [{ type: "HP_RELATIVE", target: effect.target, amount: 0, unit: hpMode }] 
+                ? [{ type: "HP_RELATIVE", target: effect.target, amount: 0, unit: hpMode === "rolls" ? "hp" : hpMode }] 
                 : typedNewType === "status-change"
                 ? [{ type: "STATUS_DELTAS", target: effect.target, operations: [] }]
                 : typedNewType === "stats-modifier"
@@ -257,7 +257,18 @@ export function EffectSelection({
                     </Button>
                 )}
             </div>
-
+            
+            {/* Row 1.5: Optional description */}
+            <div className="px-2 py-0.5 border-t border-dashed bg-white/20 flex items-center gap-2">
+                <span className="text-[9px] font-bold text-muted-foreground uppercase shrink-0">Description :</span>
+                <input 
+                    className="flex-1 bg-transparent border-none outline-none text-[10px] placeholder:italic italic h-5"
+                    value={effect.description || ""}
+                    onChange={(e) => onUpdate({ ...effect, description: e.target.value })}
+                    placeholder="Optional description"
+                    readOnly={readOnly}
+                />
+            </div>
 
             {/* Row 2: Effect-specific content */}
             <div className="px-2 py-1.5 bg-card/30">
@@ -269,6 +280,7 @@ export function EffectSelection({
                         initialHp={pokemonHpInfo?.hpPercent}
                         initialHpMax={pokemonHpInfo?.hpMax}
                         initialHpCurrent={pokemonHpInfo?.hpCurrent}
+                        initialStatProfile={pokemonHpInfo?.statProfile}
                         hpMode={hpMode}
                     />
                 )}

@@ -13,7 +13,7 @@ interface CurrentStateProps {
   activeSlots?: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   battlefieldState?: BattlefieldState
   battleType?: "simple" | "double"
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 export function CurrentState({ 
@@ -41,6 +41,8 @@ export function CurrentState({
     confusion: false, // Volatile removed
     love: false,      // Volatile removed
     confusionCounter: 0,
+    toxicCounter: 0,
+    showToxicCounter: false,
     // Status (Burn, Para, etc) remains.
   })
 

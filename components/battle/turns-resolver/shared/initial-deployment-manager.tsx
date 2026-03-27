@@ -9,7 +9,7 @@ interface InitialDeploymentManagerProps {
   enemyTeam: Pokemon[]
   activeSlots: { myTeam: (number | null)[]; opponentTeam: (number | null)[] }
   onUpdateAction: (index: number, action: TurnAction) => void
-  hpMode?: "percent" | "hp"
+  hpMode?: "percent" | "hp" | "rolls"
 }
 
 export function InitialDeploymentManager({
@@ -141,7 +141,7 @@ export function InitialDeploymentManager({
           type: "HP_RELATIVE",
           target: defaultTarget,
           amount: 0,
-          unit: hpMode
+          unit: hpMode === "rolls" ? "hp" : hpMode
       }]
     }
 
