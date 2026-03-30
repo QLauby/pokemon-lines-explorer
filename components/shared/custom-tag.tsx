@@ -194,6 +194,7 @@ export function CustomTag({
                 value={counterValue}
                 onChange={handleCounterChange}
                 onValidateEmpty={handleCounterValidateEmpty}
+                min={0}
                 autoSelectOnClick={true}
                 defaultValue="0"
                 placeholder="0"

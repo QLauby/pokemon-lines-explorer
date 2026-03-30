@@ -318,7 +318,7 @@ export function PokemonCardHeader({
                         <Counter
                           value={(pokemon.toxicCounter || 0).toString()}
                           onChange={handleToxicCounterChange}
-                          min={1}
+                          min={0}
                           max={15}
                           doubleClickStep={2}
                           autoSelectOnClick={true}
