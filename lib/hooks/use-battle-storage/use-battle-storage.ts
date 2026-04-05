@@ -105,8 +105,8 @@ export function useBattleStorage() {
       nodes: [{
         id: "root",
         description: "État Initial",
-        probability: 100,
-        cumulativeProbability: 100,
+        probability: 1,
+        cumulativeProbability: 1,
         turnData: { actions: [], endOfTurnEffects: [] },
         children: [],
         parentId: undefined,

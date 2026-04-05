@@ -250,6 +250,7 @@ export function BattleTree({
                                                 onEquationChange={(eq) => onUpdateNode?.(node.id, { probabilityExpression: eq })}
                                                 type="number"
                                                 numberMode="percent"
+                                                placeholder="e.g. 12.5 or = 1/8"
                                                 min={0}
                                                 max={1}
                                                 decimals={1}
