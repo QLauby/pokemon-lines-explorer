@@ -40,7 +40,7 @@ export function UpdateCurrentTurn({
   readOnly = false,
 }: UpdateCurrentTurnProps) {
   const selectedNode = nodes.get(selectedNodeId)
-  const { isCorrupted } = useCorruptionHandler()
+  const { isCorrupted, cancelCounter } = useCorruptionHandler()
 
   const [description, setDescription] = useState(selectedNode?.description || "")
   const [probability, setProbability] = useState(selectedNode?.probability.toString() || "1")
@@ -49,15 +49,17 @@ export function UpdateCurrentTurn({
   const [injectedTurnData, setInjectedTurnData] = useState<TurnData | undefined>(undefined)
   const [turnEditorKey, setTurnEditorKey] = useState(0)
 
-  // Update local state when selectedNodeId changes
+  // Update local state when selectedNodeId or a cancellation occurs
   useEffect(() => {
     if (selectedNode) {
       setDescription(selectedNode.description || "")
       setProbability(selectedNode.probability.toString() || "1")
       setProbabilityExpression(selectedNode.probabilityExpression)
       probabilityExprRef.current = selectedNode.probabilityExpression
+      setTurnEditorKey(prev => prev + 1)
+      setInjectedTurnData(undefined)
     }
-  }, [selectedNodeId])
+  }, [selectedNodeId, cancelCounter])
 
   // Cleanup preview on unmount
   useEffect(() => {

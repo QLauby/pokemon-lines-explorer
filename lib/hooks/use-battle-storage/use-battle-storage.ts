@@ -14,11 +14,19 @@ export function useBattleStorage() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
-        const parsed: CombatSession[] = JSON.parse(stored)
-        setSessions(parsed)
+        const parsed = JSON.parse(stored)
+        // CRITICAL GUARD: Ensure that the stored data is actually an array!
+        // If the user's storage was corrupted (e.g. saved as an object or null), this prevents fatal crashes
+        if (Array.isArray(parsed)) {
+          setSessions(parsed)
+        } else {
+          console.warn("Corrupted battle storage detected (not an array). Resetting.")
+          setSessions([])
+        }
       }
     } catch (e) {
       console.error("Failed to load battles", e)
+      setSessions([]) // Fallback to empty array on fatal parse error
     } finally {
       setIsLoaded(true)
     }
@@ -26,11 +34,12 @@ export function useBattleStorage() {
 
   // Save to local storage whenever sessions change
   const saveToStorage = (newSessions: CombatSession[]) => {
+    // ALWAYS set React state first to prevent infinite loops if localStorage throws!
+    setSessions(newSessions)
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newSessions))
-      setSessions(newSessions)
     } catch (e) {
-      console.error("Failed to save battles", e)
+      console.error("Failed to save battles to device storage (possibly full)", e)
     }
   }
 

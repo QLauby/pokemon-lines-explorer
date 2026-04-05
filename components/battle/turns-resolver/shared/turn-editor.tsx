@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 
 import { useTurnSimulation } from "@/lib/hooks/use-turn-simulation"
 import { BattleState, Pokemon, TurnData } from "@/types/types"
@@ -92,7 +92,7 @@ export function TurnEditor({
   })
 
   // ── Initialization ────────────────────────────────────────────
-  useTurnInitialization({
+  const isInitialized = useTurnInitialization({
     initialTurnData,
     turnNumber,
     battleFormat,
@@ -109,11 +109,16 @@ export function TurnEditor({
   useKoFusion({ actions, setActions, detectedKOs, getStateAtAction, readOnly })
 
   // ── Notify Parent & Auto-Save ─────────────────────────────────
+  const readOnlyRef = useRef(readOnly)
+  readOnlyRef.current = readOnly
+
   useEffect(() => {
+    if (!isInitialized) return
     const data = { actions, endOfTurnEffects, postTurnActions }
     if (onChange) onChange(data)
-    if (autoSave && !readOnly) onSave(data)
-  }, [actions, endOfTurnEffects, postTurnActions, onChange, autoSave, readOnly])
+    if (autoSave && !readOnlyRef.current) onSave(data)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actions, endOfTurnEffects, postTurnActions, onChange, autoSave, isInitialized])
 
   // ── Derived helpers for End-of-Turn ──────────────────────────
   const eotState = getStateAtAction(actions.length)

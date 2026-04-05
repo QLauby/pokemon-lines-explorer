@@ -319,6 +319,8 @@ export class BattleEngine {
                     if (stats.minHp === stats.maxHp) {
                         newStatProfile = undefined; // No variance left, return to fixed
                     }
+                } else {
+                    newStatProfile = undefined;
                 }
             }
 
@@ -348,6 +350,9 @@ export class BattleEngine {
 
             // 3. Integer HP is a mere consequence for display/mechanics
             newHpCurrent = Math.round((newHpPercent * hpMax) / 100)
+            
+            // Clear distribution in fixed percent mode to avoid stale variance desync
+            newStatProfile = undefined
         }
 
         // CRITICAL: Determine if certain K.O. (100% chance or forced)
@@ -643,6 +648,54 @@ export class BattleEngine {
       default:
         return state
     }
+  }
+
+  /**
+   * Checks if a delta conflicts with the current state (e.g., adding a status to an already status'd target).
+   * Returns a key representing the type of conflict, or null if safe.
+   */
+  static checkDeltaConflict(state: BattleState, delta: BattleDelta): "status" | "transformation" | null {
+    if (delta.type === "STATUS_DELTAS") {
+      const teamIndex = this.resolveTargetToTeamIndex(state, delta.target);
+      if (teamIndex === null) return null;
+      
+      const team = delta.target.side === "my" ? state.myTeam : state.enemyTeam;
+      const pokemon = team[teamIndex];
+      if (!pokemon) return null;
+
+      for (const op of delta.operations) {
+        if (op.type === "ADD") {
+          if (op.status === "confusion") {
+            if (pokemon.confusion) return "status";
+          } else if (op.status === "love") {
+            if (pokemon.love) return "status";
+          } else {
+            // Main status
+            if (pokemon.status && pokemon.status !== null) return "status";
+          }
+        }
+      }
+    }
+
+    if (delta.type === "MEGA_TERA_DELTAS") {
+      const teamIndex = this.resolveTargetToTeamIndex(state, delta.target);
+      if (teamIndex === null) return null;
+
+      const team = delta.target.side === "my" ? state.myTeam : state.enemyTeam;
+      const pokemon = team[teamIndex];
+      if (!pokemon) return null;
+
+      for (const op of delta.operations) {
+        if (op.type === "SET_MEGA" && op.value === true) {
+          if (pokemon.isMega) return "transformation";
+        }
+        if (op.type === "SET_TERA" && op.value === true) {
+          if (pokemon.isTerastallized) return "transformation";
+        }
+      }
+    }
+
+    return null;
   }
 
 

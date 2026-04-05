@@ -6,7 +6,8 @@ import BattleSessionMenu from "@/components/layout/session-menu/battle-session-m
 import { TeamsView } from "@/components/pokemons/teams-view"
 import { CorruptionProvider, useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
 import { usePokemonBattle } from "@/lib/hooks/use-pokemon-battle"
-import { CombatSession } from "@/types/types"
+import { updatePokemonHpPercent } from "@/lib/utils/hp-utils"
+import { BattleState, CombatSession, Pokemon, TreeNode } from "@/types/types"
 import { useState } from "react"
 
 
@@ -158,6 +159,107 @@ function InnerContent({
         }
     }
 
+    /**
+     * Intercepts arbitrary Pokemon updates from team preview (HP, stats, items, etc.).
+     * If any downstream node's KO trigger flips, routes through the corruption pipeline.
+     * Otherwise applies the change immediately.
+     */
+    const handleTryUpdatePokemon = (updatedPokemon: Pokemon, isMyTeam: boolean) => {
+        if (!state.currentSession) return
+
+        const teamSide = isMyTeam ? 'myTeam' : 'enemyTeam'
+        const currentTeam = state.currentSession.initialState[teamSide as 'myTeam' | 'enemyTeam']
+
+        // Build the new initialState with updated Pokemon
+        const newInitialState: BattleState = {
+            ...state.currentSession.initialState,
+            [teamSide]: currentTeam.map((p: any) => p.id === updatedPokemon.id ? updatedPokemon : p)
+        }
+
+        const isPending = requestModification('CHANGE_HP_AT_CHECKPOINT', {
+            scope: 'initial',
+            newInitialState,
+            hpMode: state.hpMode
+        })
+
+        if (isPending) setters.setCurrentView('combat')
+    }
+
+    const handleTryUpdateStatus = (id: string, isMyTeam: boolean, updates: any) => {
+        const team = isMyTeam ? state.myTeam : state.enemyTeam
+        const pokemon = team.find(p => p.id === id)
+        if (pokemon) handleTryUpdatePokemon({ ...pokemon, ...updates }, isMyTeam)
+    }
+
+    const handleTryToggleHeldItem = (pokemonId: string, isMyTeam: boolean) => {
+        const team = isMyTeam ? state.myTeam : state.enemyTeam;
+        const index = team.findIndex(p => p.id === pokemonId);
+        if (index === -1) return;
+        
+        const p = team[index];
+        const defaultItemName = isMyTeam ? `Item ${index + 1}` : `Item ${String.fromCharCode(65 + index)}`
+        
+        let updated: Pokemon;
+        if (!p.heldItem) {
+            updated = { ...p, heldItem: true, heldItemName: p.heldItemName === "Mega Stone" ? defaultItemName : (p.heldItemName || defaultItemName), isMega: false };
+        } else {
+            if (p.heldItemName !== "Mega Stone") {
+               updated = { ...p, heldItemName: "Mega Stone", isMega: false };
+            } else {
+               updated = { ...p, heldItem: false, isMega: false };
+            }
+        }
+        handleTryUpdatePokemon(updated, isMyTeam);
+    }
+
+    const handleTryToggleTerastallized = (pokemonId: string, isMyTeam: boolean) => {
+        const team = isMyTeam ? state.myTeam : state.enemyTeam;
+        const p = team.find(p => p.id === pokemonId);
+        if (p) handleTryUpdatePokemon({ ...p, isTerastallized: !p.isTerastallized }, isMyTeam);
+    }
+    
+    const handleTryToggleMega = (pokemonId: string, isMyTeam: boolean) => {
+        const team = isMyTeam ? state.myTeam : state.enemyTeam;
+        const p = team.find(p => p.id === pokemonId);
+        if (p) handleTryUpdatePokemon({ ...p, isMega: !p.isMega }, isMyTeam);
+    }
+
+    /**
+     * Intercepts node updates from the turn editor.
+     * Only checks for KO corruption when:
+     *   - the turnData is actually modified
+     *   - the node has children (no children = no downstream to corrupt)
+     * Short-circuits safely for all other update types (probability, description).
+     */
+    const handleTryUpdateNode = (nodeId: string, updates: Partial<TreeNode>) => {
+        // Short-circuit 1: no turnData modified → apply directly, no corruption possible
+        if (!updates.turnData) {
+            actions.updateNode(nodeId, updates)
+            return
+        }
+
+        // Short-circuit 2: node is a leaf → no descendants → apply directly
+        const currentNode = state.nodes.get(nodeId)
+        if (!currentNode?.children?.length) {
+            actions.updateNode(nodeId, updates)
+            return
+        }
+
+
+        const isPending = requestModification('CHANGE_HP_AT_CHECKPOINT', {
+            scope: 'node',
+            nodeId,
+            newTurnData: updates.turnData,
+            nodeUpdates: updates,
+            hpMode: state.hpMode
+        })
+
+        if (isPending) {
+            // Corruption banner shown, combat view is already active
+        }
+        // If !isPending: applyModification already applied nodeUpdates via onUpdateSession
+    }
+
     return (
         <>
           <BattleSessionMenu 
@@ -199,12 +301,12 @@ function InnerContent({
               onUpdateName={actions.updatePokemonName}
               onCancelEditing={actions.cancelEditing}
               onRemove={handleRemovePokemon} // Use intercepted handler
-              onUpdateHealth={actions.setPokemonHealth}
-              onUpdateStatus={actions.setPokemonStatus}
-              onUpdatePokemon={actions.updatePokemon}
-              onToggleHeldItem={actions.toggleHeldItem}
-              onToggleTerastallized={actions.toggleTerastallized}
-              onToggleMega={actions.toggleMega}
+              onUpdateHealth={actions.setPokemonHealth} // Reverted to default, though possibly unused
+              onUpdateStatus={handleTryUpdateStatus}
+              onUpdatePokemon={handleTryUpdatePokemon} // Intercepted handler
+              onToggleHeldItem={handleTryToggleHeldItem}
+              onToggleTerastallized={handleTryToggleTerastallized}
+              onToggleMega={handleTryToggleMega}
               onFlagClick={handleFlagClick}
               onAddPokemon={actions.addPokemon}
               onMovePokemon={handleMovePokemon}
@@ -231,7 +333,7 @@ function InnerContent({
                 onSelectedNodeChange={setters.setSelectedNodeId}
                 onResetBattle={actions.resetBattle}
                 onAddAction={actions.addAction}
-                onUpdateNode={actions.updateNode}
+                onUpdateNode={handleTryUpdateNode}
                 onDeleteNode={actions.deleteNode}
                 myTeam={state.myTeam}
                 enemyTeam={state.enemyTeam}

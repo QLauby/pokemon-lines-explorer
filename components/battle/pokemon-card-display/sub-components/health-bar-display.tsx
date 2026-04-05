@@ -26,7 +26,7 @@ export function HealthBarDisplay({
   
   const stats = (statProfile && statProfile.distribution) ? DistributionEngine.getProfileStats(statProfile.distribution) : null
   const hasVariance = !!stats && stats.minHp < stats.maxHp
-  const currentMeanHp = stats ? stats.meanHp : (hpCurrent ?? (hpPercent * hpMax / 100))
+  const currentMeanHp = (hpMode === "rolls" && stats) ? stats.meanHp : (hpCurrent ?? (hpPercent * hpMax / 100))
 
   return (
     <div className={cn("w-full flex items-center gap-1.5", className)}>

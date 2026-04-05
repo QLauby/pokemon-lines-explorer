@@ -4,6 +4,7 @@ import { CombatSession, BattleState, Pokemon, TreeNode } from "@/types/types"
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react"
 import { detectCorruption, isTreeSignificant } from "../../logic/corruption"
 import { ModificationType, pruneTree, sanitizeTreeForModification } from "../../logic/tree-cleaner"
+import { recalculateTreeLayout } from "../../logic/tree-layout"
 import { BattleEngine } from "../../logic/battle-engine"
 /**
  * Convert all rollProfile deltas back to fixed HP scalars using Nuzlocke asymmetry:
@@ -67,6 +68,8 @@ interface CorruptionContextType {
   corruptedNodeIds: string[]
   isCorrupted: boolean
   corruptionMessage: string | null
+  corruptionReasons: Set<string>
+  cancelCounter: number
 }
 
 const CorruptionContext = createContext<CorruptionContextType | null>(null)
@@ -87,11 +90,17 @@ interface CorruptionProviderProps {
 
 export function CorruptionProvider({ session, onUpdateSession, children }: CorruptionProviderProps) {
   const [pendingModification, setPendingModification] = useState<ModificationRequest>(null)
+  const [cancelCounter, setCancelCounter] = useState(0)
+
+  const [corruptionReasons, setCorruptionReasons] = useState<Set<string>>(new Set())
 
   // 1. Detect Corruption based on pending modification
   const corruptedNodeIds = useMemo(() => {
     if (!pendingModification) return []
-    const roots = detectCorruption(session, pendingModification)
+    const { corruptedNodeIds: roots, reasons } = detectCorruption(session, pendingModification)
+    
+    // Update reasons state (side effect in memo? okay if we wrap in useEffect, but for now simple)
+    // Actually better to have reasons as part of the state set by requestModification
     
     // Expand to all descendants for UI highlighting
     const allIds = new Set<string>()
@@ -109,14 +118,16 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
 
   // 2. Entry point: Request a modification
   const requestModification = useCallback((type: ModificationType, payload: any): boolean => {
-      const testIds = detectCorruption(session, { type, payload } as any)
+      const { corruptedNodeIds: testIds, reasons } = detectCorruption(session, { type, payload } as any)
       
       if (testIds.length === 0) {
           // SAFE: Apply immediately
+          setCorruptionReasons(new Set())
           applyModification(type, payload, session.nodes)
           return false
       } else {
           // CORRUPTED: Set pending to trigger UI
+          setCorruptionReasons(reasons)
           setPendingModification({ type, payload } as any)
           return true
       }
@@ -266,6 +277,22 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
               initialState: normalized,
               nodes: finalNodes
           })
+      } else if (type === 'CHANGE_HP_AT_CHECKPOINT') {
+          const { scope, newInitialState, nodeId, nodeUpdates } = payload
+
+          if (scope === 'initial') {
+              // HP changed in Team Preview: apply the pre-computed new initialState
+              onUpdateSession({
+                  initialState: newInitialState,
+                  nodes: finalNodes
+              })
+          } else {
+              // HP changed via node update: apply nodeUpdates to the specific node
+              const updatedNodes = recalculateTreeLayout(
+                  finalNodes.map((n: TreeNode) => n.id === nodeId ? { ...n, ...nodeUpdates } : n)
+              )
+              onUpdateSession({ nodes: updatedNodes })
+          }
       }
 
       
@@ -291,14 +318,28 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
 
   const cancelModification = useCallback(() => {
       setPendingModification(null)
+      setCancelCounter(prev => prev + 1)
   }, [])
   
   const corruptionMessage = useMemo(() => {
      if (!isCorrupted || !pendingModification) return null
      
-     const count = corruptedNodeIds.length // This is number of roots, or total? detectCorruption returns roots usually?
-     // Actually pruneTree cleans descendants. detectCorruption logic in my previous step returned "first node of branch".
-     // So count is number of branches impacted.
+     const count = corruptedNodeIds.length
+
+     if (pendingModification.type === 'CHANGE_HP_AT_CHECKPOINT') {
+       const { scope } = pendingModification.payload
+       const nodeType = scope === 'initial' ? 'Turn 0' : 'turn'
+       
+       if (corruptionReasons.has('status')) {
+         return `Changing this Pokémon modified the status sequence. Conflict detected in ${count} turn(s).`
+       }
+       if (corruptionReasons.has('transformation')) {
+         return `Changing this Pokémon creates Mega/Tera conflicts in ${count} turn(s).`
+       }
+       if (corruptionReasons.has('ko')) {
+         return `Changing this ${nodeType} modifies the KO outcome in ${count} descendant turn(s).`
+       }
+     }
      
      if (pendingModification.type === 'DELETE_POKEMON') {
          return `Deleting this Pokémon impacts ${count} turn(s) in the battle tree.`
@@ -309,8 +350,9 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
       if (pendingModification.type === 'REORDER_POKEMON') {
           return `Changing roster order impacts ${count} turn(s) in the battle tree.`
       }
+      
      return "Modification causes conflicts in the battle tree."
-  }, [isCorrupted, pendingModification, corruptedNodeIds])
+  }, [isCorrupted, pendingModification, corruptedNodeIds, corruptionReasons])
 
 
   return (
@@ -324,7 +366,9 @@ export function CorruptionProvider({ session, onUpdateSession, children }: Corru
         cancelModification,
         corruptedNodeIds,
         isCorrupted,
-        corruptionMessage // Helper for UI
+        corruptionMessage, // Helper for UI
+        corruptionReasons,
+        cancelCounter
       }}
     >
       {children}

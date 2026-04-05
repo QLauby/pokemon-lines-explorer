@@ -37,7 +37,7 @@ export function pruneTree(
   return nodes.filter(n => !nodesToRemove.has(n.id))
 }
 
-export type ModificationType = 'DELETE_POKEMON' | 'CHANGE_DEPLOYMENT' | 'CHANGE_HP_MODE' | 'REORDER_POKEMON'
+export type ModificationType = 'DELETE_POKEMON' | 'CHANGE_DEPLOYMENT' | 'CHANGE_HP_MODE' | 'REORDER_POKEMON' | 'CHANGE_HP_AT_CHECKPOINT'
 
 export interface IndexRef {
     side: 'my' | 'opponent'

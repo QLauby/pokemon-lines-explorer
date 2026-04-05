@@ -10,7 +10,7 @@
  */
 
 import { Effect, Pokemon, TurnAction, TurnData } from "@/types/types"
-import { Dispatch, SetStateAction, useEffect } from "react"
+import { Dispatch, SetStateAction, useEffect, useState } from "react"
 
 interface UseTurnInitializationProps {
   initialTurnData?: TurnData
@@ -36,8 +36,12 @@ export function useTurnInitialization({
   setEndOfTurnEffects,
   setPostTurnActions,
   hpMode = "percent",
-}: UseTurnInitializationProps) {
+}: UseTurnInitializationProps): boolean {
+  const [isInitialized, setIsInitialized] = useState(false)
+
   useEffect(() => {
+    setIsInitialized(false)
+
     // ── Case 1: Load existing data ──────────────────────────────
     if (initialTurnData && initialTurnData.actions.length > 0) {
       let loadedActions: TurnAction[] = JSON.parse(JSON.stringify(initialTurnData.actions))
@@ -59,6 +63,7 @@ export function useTurnInitialization({
           ? JSON.parse(JSON.stringify(initialTurnData.postTurnActions))
           : []
       )
+      setIsInitialized(true)
       return
     }
 
@@ -97,6 +102,7 @@ export function useTurnInitialization({
             : []
         )
       }
+      setIsInitialized(true)
       return
     }
 
@@ -123,6 +129,10 @@ export function useTurnInitialization({
           : []
       )
     }
+
+    setIsInitialized(true)
   // Only re-initialize when the turn number, format, or hpMode changes, not on every save
   }, [turnNumber, battleFormat, hpMode])
+
+  return isInitialized
 }

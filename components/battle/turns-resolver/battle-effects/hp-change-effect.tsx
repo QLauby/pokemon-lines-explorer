@@ -342,7 +342,7 @@ export function HpChangeEffect({
                             className="absolute top-0 h-full bg-red-500/50 transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white"
                             style={{ left: `${endHpPct}%`, width: `${diffPct}%` }}
                         >
-                            {diffPct > 5 && (hpMode !== "percent" ? `-${Math.abs(Math.round(deltaAmountHp))}` : `-${diffPct.toFixed(1)}%`)}
+                            {diffPct > 5 && (hpMode !== "percent" ? `-${Math.abs(Math.round(actualEndHp - actualStartHp))}` : `-${diffPct.toFixed(1)}%`)}
                         </div>
                     </>
                 )}

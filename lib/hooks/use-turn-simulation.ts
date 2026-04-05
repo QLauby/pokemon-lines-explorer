@@ -131,7 +131,7 @@ export function useTurnSimulation({
   // 6. Compute specialized lists for backward compatibility / specific UI needs
   const endOfTurnKOs = useMemo(() => {
       const eotIndex = actions.length // Index of the synthetic EOT Action
-      const relevantKOs: { pokemon: Pokemon, isAlly: boolean, causedByEntryHazards?: boolean }[] = []
+      const relevantKOs: KODetected[] = []
       
       // Collect KOs from EOT action onwards
       for (let i = eotIndex; i < computedStates.length - 1; i++) {

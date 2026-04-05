@@ -123,7 +123,7 @@ export function updatePokemonHpPercent(pokemon: Pokemon, newHpPercent: number, r
     const hpMax = getEffectiveHpMax(pokemon)
     const clamped = Math.max(0, Math.min(100, newHpPercent))
     const hpCurrent = recalcHpCurrent(clamped, hpMax)
-    return { ...pokemon, hpPercent: clamped, hpCurrent, rawHpExpression }
+    return { ...pokemon, hpPercent: clamped, hpCurrent, rawHpExpression, statProfile: undefined }
 }
 
 /**
@@ -135,7 +135,7 @@ export function updatePokemonHpMax(pokemon: Pokemon, newHpMax: number): Pokemon 
     if (newHpMax <= 0) return pokemon  // Guard: never allow 0
     const hpCurrent = newHpMax  // PP logic: updating max resets current to max
     const hpPercent = recalcHpPercent(hpCurrent, newHpMax)
-    return { ...pokemon, hpMax: newHpMax, hpCurrent, hpPercent, rawHpExpression: undefined }
+    return { ...pokemon, hpMax: newHpMax, hpCurrent, hpPercent, rawHpExpression: undefined, statProfile: undefined }
 }
 
 /**
@@ -147,7 +147,7 @@ export function updatePokemonHpCurrent(pokemon: Pokemon, newHpCurrent: number): 
     const hpMax = getEffectiveHpMax(pokemon)
     const clamped = Math.max(0, Math.min(hpMax, newHpCurrent))
     const hpPercent = recalcHpPercent(clamped, hpMax)
-    return { ...pokemon, hpCurrent: clamped, hpPercent, rawHpExpression: undefined }
+    return { ...pokemon, hpCurrent: clamped, hpPercent, rawHpExpression: undefined, statProfile: undefined }
 }
 
 // ---------------------------------------------------------------------------
