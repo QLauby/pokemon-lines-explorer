@@ -18,6 +18,10 @@ const robotoMono = Roboto_Mono({
 export const metadata: Metadata = {
   title: "Pokemon Lines Explorer",
   description: "Explore Pokemon lines and battle possibilities",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({
