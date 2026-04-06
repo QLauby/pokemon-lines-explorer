@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pokemon Lines Explorer 🚀
 
-## Getting Started
+**Pokemon Lines Explorer** is a tool designed to help Pokemon players (especially Nuzlocke players) explore battle lines, simulate scenarios, and plan their strategies with a visual and interactive interface.
 
-First, run the development server:
+🔗 **Try the live site:** [https://pokemon-lines-explorer.fr/](https://pokemon-lines-explorer.fr/)
+
+![Pokemon Lines Explorer Screenshot](public/screenshot.png) *(Add a screenshot here)*
+
+## ✨ Features
+
+- **Interactive Battle Editor**: Simulate battle turns with management of HP, status, and items.
+- **Battle Tree**: Visualize different branches of possibilities during a battle.
+- **Team Management**: Import and manage your Pokemon and those of your opponents.
+- **Double Battle Support**: Manage battles in both single and double modes.
+- **"Rolls" Mode**: Handle damage uncertainties with HP ranges.
+- **Local Persistence**: Your sessions are saved locally in your browser.
+
+## 🛠 Installation and Development
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm
+
+### Local Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/QLauby/pokemon-lines-explorer.git
+   cd pokemon-lines-explorer
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+The application will be available at `http://localhost:3000`.
+
+### Using with Docker 🐳
+
+If you prefer using Docker, a `docker-compose.yml` file is available:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker-compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🐛 Bug Reporting and Suggestions
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+If you find a bug or have suggestions for improvement, please open an **[Issue](https://github.com/QLauby/pokemon-lines-explorer/issues)** on the GitHub repository. This is the best way to track progress and discuss potential fixes.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📜 License & Legal
 
-## Learn More
+### Code License
+This project is licensed under **MIT License**. See the [LICENSE](LICENSE) file for details.
 
-To learn more about Next.js, take a look at the following resources:
+### Legal Disclaimer ⚠️
+**Pokemon Lines Explorer** is an unofficial fan project and is NOT affiliated with, endorsed by, or supported by **Nintendo**, **The Pokémon Company**, **Game Freak**, or **Creatures Inc.** 
+- All Pokémon names, images, and related media are trademarks and copyrights of their respective owners. 
+- This project is created for educational and entertainment purposes under fair use.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🙏 Acknowledgments
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project wouldn't be possible without these amazing resources:
+- **[Pokémon Showdown](https://github.com/smogon/pokemon-showdown)**: Database and battle logic data ([MIT License](assets/data-pokemonshowdown/LICENSE)).
+- **[PokémonDB](https://pokemondb.net/)**: Sprite assets and data references.
+- **[PokeSprite](https://github.com/msikma/pokesprite)**: Standardized Pokémon sprite collection.
+- **[Smogon University](https://www.smogon.com/)**: Competitive data and mechanics research.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Big thanks to the Smogon community and to all the trainers who test and use this tool!

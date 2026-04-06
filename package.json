@@ -1,7 +1,13 @@
 {
-  "name": "my-v0-project",
+  "name": "pokemon-lines-explorer",
   "version": "0.1.0",
-  "private": true,
+  "author": "LeQdu94",
+  "description": "Visual battle simulator and explorer for Pokemon players.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/QLauby/pokemon-lines-explorer.git"
+  },
+  "private": false,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
