@@ -1,5 +1,9 @@
-"use client"
-
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Layers } from "lucide-react"
 
 interface AppHeaderProps {
@@ -30,14 +34,23 @@ export function AppHeader({
   return (
     <>
       <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={onOpenSessions}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors font-semibold text-xs shadow-sm hover:shadow-md active:scale-95"
-          title="Gérer les sessions de combat"
-        >
-          <Layers className="h-4 w-4 text-primary" />
-          <span>Sessions</span>
-        </button>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onOpenSessions}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors font-semibold text-xs shadow-sm hover:shadow-md active:scale-95"
+              >
+                <Layers className="h-4 w-4 text-primary" />
+                <span>Sessions</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="bg-slate-900 border-slate-800 text-slate-50 text-xs">
+              Manage battle sessions
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
         <div className="flex-1 text-center">
             <h1 className="text-3xl font-bold tracking-tight">Pokemon Lines Explorer</h1>
             <p className="text-base text-slate-500 font-medium italic mt-0.5">Trace your path to victory !</p>
@@ -130,17 +143,29 @@ export function AppHeader({
               >
                 Work in HP
               </button>
-              <button
-                onClick={() => onHpModeChange("rolls")}
-                title="Le mode Rolls (variance) permet d'entrer les dégâts Min et Max (issus de votre calculateur) pour simuler les ranges de K.O. La répartition des 16 rolls (85% à 100%) est reconstruite pour vous alerter des probabilités de survie. Les calculs asymétriques assurent une approche conservatrice (pire scénario pour vous)."
-                className={`text-xs font-semibold px-2.5 py-1 rounded transition-colors cursor-pointer ${
-                  hpMode === "rolls"
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Work with Rolls
-              </button>
+              
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => onHpModeChange("rolls")}
+                      className={`text-xs font-semibold px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                        hpMode === "rolls"
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      Work with Rolls
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-slate-900 border-slate-800 text-slate-50 text-[11px] leading-relaxed p-3 max-w-xs shadow-xl">
+                    <p className="font-bold border-b border-white/10 pb-1.5 mb-1.5 uppercase text-[9px] tracking-wider text-slate-400">Rolls Mode (Variance)</p>
+                    <p>Utilizes Pokémon Showdown's 16 damage rolls (85% to 100%) to provide a statistical overview of battle outcomes.</p>
+                    <p className="mt-1.5">The HP bar displays the <b>min</b>, <b>max</b>, <b>median</b>, and <b>quartiles</b> of possible damage. When a K.O. is possible, the app calculates and alerts you to the exact probability of the K.O. occurring.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
             </div>
           </div>
         </div>
