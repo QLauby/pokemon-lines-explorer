@@ -360,7 +360,7 @@ export function CombatView({
   return (
     <div className="w-full p-2 bg-slate-50/50 min-h-screen">
        {/* Main Grid: Left (Tree + Battle) | Right (Actions) */}
-       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-4 items-start max-w-[2000px] mx-auto">
+       <div className="grid grid-cols-1 lg:grid-cols-[1fr_600px] gap-4 items-start max-w-[2000px] mx-auto">
           
           {/* LEFT COLUMN: VISUALIZATION */}
           <div className="flex flex-col gap-4 min-w-0 w-full">
@@ -395,7 +395,7 @@ export function CombatView({
           </div>
 
           {/* RIGHT COLUMN: ACTIONS - Grows with content, scrolls with page */}
-          <div className="border rounded-xl bg-white shadow-md p-8 ring-1 ring-black/5">
+          <div className="border rounded-xl bg-white shadow-md p-6 ring-1 ring-black/5">
               <h2 className="text-2xl font-bold mb-8 border-b pb-6">
                 <span style={{ color: branchColor }}>Turn {(selectedNode?.turn || 0)}</span>
               </h2>
