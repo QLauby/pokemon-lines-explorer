@@ -271,8 +271,15 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" |
     const newEffect: Effect = {
       type: "hp-change",
       target: { ...defaultTarget },
-      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: undefined, unit: hpMode === "rolls" ? "hp" : hpMode }],
+      deltas: [{ 
+        type: "HP_RELATIVE", 
+        target: { ...defaultTarget }, 
+        amount: undefined, 
+        unit: hpMode === "rolls" ? "hp" : hpMode,
+        rollProfile: hpMode === "rolls" ? { rolls: [] } : undefined 
+      } as any],
     }
+
 
     newActions[actionIndex] = { ...action, effects: [...action.effects, newEffect] }
     setter(newActions)
@@ -312,8 +319,15 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" |
     const newEffect: Effect = {
       type: "hp-change",
       target: { ...defaultTarget },
-      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: undefined, unit: hpMode === "rolls" ? "hp" : hpMode }],
+      deltas: [{ 
+        type: "HP_RELATIVE", 
+        target: { ...defaultTarget }, 
+        amount: undefined, 
+        unit: hpMode === "rolls" ? "hp" : hpMode,
+        rollProfile: hpMode === "rolls" ? { rolls: [] } : undefined
+      } as any],
     }
+
     setEndOfTurnEffects(prev => [...prev, newEffect])
   }
 

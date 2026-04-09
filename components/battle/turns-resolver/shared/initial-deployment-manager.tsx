@@ -141,8 +141,9 @@ export function InitialDeploymentManager({
           type: "HP_RELATIVE",
           target: defaultTarget,
           amount: undefined,
-          unit: hpMode === "rolls" ? "hp" : hpMode
-      }]
+          unit: hpMode === "rolls" ? "hp" : hpMode,
+          rollProfile: hpMode === "rolls" ? { rolls: [] } : undefined
+      } as any]
     }
 
     onUpdateAction(actionIndex, {

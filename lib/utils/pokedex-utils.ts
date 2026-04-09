@@ -2,6 +2,7 @@ import { Pokedex } from "@/assets/data-pokemonshowdown/pokedex";
 import { Moves } from "@/assets/data-pokemonshowdown/moves";
 import { Items } from "@/assets/data-pokemonshowdown/items";
 import { Abilities } from "@/assets/data-pokemonshowdown/abilities";
+import Aliases from "@/assets/data-trainers/aliases.json";
 
 // Textes (descriptions) Showdown
 const MovesText = (require("@/assets/data-pokemonshowdown/text/moves").MovesText) as any;
@@ -16,6 +17,28 @@ import type { SuggestionItem } from "@/components/shared/suggestion-list";
  */
 export function toShowdownId(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * Normalise un nom de Pokémon pour correspondre à son nom canonique Showdown.
+ * Requis pour Radical Red et d'autres hacks aux noms raccourcis.
+ */
+export function canonicalizePokemonName(name: string): string {
+  let n = name.trim();
+  const id = toShowdownId(n);
+
+  // Use centralized aliases (case-insensitive ID check)
+  for (const [alias, canonical] of Object.entries(Aliases)) {
+    if (toShowdownId(alias) === id) return canonical;
+  }
+
+  // Régional forms common shorthands
+  if (id.endsWith('a') && Pokedex[id.slice(0, -1) + 'alola']) return Pokedex[id.slice(0, -1) + 'alola'].name;
+  if (id.endsWith('g') && Pokedex[id.slice(0, -1) + 'galar']) return Pokedex[id.slice(0, -1) + 'galar'].name;
+  if (id.endsWith('h') && Pokedex[id.slice(0, -1) + 'hisui']) return Pokedex[id.slice(0, -1) + 'hisui'].name;
+  if (id.endsWith('p') && Pokedex[id.slice(0, -1) + 'paldea']) return Pokedex[id.slice(0, -1) + 'paldea'].name;
+
+  return Pokedex[id]?.name || n;
 }
 
 /**

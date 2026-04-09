@@ -3,7 +3,7 @@ import { Items } from "@/assets/data-pokemonshowdown/items";
 import { Moves } from "@/assets/data-pokemonshowdown/moves";
 import { Pokedex } from "@/assets/data-pokemonshowdown/pokedex";
 import { PokemonType } from "./colors-utils";
-import { toShowdownId } from "./pokedex-utils";
+import { toShowdownId, canonicalizePokemonName } from "./pokedex-utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,8 @@ export function calculateMaxHp(baseHp: number, iv: number, ev: number, level: nu
 // ─── Pokedex helpers ──────────────────────────────────────────────────────────
 
 function getPokemonData(name: string) {
-  const id = toShowdownId(name);
+  const canonical = canonicalizePokemonName(name);
+  const id = toShowdownId(canonical);
   return Pokedex[id] || null;
 }
 
@@ -177,7 +178,7 @@ function classifyCell(cell: string): { role: CellRole; score: number } {
 
   const id = toShowdownId(cell);
 
-  if (/^level\s*\d+$/i.test(lower) || /^lv\.?\d+$/i.test(lower)) return { role: "level", score: 1 };
+  if (/^highest\s*lv/i.test(lower) || /^level\s*\d+$/i.test(lower) || /^lv\.?\d+$/i.test(lower)) return { role: "level", score: 1 };
   if (/^\d+$/.test(lower)) {
     const n = parseInt(lower);
     if (n >= 1 && n <= 100) return { role: "level", score: 0.7 };
@@ -200,7 +201,7 @@ export function parseTableFormat(text: string): ParsedPokemon[] {
 
   const hasTabs = text.includes("\t");
   const rows: string[][] = lines.map(line =>
-    hasTabs ? line.split("\t") : line.split(/\s{2,}/)
+    hasTabs ? line.split("\t") : line.split(/\s{3,}/)
   ).map(row => row.map(c => c.trim().replace(/^"|"$/g, "").trim()));
 
   if (rows.length === 0 || rows[0].length === 0) return [];
@@ -211,8 +212,22 @@ export function parseTableFormat(text: string): ParsedPokemon[] {
     return parseKaizoFormat(rows, numCols);
   }
 
+  // --- Pre-scanning ---
+  const levelCaps: { val: number; row: number }[] = [];
+  const statRowIndices = new Set<number>();
+  
+  rows.forEach((row, rowIndex) => {
+    const rowStr = row.join(" ");
+    const m = rowStr.match(/LEVEL\s*(\d+)\s*->>/i);
+    if (m) levelCaps.push({ val: parseInt(m[1]), row: rowIndex });
+    
+    if (row.some(c => /SPEED STAT|BASE STAT|HP\t|ATK\t|DEF\t|SPA\t|SPD\t|SPE\t/i.test(c)) || 
+        rowStr.includes("SPEED STAT") || rowStr.includes("BASE STATS")) {
+        statRowIndices.add(rowIndex);
+    }
+  });
+
   // --- Frequent Row Strategy ---
-  // Identify which row most likely contains the Pokemon names
   const rowScores = rows.map((row) => {
     let score = 0;
     row.forEach(cell => {
@@ -235,58 +250,117 @@ export function parseTableFormat(text: string): ParsedPokemon[] {
     let item: string | undefined;
     let nature: string | undefined;
     let level = 50;
+    let levelDetected = false;
+    let pokemonRowIndex = -1;
     const moves: string[] = [];
 
-    // 1. Determine Name first (using priority row or first unknown)
+    // 1. Determine Name first
     if (nameRowIndex !== -1 && rows[nameRowIndex][col]) {
       const cell = rows[nameRowIndex][col];
       const id = toShowdownId(cell);
-      pokemonName = Pokedex[id]?.name || cell;
+      if (Pokedex[id]) {
+          pokemonName = Pokedex[id].name || cell;
+          pokemonRowIndex = nameRowIndex;
+      }
     }
 
     // 2. Parse Other Details from all cells in column
-    for (const cell of cells) {
-      if (!cell.trim()) continue;
-      const id = toShowdownId(cell);
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      if (statRowIndices.has(rowIndex)) continue;
       
-      // Auto-identify Name only if still missing
-      if (!pokemonName) {
-         const { role } = classifyCell(cell);
-         if (role === "pokemon") pokemonName = Pokedex[id]?.name || cell;
-         else if (role === "unknown" && cell.length > 2) {
-             const blacklist = ["highest", "level", "stats", "base", "ability", "item", "nature", "moves", "total"];
-             if (!blacklist.some(b => cell.toLowerCase().includes(b))) pokemonName = cell;
-         }
+      const primaryCell = rows[rowIndex][col];
+      if (primaryCell && primaryCell.trim()) {
+          const id = toShowdownId(primaryCell);
+          
+          // Auto-identify Name only if still missing
+          if (!pokemonName) {
+             const { role } = classifyCell(primaryCell);
+             if (role === "pokemon") {
+                 const canonical = canonicalizePokemonName(primaryCell);
+                 pokemonName = canonical;
+                 pokemonRowIndex = rowIndex;
+             }
+             else if (role === "unknown" && primaryCell.length > 2) {
+                 const blacklist = ["highest", "level", "stats", "base", "ability", "item", "nature", "moves", "total", "hp", "atk", "def", "spa", "spd", "spe", "speed", "stat:", "if", "rival", "has", "ev", "iv", "you", "are", "re", "punch", "slash", "jet", "fang", "wave", "beam", "powder", "drain", "pulse", "kiss", "wind", "fire", "rock", "sucker", "crunch", "kick", "smash", "fake", "bullet", "aerial", "knock", "ancient", "flame", "charge", "seed", "slide"];
+                 if (!blacklist.some(b => primaryCell.toLowerCase().includes(b)) && !/^\d+$/.test(primaryCell) && !/^[.\d]+$/.test(primaryCell)) {
+                     pokemonName = canonicalizePokemonName(primaryCell);
+                     pokemonRowIndex = rowIndex;
+                 }
+             }
+          }
       }
 
-      // Identify level: look for "Lv" prefix specifically or the word "Level"
-      if (/^Lv\.?\s*(\d+)/i.test(cell) || /^Level\s*(\d+)/i.test(cell)) {
-          const m = cell.match(/\d+/);
-          if (m) level = parseInt(m[0]);
-      }
+      if (!pokemonName) continue;
 
-      const { role } = classifyCell(cell);
-      switch (role) {
-        case "ability": ability = ability || Abilities[id]?.name || cell; break;
-        case "item": item = item || Items[id]?.name || cell; break;
-        case "nature": 
-          const n = cell.toLowerCase().replace(/\s*\(.*\)/, "").replace(/\s*nature\s*/i, "").trim();
-          if (NATURES.has(n)) nature = nature || n; 
-          break;
-        case "move": 
-          const mName = Moves[id]?.name || cell;
-          if (!moves.includes(mName) && moves.length < 4) moves.push(mName);
-          break;
+      // Search for details in this column and adjacent ones (misalignment fix)
+      const colRange = [col, col + 1, col - 1, col + 2, col - 2];
+      for (const currentCol of colRange) {
+          if (currentCol < 0 || currentCol >= rows[rowIndex].length) continue;
+          const cell = rows[rowIndex][currentCol];
+          if (!cell || !cell.trim()) continue;
+          
+          const id = toShowdownId(cell);
+          const { role } = classifyCell(cell);
+          
+          // Levels are special: handle "Highest Lv"
+          const relevantCap = levelCaps.find(c => c.row >= rowIndex)?.val || (levelCaps.length > 0 ? levelCaps[0].val : 50);
+          const relativeMatch = cell.match(/(Highest Lv|Player Max Level|Highest)\s*(Lv\.?)?\s*([+-]\s*\d+)?/i);
+          if (relativeMatch) {
+              const offsetStr = relativeMatch[3] || "";
+              const offset = offsetStr ? parseInt(offsetStr.replace(/\s+/g, "")) : 0;
+              level = relevantCap + offset;
+              levelDetected = true;
+          } else if (!levelDetected) {
+              if (/^Lv\.?\s*(\d+)/i.test(cell) || /^Level\s*(\d+)/i.test(cell)) {
+                  const m = cell.match(/\d+/);
+                  if (m) {
+                      level = parseInt(m[0]);
+                      levelDetected = true;
+                  }
+              } else if (/^\d+$/.test(cell)) {
+                  const n = parseInt(cell);
+                  if (n >= 2 && n <= 100) {
+                      level = n;
+                      levelDetected = true;
+                  }
+              }
+          }
+
+          switch (role) {
+            case "ability": ability = ability || Abilities[id]?.name || cell; break;
+            case "item": item = item || Items[id]?.name || cell; break;
+            case "nature": 
+              const nLabel = cell.toLowerCase().replace(/\s*\(.*\)/, "").replace(/\s*nature\s*/i, "").trim();
+              if (NATURES.has(nLabel)) nature = nature || nLabel; 
+              break;
+            case "move": 
+              const mName = Moves[id]?.name || cell;
+              if (!moves.includes(mName) && moves.length < 4) moves.push(mName);
+              break;
+          }
       }
     }
 
     if (!pokemonName) continue;
+    const finalName: string = pokemonName;
+    const pokemonId = toShowdownId(finalName);
 
-    const types = resolveTypes(pokemonName);
-    const baseHp = resolveBaseHp(pokemonName);
+    if (!Pokedex[pokemonId]) {
+        // If not a recognized pokemon, be extra picky: check if it has moves/ability/item
+        if (!ability && !item && moves.length === 0) continue;
+        // If it looks like a move name (shorthand or similar), skip it
+        if (/ (Punch|Fang|Wave|Beam|Jet|Slash|Drain|Pulse|Kiss|Wind|Fire|Rock|Sucker|Crunch|Kick|Smash|Fake|Bullet|Seed|Slide)$/i.test(finalName)) continue;
+        if (finalName.length > 20) continue; 
+    }
+    
+    // Final check: if the name was actually a move, skip it
+    if (Moves[pokemonId] || Moves[toShowdownId(finalName.replace("Pow-Up", "Power-Up"))]) continue;
+
+    const types = resolveTypes(finalName);
+    const baseHp = resolveBaseHp(finalName);
 
     result.push({
-      name: pokemonName,
+      name: finalName,
       types,
       item,
       ability,

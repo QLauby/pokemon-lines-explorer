@@ -2854,7 +2854,7 @@
           "name": "Kindler Hayden",
           "team": [
             {
-              "name": "Oricorio_Sensu",
+              "name": "Oricorio-Sensu",
               "level": 33,
               "nature": "Timid",
               "ability": "Dancer",
@@ -3121,7 +3121,7 @@
               ]
             },
             {
-              "name": "Oricorio_Pom_Pom",
+              "name": "Oricorio-Pom-Pom",
               "level": 32,
               "nature": "Timid",
               "ability": "Dancer",
@@ -11516,7 +11516,7 @@
               ]
             },
             {
-              "name": "Oricorio_Pom_Pom",
+              "name": "Oricorio-Pom-Pom",
               "level": 67,
               "nature": "Timid",
               "ability": "Dancer",
@@ -11542,7 +11542,7 @@
               ]
             },
             {
-              "name": "Oricorio_Pau",
+              "name": "Oricorio-Pa'u",
               "level": 67,
               "nature": "Timid",
               "ability": "Dancer",

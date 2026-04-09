@@ -101,7 +101,6 @@ export function HpChangeEffect({
     const primaryHex = targetHex
     const equationRef = React.useRef<string | undefined>(delta.rawAmountExpression);
 
-    // Sync local state when delta changes (handled by parent or turn updates)
     React.useEffect(() => {
         const hasRolls = (delta as any).rollProfile !== undefined
         setIsRollsActive(hasRolls)
@@ -111,7 +110,7 @@ export function HpChangeEffect({
         }
         // Also sync our equation ref if it changes externally
         equationRef.current = delta.rawAmountExpression
-    }, [delta])
+    }, [delta, hpMode])
 
     const handleRollsToggle = () => {
         const isTargetAlly = delta.target?.side === "my"

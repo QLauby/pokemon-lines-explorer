@@ -5,7 +5,8 @@ import fs from 'fs';
 import path from 'path';
 
 const DOCS_DIR = 'assets/data-trainers';
-const PUBLIC_DIR = 'public/data-trainers';
+const PUBLIC_DIR = path.join(process.cwd(), 'public/data-trainers');
+const ALIASES = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'assets/data-trainers/aliases.json'), 'utf8'));
 
 let pokemonNames = null;
 function getPokemonNames() {
@@ -30,38 +31,14 @@ function normalizePokemon(name) {
   n = n.replace(/-H$/, '-Hisui');
   n = n.replace(/-P$/, '-Paldea');
 
-  // Explicit Radical Red aliases (shorthand → canonical PS name)
-  const RR_ALIASES = {
-    'Necrozma-DM':      'Necrozma-Dusk-Mane',
-    'Necrozma-DW':      'Necrozma-Dawn-Wings',
-    'Eternatus-Max':    'Eternatus-Eternamax',
-    'Urshifu-S':        'Urshifu',
-    'Urshifu-RS':       'Urshifu-Rapid-Strike',
-    'Lycanroc-M':       'Lycanroc-Midnight',
-    'Lycanroc-D':       'Lycanroc-Dusk',
-    'Calyrex-Shadow':   'Calyrex-Shadow',
-    'Calyrex-Ice':      'Calyrex-Ice',
-    'Indeedee-F':       'Indeedee-F',
-    'Slowking-G':       'Slowking-Galar',
-    'Slowbro-G':        'Slowbro-Galar',
-    'Articuno-G':       'Articuno-Galar',
-    'Zapdos-G':         'Zapdos-Galar',
-    'Moltres-G':        'Moltres-Galar',
-    'Exeggutor-A':      'Exeggutor-Alola',
-    'Marowak-A':        'Marowak-Alola',
-    'Raichu-A':         'Raichu-Alola',
-    'Muk-A':            'Muk-Alola',
-    'Grimer-A':         'Grimer-Alola',
-    'Weezing-G':        'Weezing-Galar',
-    'Darmanitan-G':     'Darmanitan-Galar',
-    'Darmanitan-G-Z':   'Darmanitan-Galar-Zen',
-    'Darmanitan-Z':     'Darmanitan-Zen',
-    'Pikachu-Flying':   'Pikachu',
-    'Oricorio-Sensu':   'Oricorio-Sensu',
-    'Oricorio-Pompom':  'Oricorio-Pom-Pom',
-    'Oricorio-Pau':     'Oricorio-Pa\'u',
-  };
-  if (RR_ALIASES[n]) n = RR_ALIASES[n];
+  // Explicit Radical Red aliases (shorthand → canonical PS name from shared JSON)
+  const id = n.toLowerCase().replace(/[^a-z0-9]/g, '');
+  for (const [alias, canonical] of Object.entries(ALIASES)) {
+    if (alias.toLowerCase().replace(/[^a-z0-9]/g, '') === id) {
+      n = canonical;
+      break;
+    }
+  }
 
   // Handle Mega shorthand
   if (n.startsWith('Mega ')) n = n.replace('Mega ', '') + '-Mega';
@@ -99,14 +76,17 @@ function normalizePokemon(name) {
 function parseRRLevel(raw, refLevel) {
   const s = String(raw || '').trim().toLowerCase();
   if (!s || s === '0') return refLevel || 100;
-  // "Highest Lv -N" or "Highest Lv -N" pattern
-  const offsetMatch = s.match(/highest\s+lv\s*([+-]\d+)/i);
+  
+  // "Highest Lv -N" or "Player Max Level -N" patterns
+  const offsetMatch = s.match(/(highest|player max)\s+lv\s*([+-]\s*\d+)?/i);
   if (offsetMatch) {
-    const offset = parseInt(offsetMatch[1]);
+    const offset = offsetMatch[2] ? parseInt(offsetMatch[2].replace(/\s+/g, "")) : 0;
     return (refLevel || 100) + offset;
   }
-  // Plain "Highest Lv" without offset
-  if (s.includes('highest')) return refLevel || 100;
+
+  // Plain "Highest Lv" or "Player Max Level" without offset
+  if (s.includes('highest') || s.includes('player max')) return refLevel || 100;
+
   const n = parseInt(s);
   return isNaN(n) ? (refLevel || 100) : n;
 }
@@ -321,7 +301,7 @@ function parseRRHardcore(workbook, gameName, gameId) {
   const allNames = getPokemonNames();
 
   // Words that are definitely NOT Pokémon names (stats, labels, etc.)
-  const INVALID_POKEMON_RE = /^(hp|atk|def|spa|spd|spe|base stats?|speed stat|level|restricted|battle effect|if you.re|moves?|item|nature|ability|held item|highest|no item|\d+|-)$/i;
+  const INVALID_POKEMON_RE = /^(hp|atk|def|spa|spd|spe|base stats?|speed stat:?|level|restricted|battle effect|if you.re|moves?|item|nature|ability|held item|highest|player max|no item|stat:|\d+|-|if|rival|has)$/i;
 
   function isValidPokemonCell(val) {
     const s = String(val || '').trim();
@@ -332,10 +312,8 @@ function parseRRHardcore(workbook, gameName, gameId) {
     const normalized = normalizePokemon(s.replace(/[♂♀]/g, '').trim());
     if (allNames.some(n => n.toLowerCase() === normalized.toLowerCase())) return true;
 
-    // If not in pokedex, allow if it looks like a Proper Noun (start with capital)
-    // and isn't a known invalid word (already checked by INVALID_POKEMON_RE)
-    const isCapitalized = /^[A-Z]/.test(s);
-    if (isCapitalized && s.length > 3) return true;
+    // If not in pokedex, only allow if it's a very clear Proper Noun and NOT stat-y
+    if (s.length > 3 && /^[A-Z][a-z]+/.test(s) && !s.includes(':')) return true;
 
     return false;
   }
@@ -354,7 +332,12 @@ function parseRRHardcore(workbook, gameName, gameId) {
     const levelRefByRow = []; // Array of { fromRow, level }
     for (let i = 0; i < data.length; i++) {
       const cell0 = String((data[i] || [])[0] || '').trim();
-      if (cell0.toUpperCase().includes("IF YOU'RE") || cell0.toUpperCase().includes("IF YOU ARE")) {
+      if (cell0.toUpperCase().includes("LEVEL") && cell0.toUpperCase().includes("->>")) {
+        const lvMatch = cell0.match(/LEVEL\s+(\d+)/i);
+         if (lvMatch) {
+          levelRefByRow.push({ fromRow: i, level: parseInt(lvMatch[1]) });
+        }
+      } else if (cell0.toUpperCase().includes("IF YOU'RE") || cell0.toUpperCase().includes("IF YOU ARE")) {
         // Next row should contain "LEVEL X ->>"
         const next = String(((data[i + 1] || [])[0]) || '').trim();
         const lvMatch = next.match(/LEVEL\s+(\d+)/i);
@@ -381,7 +364,7 @@ function parseRRHardcore(workbook, gameName, gameId) {
     //   - Just a trainer name (e.g. "GYM LEADER\nBROCK")
     //   - A location prefix + trainer name (e.g. "VIRID. FOREST\nLASS\nANNE")
     // Invalid cells are single-value UI labels like "IF YOU'RE", "LEVEL CAPS", etc.
-    const PURE_HEADER_RE = /^(BATTLE EFFECT|RESTRICTED|LEVEL CAPS|SPEED STAT|BASE STATS|IF YOU|OPTIONAL BOSS|LEVEL \d)($|\s)/i;
+    const PURE_HEADER_RE = /^(BATTLE EFFECT|RESTRICTED|LEVEL CAPS|SPEED STAT|BASE STATS|IF YOU|OPTIONAL BOSS|LEVEL \d+|->>)($|\s)/i;
     let currentTrainerName = "";
 
     for (let i = 0; i < data.length; i++) {

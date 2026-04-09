@@ -114,7 +114,7 @@ export function EffectSelection({
             ...effect,
             type: typedNewType,
             deltas: typedNewType === "hp-change" 
-                ? [{ type: "HP_RELATIVE", target: effect.target, amount: undefined, unit: hpMode === "rolls" ? "hp" : hpMode }] 
+                ? [{ type: "HP_RELATIVE", target: effect.target, amount: undefined, unit: hpMode === "rolls" ? "hp" : hpMode, rollProfile: hpMode === "rolls" ? { rolls: [] } : undefined } as any] 
                 : typedNewType === "status-change"
                 ? [{ type: "STATUS_DELTAS", target: effect.target, operations: [] }]
                 : typedNewType === "stats-modifier"
