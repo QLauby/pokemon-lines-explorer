@@ -25,6 +25,25 @@ export function toShowdownId(name: string): string {
  */
 export function canonicalizePokemonName(name: string): string {
   let n = name.trim();
+  
+  // Handle gender markers and Unicode symbols
+  n = n.replace(/\s*\([MF]\)\s*$/i, "").trim();
+  n = n.replace(/[♂♀]/g, "").trim();
+
+  // Handle Nickname (Species) format (standard Showdown export for nicknamed mons)
+  const nicknameMatch = n.match(/^(.+)\s+\((.+)\)$/);
+  if (nicknameMatch) {
+    const potentialSpecies = nicknameMatch[2].trim();
+    const speciesId = toShowdownId(potentialSpecies);
+    
+    // Check if the part in parentheses is a valid pokemon or alias
+    const isSpecies = !!Pokedex[speciesId] || Object.keys(Aliases).some(a => toShowdownId(a) === speciesId);
+    
+    if (isSpecies) {
+      n = potentialSpecies;
+    }
+  }
+
   const id = toShowdownId(n);
 
   // Use centralized aliases (case-insensitive ID check)

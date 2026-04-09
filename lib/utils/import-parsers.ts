@@ -113,9 +113,9 @@ export function parseShowdownFormat(text: string): ParsedPokemon[] {
       item = itemPart.trim();
     }
 
-    const name = rawName.replace(/\s*\([MF]\)\s*/, "").trim();
+    const name = canonicalizePokemonName(rawName);
 
-    if (!name) continue;
+    if (!name || name === "@") continue;
 
     let ability: string | undefined;
     let teraType: PokemonType | undefined;
@@ -176,7 +176,8 @@ function classifyCell(cell: string): { role: CellRole; score: number } {
   const lower = cell.trim().toLowerCase();
   if (!lower) return { role: "unknown", score: 0 };
 
-  const id = toShowdownId(cell);
+  const canonical = canonicalizePokemonName(cell);
+  const id = toShowdownId(canonical);
 
   if (/^highest\s*lv/i.test(lower) || /^level\s*\d+$/i.test(lower) || /^lv\.?\d+$/i.test(lower)) return { role: "level", score: 1 };
   if (/^\d+$/.test(lower)) {
@@ -385,9 +386,8 @@ function parseKaizoFormat(rows: string[][], numCols: number): ParsedPokemon[] {
     if (!nameMatch) continue;
 
     const level = parseInt(nameMatch[1]);
-    const nameRaw = nameMatch[2].replace(/[♂♀]/g, "").trim();
-    const pokemonId = toShowdownId(nameRaw);
-    const pokemonName = Pokedex[pokemonId]?.name || nameRaw;
+    const pokemonName = canonicalizePokemonName(nameMatch[2]);
+    const pokemonId = toShowdownId(pokemonName);
 
     const natureVal = rows[1]?.[col]?.toLowerCase() || "";
     const nature = NATURES.has(natureVal) ? natureVal : undefined;
