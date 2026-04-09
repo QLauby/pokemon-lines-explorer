@@ -43,7 +43,11 @@ export function PokemonCardDisplayHeader({ pokemon }: PokemonCardDisplayHeaderPr
                            {pokemon.name}
                         </span>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-slate-900 text-white border-slate-700 shadow-xl z-[100] text-[10px]">
+                    <TooltipContent 
+                        side="top" 
+                        className="shadow-xl z-[100] text-[10px]"
+                        style={{ backgroundColor: THEME.tooltips.bg, color: THEME.tooltips.text }}
+                    >
                         {pokemon.name}
                     </TooltipContent>
                 </Tooltip>

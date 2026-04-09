@@ -207,15 +207,28 @@ export function parseTableFormat(text: string): ParsedPokemon[] {
   const numCols = Math.max(...rows.map(r => r.length));
   
   const isKaizoFormat = rows.some(row => row.some(cell => /^Lv\s*\d+/i.test(cell)));
-
   if (isKaizoFormat) {
     return parseKaizoFormat(rows, numCols);
   }
+
+  // --- Frequent Row Strategy ---
+  // Identify which row most likely contains the Pokemon names
+  const rowScores = rows.map((row) => {
+    let score = 0;
+    row.forEach(cell => {
+      if (Pokedex[toShowdownId(cell)]) score++;
+    });
+    return score;
+  });
+
+  const maxScore = Math.max(...rowScores);
+  const nameRowIndex = maxScore > 0 ? rowScores.indexOf(maxScore) : -1;
 
   const result: ParsedPokemon[] = [];
 
   for (let col = 0; col < numCols; col++) {
     const cells = rows.map(row => row[col] || "").filter(c => c.length > 0);
+    if (cells.length === 0) continue;
 
     let pokemonName: string | undefined;
     let ability: string | undefined;
@@ -224,46 +237,46 @@ export function parseTableFormat(text: string): ParsedPokemon[] {
     let level = 50;
     const moves: string[] = [];
 
-    for (const cell of cells) {
+    // 1. Determine Name first (using priority row or first unknown)
+    if (nameRowIndex !== -1 && rows[nameRowIndex][col]) {
+      const cell = rows[nameRowIndex][col];
       const id = toShowdownId(cell);
-      const lvMatch = cell.match(/^Lv\s*(\d+)\s+(.+)$/i);
-      if (lvMatch) {
-         level = parseInt(lvMatch[1]);
-         const nameRaw = lvMatch[2].replace(/[♂♀]/g, "").trim();
-         const pid = toShowdownId(nameRaw);
-         if (Pokedex[pid]) {
-            pokemonName = Pokedex[pid].name;
-            continue;
+      pokemonName = Pokedex[id]?.name || cell;
+    }
+
+    // 2. Parse Other Details from all cells in column
+    for (const cell of cells) {
+      if (!cell.trim()) continue;
+      const id = toShowdownId(cell);
+      
+      // Auto-identify Name only if still missing
+      if (!pokemonName) {
+         const { role } = classifyCell(cell);
+         if (role === "pokemon") pokemonName = Pokedex[id]?.name || cell;
+         else if (role === "unknown" && cell.length > 2) {
+             const blacklist = ["highest", "level", "stats", "base", "ability", "item", "nature", "moves", "total"];
+             if (!blacklist.some(b => cell.toLowerCase().includes(b))) pokemonName = cell;
          }
       }
 
-      const { role } = classifyCell(cell);
-
-      switch (role) {
-        case "pokemon":
-          if (!pokemonName) pokemonName = Pokedex[id]?.name || cell.trim();
-          break;
-        case "ability":
-          if (!ability) ability = Abilities[id]?.name || cell.trim();
-          break;
-        case "item":
-          if (!item) item = Items[id]?.name || cell.trim();
-          break;
-        case "nature": {
-          const n = cell.toLowerCase().replace(/\s*\(.*\)/, "").replace(/\s*nature\s*/i, "").trim();
-          if (!nature && NATURES.has(n)) nature = n;
-          break;
-        }
-        case "level": {
+      // Identify level: look for "Lv" prefix specifically or the word "Level"
+      if (/^Lv\.?\s*(\d+)/i.test(cell) || /^Level\s*(\d+)/i.test(cell)) {
           const m = cell.match(/\d+/);
           if (m) level = parseInt(m[0]);
+      }
+
+      const { role } = classifyCell(cell);
+      switch (role) {
+        case "ability": ability = ability || Abilities[id]?.name || cell; break;
+        case "item": item = item || Items[id]?.name || cell; break;
+        case "nature": 
+          const n = cell.toLowerCase().replace(/\s*\(.*\)/, "").replace(/\s*nature\s*/i, "").trim();
+          if (NATURES.has(n)) nature = nature || n; 
           break;
-        }
-        case "move": {
-          const mName = Moves[id]?.name || cell.trim();
+        case "move": 
+          const mName = Moves[id]?.name || cell;
           if (!moves.includes(mName) && moves.length < 4) moves.push(mName);
           break;
-        }
       }
     }
 
@@ -360,6 +373,9 @@ export function detectFormat(text: string): ImportFormat {
 
   if (lines.some(l => /^Lv\s*\d+/i.test(l.trim()))) return "table";
   if (text.includes("\t") || lines.some(l => /\s{2,}/.test(l))) return "table";
+
+  // If we have non-empty lines, treat as potential simple list (names)
+  if (lines.some(l => l.trim().length > 1)) return "table"; 
 
   return "unknown";
 }

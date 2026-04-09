@@ -5,6 +5,8 @@ import { ShoppingBag } from "lucide-react";
 import Image from "next/image";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAbilityText, getItemText } from "@/lib/utils/pokedex-utils";
+import { THEME } from "@/lib/constants/color-constants";
+import { useIsDark } from "@/lib/hooks/use-is-dark";
 
 const MegaColoredIcon = ({ size, className }: { size?: number; className?: string }) => (
   <Image
@@ -21,6 +23,7 @@ interface PokemonCardDisplayMetaProps {
 }
 
 export function PokemonCardDisplayMeta({ pokemon }: PokemonCardDisplayMetaProps) {
+    const isDark = useIsDark();
     return (
         <div className="flex items-center gap-1 text-[9px] text-slate-400 leading-tight mt-0.5 min-w-0">
              {pokemon.abilityName && (
@@ -37,10 +40,14 @@ export function PokemonCardDisplayMeta({ pokemon }: PokemonCardDisplayMetaProps)
                                         {pokemon.abilityName}
                                     </span>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-[250px] whitespace-normal bg-slate-900 text-white border-slate-700 shadow-xl z-[100]">
-                                    <div className="space-y-1 p-1">
-                                        <div className="font-bold text-[11px] border-b border-white/20 pb-0.5">{text.name}</div>
-                                        <p className="text-[10px] text-slate-200 leading-tight italic">{text.shortDesc || text.desc}</p>
+                                 <TooltipContent 
+                                    side="top" 
+                                    className="max-w-[250px] whitespace-normal shadow-xl z-[100]"
+                                    style={{ backgroundColor: THEME.tooltips.bg, color: THEME.tooltips.text }}
+                                 >
+                                    <div className="space-y-1 p-1" style={{ color: THEME.tooltips.text }}>
+                                        <div className="font-bold text-[11px] border-b pb-0.5" style={{ borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }}>{text.name}</div>
+                                        <p className="text-[10px] opacity-70 leading-tight italic">{text.shortDesc || text.desc}</p>
                                     </div>
                                 </TooltipContent>
                             </Tooltip>
@@ -64,7 +71,7 @@ export function PokemonCardDisplayMeta({ pokemon }: PokemonCardDisplayMetaProps)
                    {pokemon.heldItemName === "Mega Stone" ? (
                       <MegaColoredIcon size={9} className="shrink-0" />
                    ) : (
-                      <ShoppingBag className="w-2.5 h-2.5 shrink-0 text-amber-700" />
+                      <ShoppingBag className="w-2.5 h-2.5 shrink-0" style={{ color: THEME.common.item }} />
                    )}
                     {(() => {
                         const name = pokemon.heldItemName || "Objet";
@@ -79,10 +86,14 @@ export function PokemonCardDisplayMeta({ pokemon }: PokemonCardDisplayMetaProps)
                                         {name}
                                     </span>
                                 </TooltipTrigger>
-                                <TooltipContent side="top" className="max-w-[250px] whitespace-normal bg-slate-900 text-white border-slate-700 shadow-xl z-[100]">
-                                    <div className="space-y-1 p-1">
-                                        <div className="font-bold text-[11px] border-b border-white/20 pb-0.5">{text.name}</div>
-                                        <p className="text-[10px] text-slate-200 leading-tight italic">{text.shortDesc || text.desc}</p>
+                                 <TooltipContent 
+                                    side="top" 
+                                    className="max-w-[250px] whitespace-normal shadow-xl z-[100]"
+                                    style={{ backgroundColor: THEME.tooltips.bg, color: THEME.tooltips.text }}
+                                 >
+                                    <div className="space-y-1 p-1" style={{ color: THEME.tooltips.text }}>
+                                        <div className="font-bold text-[11px] border-b pb-0.5" style={{ borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }}>{text.name}</div>
+                                        <p className="text-[10px] opacity-70 leading-tight italic">{text.shortDesc || text.desc}</p>
                                     </div>
                                 </TooltipContent>
                             </Tooltip>

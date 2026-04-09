@@ -1,4 +1,5 @@
 import { updatePokemonHpPercent } from "@/lib/utils/hp-utils"
+import { getPokemonDetails } from "@/lib/utils/pokedex-utils"
 import { BattleState, CustomTagData, Pokemon } from "@/types/types"
 import { useState } from "react"
 import { BattleEngine } from "../../../logic/battle-engine"
@@ -37,16 +38,18 @@ export function useTeamManager({ currentSession, updateInitialState }: UseTeamMa
     const setInputValue = teamType === "my" ? setNewMyPokemonName : setNewOpponentPokemonName
 
     const finalName = inputValue.trim() || getDefaultPokemonName(team, teamType)
-    const defaultItemName = teamType === "my" ? `Item ${team.length + 1}` : `Item ${String.fromCharCode(65 + team.length)}`
-    const defaultAbilityName = teamType === "my" ? `Ability ${team.length + 1}` : `Ability ${String.fromCharCode(65 + team.length)}`
+    const dexData = getPokemonDetails(finalName)
+    const initialTypes = dexData ? dexData.types.map((t: string) => t.toLowerCase()) : []
+    const initialAbility = dexData ? dexData.abilities[0] : ""
+    const initialItem = ""
 
     const newPokemon: Pokemon = {
       id: Date.now().toString(),
       name: finalName,
-      types: [],
+      types: initialTypes,
       teraType: undefined,
-      heldItemName: defaultItemName,
-      abilityName: defaultAbilityName,
+      heldItemName: initialItem,
+      abilityName: initialAbility,
       hpPercent: 100,
       hpMax: 100,
       hpCurrent: 100,

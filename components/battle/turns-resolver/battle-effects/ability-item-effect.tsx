@@ -5,20 +5,26 @@ import { CircularButton } from "@/components/shared/circular-button"
 import { EditableText } from "@/components/shared/editable-text"
 import { Effect, Pokemon } from "@/types/types"
 import { ArrowRight, RotateCcw, ShoppingBag, Sparkles } from "lucide-react"
+import { THEME } from "@/lib/constants/color-constants"
+import { useIsDark } from "@/lib/hooks/use-is-dark"
+import { cn } from "@/lib/utils"
 
 interface AbilityItemEffectProps {
     effect: Effect
     onUpdate: (newEffect: Effect) => void
     readOnly?: boolean
     initialPokemon?: Pokemon
+    isAlly?: boolean
 }
 
 export function AbilityItemEffect({
     effect,
     onUpdate,
     readOnly,
-    initialPokemon
+    initialPokemon,
+    isAlly
 }: AbilityItemEffectProps) {
+    const isDark = useIsDark()
     if (!initialPokemon) return null
 
     const abilityDelta = effect.deltas.find(d => d.type === "ABILITY_CHANGE")
@@ -114,9 +120,12 @@ export function AbilityItemEffect({
     return (
         <div className="flex flex-col gap-1 w-full py-1">
             {/* Ability Line */}
-            <div className="grid grid-cols-[130px_20px_1fr_30px] items-center gap-2 w-full bg-white/40 backdrop-blur-sm rounded-md border border-slate-100/50 px-2 h-9">
+            <div className="grid grid-cols-[130px_20px_1fr_30px] items-center gap-2 w-full bg-background/50 rounded-md border border-border px-2 h-9 transition-colors hover:bg-muted/30">
                 <div className="flex items-center gap-1.5 min-w-0">
-                    <Sparkles className="h-3.5 w-3.5 text-amber-500/60 shrink-0" />
+                    <Sparkles 
+                        className="h-3.5 w-3.5 shrink-0" 
+                        style={{ color: THEME.common.ability }} 
+                    />
                     <span className="text-[10px] text-slate-400 italic truncate font-light">
                         {pokemon.abilityName || "No Ability"}
                     </span>
@@ -136,7 +145,12 @@ export function AbilityItemEffect({
                         fontSize={12}
                         fontSizeRatio={0.7}
                         readOnly={readOnly}
-                        className="font-medium text-amber-950"
+                        className="font-medium"
+                        style={{ color: THEME.common.ability }}
+                        mainColor={isAlly 
+                            ? (isDark ? THEME.editable_text.primary_dark : THEME.editable_text.primary_light)
+                            : (isDark ? THEME.editable_text.opponent_dark : THEME.editable_text.opponent_light)
+                        }
                     />
                 </div>
 
@@ -144,7 +158,11 @@ export function AbilityItemEffect({
                     {isAbilityModified && !readOnly && (
                         <button 
                             onClick={resetAbility}
-                            className="p-1.5 rounded-full hover:bg-amber-100/50 text-slate-300 hover:text-amber-600 transition-all active:scale-90"
+                            className="p-1.5 rounded-full transition-all active:scale-90 opacity-60 hover:opacity-100"
+                            style={{ 
+                                backgroundColor: isAbilityModified ? "var(--bg-neutral-low)" : "transparent",
+                                color: THEME.common.ability 
+                            }}
                             title="Reset to initial ability"
                         >
                             <RotateCcw className="h-3.5 w-3.5" />
@@ -154,14 +172,14 @@ export function AbilityItemEffect({
             </div>
 
             {/* Item Line */}
-            <div className="grid grid-cols-[130px_20px_1fr_30px] items-center gap-2 w-full bg-white/40 backdrop-blur-sm rounded-md border border-slate-100/50 px-2 h-9">
+            <div className="grid grid-cols-[130px_20px_1fr_30px] items-center gap-2 w-full bg-background/50 rounded-md border border-border px-2 h-9 transition-colors hover:bg-muted/30">
                 <div className="flex items-center gap-1.5 min-w-0">
                     {pokemon.heldItemName === "Mega Stone" ? (
                         <div className="bg-white rounded-full p-0.5 border border-slate-100 flex items-center justify-center">
                              <MegaColoredIcon size={12} />
                         </div>
                     ) : (
-                        <ShoppingBag className={pokemon.heldItem ? "h-3.5 w-3.5 text-amber-700/60 shrink-0" : "h-3.5 w-3.5 text-slate-300/60 shrink-0"} />
+                        <ShoppingBag className="h-3.5 w-3.5 shrink-0" style={{ color: THEME.common.item }} />
                     )}
                     <span className="text-[10px] text-slate-400 italic truncate font-light">
                         {pokemon.heldItem ? pokemon.heldItemName : "No Item"}
@@ -178,7 +196,7 @@ export function AbilityItemEffect({
                             isActive={afterItemHeld}
                             onClick={handleItemCycle}
                             icon={afterItemHeld && afterItemName === "Mega Stone" ? MegaColoredIcon : ShoppingBag}
-                            activeColor={afterItemName === "Mega Stone" ? "bg-transparent" : "bg-amber-700 text-white"}
+                            activeColor={afterItemName === "Mega Stone" ? "bg-transparent" : THEME.common.item}
                             title={afterItemHeld ? (afterItemName === "Mega Stone" ? "Méga-Gemme" : "Objet tenu") : "Aucun objet"}
                             variant="outlined"
                             diameter={20}
@@ -197,7 +215,12 @@ export function AbilityItemEffect({
                                 fontSize={12}
                                 fontSizeRatio={0.7}
                                 readOnly={readOnly}
-                                className="font-medium text-amber-950"
+                                className="font-medium"
+                                style={{ color: THEME.common.item }}
+                                mainColor={isAlly 
+                                    ? (isDark ? THEME.editable_text.primary_dark : THEME.editable_text.primary_light)
+                                    : (isDark ? THEME.editable_text.opponent_dark : THEME.editable_text.opponent_light)
+                                }
                             />
                         ) : (
                             <span className="text-[11px] text-slate-400/80 italic ml-1">No Item</span>
@@ -209,7 +232,11 @@ export function AbilityItemEffect({
                     {isItemModified && !readOnly && (
                         <button 
                             onClick={resetItem}
-                            className="p-1.5 rounded-full hover:bg-amber-100/50 text-slate-300 hover:text-amber-600 transition-all active:scale-90"
+                            className="p-1.5 rounded-full transition-all active:scale-90 opacity-60 hover:opacity-100"
+                            style={{ 
+                                backgroundColor: isItemModified ? "var(--bg-neutral-low)" : "transparent",
+                                color: THEME.common.item 
+                            }}
                             title="Reset to initial item"
                         >
                             <RotateCcw className="h-3.5 w-3.5" />

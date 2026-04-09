@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils"
 import { BattleState, Pokemon, TreeNode, TurnData } from "@/types/types"
 import { useEffect, useState } from "react"
 import { getTreeBranchColor } from "../battle-view"
+import { useIsDark } from "@/lib/hooks/use-is-dark"
 import { DeleteFromCurrentTurn } from "./delete-from-current-turn"
 import { SetNextTurn } from "./set-next-turn"
 import { UpdateCurrentTurn } from "./update-current-turn"
@@ -60,6 +61,7 @@ export function TurnsResolver({
   hpMode = "percent",
   readOnly = false,
 }: TurnsResolverProps) {
+  const isDark = useIsDark()
   const [activeTab, setActiveTab] = useState<Tab>("next")
   const selectedNode = nodes.get(selectedNodeId)
 
@@ -73,7 +75,7 @@ export function TurnsResolver({
   const currentTurn = selectedNode?.turn || 0
   
   // Current branch color
-  const currentBranchColor = selectedNode ? getTreeBranchColor(selectedNode.branchIndex) : "inherit"
+  const currentBranchColor = selectedNode ? getTreeBranchColor(selectedNode.branchIndex, isDark) : "inherit"
   
   // Next branch color calculation
   let nextBranchIndex = selectedNode?.branchIndex || 0
@@ -86,16 +88,16 @@ export function TurnsResolver({
     while (usedBranches.has(newBranch)) newBranch++
     nextBranchIndex = newBranch
   }
-  const nextBranchColor = getTreeBranchColor(nextBranchIndex)
+  const nextBranchColor = getTreeBranchColor(nextBranchIndex, isDark)
 
   return (
     <div className="space-y-6">
-      <div className="flex bg-slate-100 p-1 rounded-lg">
+      <div className="flex bg-muted p-1 rounded-lg">
         <button
            onClick={() => setActiveTab("update")}
            className={cn(
              "flex-1 py-1.5 text-sm font-medium rounded-md transition-colors",
-             activeTab === "update" ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+             activeTab === "update" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-background/20"
            )}
         >
            Update <span style={{ color: currentBranchColor }} className="font-bold">turn {currentTurn}</span>
@@ -104,7 +106,7 @@ export function TurnsResolver({
            onClick={() => setActiveTab("delete")}
            className={cn(
              "flex-1 py-1.5 text-sm font-medium rounded-md transition-colors",
-             activeTab === "delete" ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+             activeTab === "delete" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-background/20"
            )}
         >
            Delete from <span style={{ color: currentBranchColor }} className="font-bold">turn {currentTurn}</span>
@@ -113,14 +115,14 @@ export function TurnsResolver({
            onClick={() => setActiveTab("next")}
            className={cn(
              "flex-1 py-1.5 text-sm font-medium rounded-md transition-colors",
-             activeTab === "next" ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+             activeTab === "next" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-background/20"
            )}
         >
            Set new <span style={{ color: nextBranchColor }} className="font-bold">turn {currentTurn + 1}</span>
         </button>
       </div>
 
-      <div className="border rounded-lg p-4 bg-white/50">
+      <div className="border rounded-lg p-4 bg-card/40 backdrop-blur-sm">
          {activeTab === "update" && (
                <UpdateCurrentTurn 
                  selectedNodeId={selectedNodeId}
@@ -157,6 +159,7 @@ export function TurnsResolver({
                 currentBattleState={nextBattleState}
                 sessionInitialState={sessionInitialState}
                 hpMode={hpMode}
+                nextBranchColor={nextBranchColor}
             />
          )}
        </div>

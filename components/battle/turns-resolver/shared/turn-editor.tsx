@@ -30,6 +30,7 @@ interface TurnEditorProps {
   battleFormat?: "simple" | "double"
   autoSave?: boolean
   hpMode?: "percent" | "hp" | "rolls"
+  saveButtonColor?: string
 }
 
 export function TurnEditor({
@@ -46,6 +47,7 @@ export function TurnEditor({
   battleFormat = "simple",
   autoSave = false,
   hpMode = "percent",
+  saveButtonColor,
 }: TurnEditorProps) {
 
   // ── State & Handlers ─────────────────────────────────────────
@@ -186,9 +188,7 @@ export function TurnEditor({
             title="End of Turn Effects"
             effects={endOfTurnEffects}
             options={eotOptions}
-            onAdd={() => addEndOfTurnEffect(
-              eotOptions.length > 0 ? eotOptions[0].value : { side: "my", slotIndex: 0 }
-            )}
+            onAdd={() => addEndOfTurnEffect()}
             onUpdate={!readOnly ? updateEndOfTurnEffect : () => {}}
             onRemove={!readOnly ? removeEndOfTurnEffect : () => {}}
             readOnly={readOnly}
@@ -240,7 +240,8 @@ export function TurnEditor({
         <div className="pt-1 flex justify-center">
           <Button
             onClick={() => onSave({ actions, endOfTurnEffects, postTurnActions })}
-            className="px-15"
+            className="px-15 border-transparent transition-colors hover:opacity-80"
+            style={ saveButtonColor ? { backgroundColor: saveButtonColor, color: "var(--background)" } : undefined }
           >
             {saveLabel}
           </Button>

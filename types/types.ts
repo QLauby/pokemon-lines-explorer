@@ -134,13 +134,13 @@ export type MegaTeraOperation =
   | { type: "SET_TERA"; value: boolean }
 
 export type BattleDelta =
-  | { type: "HP_RELATIVE"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string;
+  | { type: "HP_RELATIVE"; target: SlotReference; amount?: number; unit: "percent" | "hp"; rawAmountExpression?: string;
       /** Present only in hpMode="rolls" when the user has configured a min/max range.
        *  The scalar `amount` always equals -rollProfile.mean (negative = damage).
        *  Absent for fixed-damage lines (treated identically to hpMode="hp"). */
       rollProfile?: RollProfile;
       isForcedKo?: boolean; }
-  | { type: "HP_SET"; target: SlotReference; amount: number; unit: "percent" | "hp"; rawAmountExpression?: string;
+  | { type: "HP_SET"; target: SlotReference; amount?: number; unit: "percent" | "hp"; rawAmountExpression?: string;
       isForcedKo?: boolean; }
   | { type: "SWITCH"; side: "my" | "opponent"; fromSlot: number; toSlot: number; slotIndex?: number }
   | { type: "PP_CHANGE"; target: SlotReference; moveName: string; amount: number }

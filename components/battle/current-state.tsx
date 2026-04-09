@@ -54,7 +54,7 @@ export function CurrentState({
     <div className="flex flex-col gap-3 text-[11px]">
       
       {/* 1. Main Battlefield Container */}
-      <div className="border rounded-xl p-2 shadow-sm ring-1 ring-black/5" style={{ borderColor: THEME.battlefield.main_border, backgroundColor: THEME.battlefield.side_bg }}>
+      <div className="border rounded-xl p-2 shadow-sm ring-1 ring-black/5" style={{ borderColor: THEME.battlefield.main_border, backgroundColor: THEME.battlefield.main_bg }}>
         <div className="mb-2">
           <h3 className="text-[10px] font-bold mb-1 uppercase tracking-wider" style={{ color: THEME.battlefield.title_text }}>Battlefield</h3>
           {/* Global Field Tags */}
@@ -71,8 +71,11 @@ export function CurrentState({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
            {/* Player Side */}
            <div
-             className="border rounded-xl p-2 bg-white shadow-sm"
-             style={{ borderColor: `${playerBorderColor}40` }} // 25% opacity
+             className="border rounded-xl p-2 shadow-sm"
+             style={{ 
+                 borderColor: THEME.common.ally, 
+                 backgroundColor: THEME.common.ally_bg 
+             }}
            >
              <h4 className="text-[9px] font-bold mb-1 uppercase tracking-tighter" style={{ color: THEME.battlefield.side_label_ally }}>
                Player
@@ -102,12 +105,12 @@ export function CurrentState({
                             mode="deployed"
                             isMyTeam={true}
                             hpMode={hpMode}
-                            className={cn(battleType === "simple" && "w-[calc(50%-4px)]")}
+                            className={cn(battleType === "simple" && "w-[85%]")}
                         />
                     ) : (
                         <div key={`empty-my-${slotIndex}`} className={cn(
                             "w-full h-full min-h-[50px] rounded-lg border-2 border-dashed flex items-center justify-center text-[10px] uppercase font-bold",
-                            battleType === "simple" && "w-[calc(50%-4px)]"
+                            battleType === "simple" && "w-[85%]"
                         )} style={{ borderColor: THEME.battlefield.main_border, color: THEME.pokemon_card.status.label, backgroundColor: THEME.battlefield.side_bg }}>
                             Empty Slot
                         </div>
@@ -118,8 +121,11 @@ export function CurrentState({
 
            {/* Opponent Side */}
            <div
-             className="border rounded-xl p-2 bg-white shadow-sm"
-             style={{ borderColor: `${opponentBorderColor}40` }}
+             className="border rounded-xl p-2 shadow-sm"
+             style={{ 
+                 borderColor: THEME.common.opponent,
+                 backgroundColor: THEME.common.opponent_bg
+             }}
            >
              <h4 className="text-[9px] font-bold mb-1 uppercase tracking-tighter" style={{ color: THEME.battlefield.side_label_opponent }}>
                Opponent
@@ -149,12 +155,12 @@ export function CurrentState({
                             mode="deployed"
                             isMyTeam={false}
                             hpMode={hpMode}
-                            className={cn(battleType === "simple" && "w-[calc(50%-4px)]")}
+                            className={cn(battleType === "simple" && "w-[85%]")}
                         />
                     ) : (
                         <div key={`empty-enemy-${slotIndex}`} className={cn(
                             "w-full h-full min-h-[64px] rounded-lg border-2 border-dashed flex items-center justify-center text-[10px] uppercase font-bold",
-                            battleType === "simple" && "w-[calc(50%-4px)]"
+                            battleType === "simple" && "w-[85%]"
                         )} style={{ borderColor: THEME.battlefield.main_border, color: THEME.pokemon_card.status.label, backgroundColor: THEME.battlefield.side_bg }}>
                             Empty Slot
                         </div>
@@ -169,7 +175,7 @@ export function CurrentState({
       <div className="border-t pt-3 mt-1 grid grid-cols-1 md:grid-cols-2 gap-3 px-1">
           
           {/* Player Team */}
-          <div className="rounded-xl p-2 border shadow-sm transition-all hover:shadow-md" style={{ backgroundColor: THEME.common.ally_bg + "33", borderColor: THEME.common.ally_bg + "80" }}>
+          <div className="rounded-xl p-2 border-[1.5px] shadow-sm transition-all hover:shadow-md" style={{ backgroundColor: THEME.common.ally_bg, borderColor: THEME.common.ally }}>
              <h4 className="text-[8px] font-bold mb-1 uppercase tracking-widest pl-1" style={{ color: THEME.common.ally_text }}>My Team</h4>
              <div className="grid grid-cols-2 gap-2">
                  {myTeam.map((pokemon, idx) => {
@@ -189,7 +195,7 @@ export function CurrentState({
           </div>
 
           {/* Opponent Team */}
-          <div className="rounded-xl p-2 border shadow-sm transition-all hover:shadow-md" style={{ backgroundColor: THEME.common.opponent_bg + "33", borderColor: THEME.common.opponent_bg + "80" }}>
+          <div className="rounded-xl p-2 border-[1.5px] shadow-sm transition-all hover:shadow-md" style={{ backgroundColor: THEME.common.opponent_bg, borderColor: THEME.common.opponent }}>
              <h4 className="text-[8px] font-bold mb-1 uppercase tracking-widest pl-1" style={{ color: THEME.common.opponent_text }}>Opponent Team</h4>
               <div className="grid grid-cols-2 gap-2">
                  {enemyTeam.map((pokemon, idx) => {

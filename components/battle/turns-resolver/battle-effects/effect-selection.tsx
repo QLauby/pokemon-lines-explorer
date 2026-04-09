@@ -79,7 +79,9 @@ export function EffectSelection({
     useEffect(() => {
         if (!readOnly && options.length > 0) {
             const currentTargetIsValid = options.some(opt => isSameTarget(opt.value, effect.target));
-            if (!currentTargetIsValid) {
+            const isUnselected = "slotIndex" in effect.target && (effect.target as any).slotIndex === -1;
+            
+            if (!currentTargetIsValid && !isUnselected) {
                 handleTargetChange(JSON.stringify(options[0].value));
             }
         }
@@ -90,7 +92,10 @@ export function EffectSelection({
 
     const handleTargetChange = (value: string) => {
         if (!value) return
-        const newTarget = JSON.parse(value) as SlotReference
+        const newTarget = value === "none" 
+            ? { type: "battlefield_slot" as const, side: "opponent" as const, slotIndex: -1 }
+            : JSON.parse(value) as SlotReference
+            
         onUpdate({
             ...effect,
             target: newTarget,
@@ -109,7 +114,7 @@ export function EffectSelection({
             ...effect,
             type: typedNewType,
             deltas: typedNewType === "hp-change" 
-                ? [{ type: "HP_RELATIVE", target: effect.target, amount: 0, unit: hpMode === "rolls" ? "hp" : hpMode }] 
+                ? [{ type: "HP_RELATIVE", target: effect.target, amount: undefined, unit: hpMode === "rolls" ? "hp" : hpMode }] 
                 : typedNewType === "status-change"
                 ? [{ type: "STATUS_DELTAS", target: effect.target, operations: [] }]
                 : typedNewType === "stats-modifier"
@@ -170,14 +175,19 @@ export function EffectSelection({
     const pokemonHpInfo = getTargetPokemonHp();
 
     return (
-        <div className={cn(
-            "rounded-md border overflow-hidden",
-            isAlly ? "border-blue-200" : "border-red-200"
-        )}>
+        <div 
+            className={cn(
+                "rounded-md border overflow-hidden transition-all shadow-sm",
+                isAlly ? "border-[var(--color-ally)]/40 shadow-[var(--color-ally)]/5" : "border-[var(--color-opp)]/40 shadow-[var(--color-opp)]/5"
+            )}
+            style={{ 
+                "--effect-ring": isAlly ? "var(--color-ally)" : "var(--color-opp)"
+            } as React.CSSProperties}
+        >
             {/* Row 1: Target + Type + Delete */}
             <div className={cn(
                 "flex items-center gap-1.5 px-2 py-1",
-                isAlly ? "bg-blue-50/50" : "bg-red-50/50"
+                isAlly ? "bg-[var(--color-ally-bg)]" : "bg-[var(--color-opp-bg)]"
             )}>
                 {/* Type Dropdown (Now first) */}
                 <Select
@@ -187,8 +197,9 @@ export function EffectSelection({
                 >
                     <SelectTrigger
                         className={cn(
-                            "h-6 text-[10px] bg-background/80 px-1.5 flex-1 shrink-0 min-w-0 transition-colors",
-                            isAlly ? "border-blue-200" : "border-red-200"
+                            "h-6 text-[10px] bg-background/80 px-1.5 flex-1 shrink-0 min-w-0 transition-colors shadow-none",
+                            "focus:ring-1 focus:ring-[var(--effect-ring)]",
+                            isAlly ? "border-[var(--color-ally)]/20" : "border-[var(--color-opp)]/20"
                         )}
                     >
                         <SelectValue />
@@ -204,17 +215,19 @@ export function EffectSelection({
 
                 {/* Target Dropdown (Now second) */}
                 <Select
-                    value={JSON.stringify(effect.target)}
+                    value={targetOption ? JSON.stringify(effect.target) : "none"}
                     onValueChange={handleTargetChange}
                     disabled={readOnly}
                 >
                     <SelectTrigger
                         className={cn(
-                            "h-6 text-[10px] font-bold bg-background/80 px-1.5 flex-[1.5] min-w-0 transition-colors",
-                            isAlly ? "border-blue-200" : "border-red-200"
+                            "h-6 text-[10px] font-bold bg-background/80 px-1.5 flex-[1.5] min-w-0 transition-colors shadow-none",
+                            "focus:ring-1 focus:ring-[var(--effect-ring)]",
+                            isAlly ? "border-[var(--color-ally)]/20" : "border-[var(--color-opp)]/20"
                         )}
                         style={{
                             color: (() => {
+                                if (!targetOption) return "var(--text-main)"
                                 if (effect.target.type === "field") {
                                     return effect.target.side === "my" ? THEME.common.ally_text : THEME.common.opponent_text
                                 }
@@ -222,9 +235,12 @@ export function EffectSelection({
                             })()
                         }}
                     >
-                        <SelectValue />
+                        <SelectValue placeholder="Target Pokémon..." />
                     </SelectTrigger>
                     <SelectContent>
+                        <SelectItem value="none" className="text-[10px] py-1 px-2 italic opacity-60">
+                            Target Pokémon...
+                        </SelectItem>
                         {options.map((opt, idx) => (
                             <SelectItem
                                 key={`target-${idx}`}
@@ -251,16 +267,16 @@ export function EffectSelection({
                         variant="ghost" 
                         size="icon" 
                         onClick={onRemove} 
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
+                        className="h-6 w-6 text-foreground hover:text-destructive shrink-0 transition-colors"
                     >
-                        <Trash2 className="h-3 w-3" />
+                        <Trash2 className="h-3.5 w-3.5" style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }} />
                     </Button>
                 )}
             </div>
             
             {/* Row 1.5: Optional description */}
-            <div className="px-2 py-0.5 border-t border-dashed bg-white/20 flex items-center gap-2">
-                <span className="text-[9px] font-bold text-muted-foreground uppercase shrink-0">Description :</span>
+            <div className="px-2 py-1.5 border-t border-dashed bg-muted flex items-center gap-2">
+                <span className="text-[9px] font-bold text-foreground/70 uppercase shrink-0">Description :</span>
                 <input 
                     className="flex-1 bg-transparent border-none outline-none text-[10px] placeholder:italic italic h-5"
                     value={effect.description || ""}
@@ -271,58 +287,68 @@ export function EffectSelection({
             </div>
 
             {/* Row 2: Effect-specific content */}
-            <div className="px-2 py-1.5 bg-card/30">
-                {effect.type === "hp-change" && (
-                    <HpChangeEffect
-                        effect={effect}
-                        onUpdate={onUpdate}
-                        readOnly={readOnly}
-                        initialHp={pokemonHpInfo?.hpPercent}
-                        initialHpMax={pokemonHpInfo?.hpMax}
-                        initialHpCurrent={pokemonHpInfo?.hpCurrent}
-                        initialStatProfile={pokemonHpInfo?.statProfile}
-                        hpMode={hpMode}
-                    />
-                )}
-                {effect.type === "status-change" && (
-                    <StatusChangeEffect
-                        effect={effect}
-                        onUpdate={onUpdate}
-                        readOnly={readOnly}
-                        initialPokemon={getTargetPokemon()}
-                    />
-                )}
-                {effect.type === "stats-modifier" && (
-                    <StatsModifierEffect
-                        effect={effect}
-                        onUpdate={onUpdate}
-                        readOnly={readOnly}
-                        initialPokemon={getTargetPokemon()}
-                    />
-                )}
-                {(effect.type === "others" || effect.type === "terrain") && (
-                    <OthersEffect
-                        effect={effect}
-                        onUpdate={onUpdate}
-                        readOnly={readOnly}
-                        initialTags={getTargetCustomTags()}
-                    />
-                )}
-                {effect.type === "mega-tera" && (
-                    <MegaTeraEffect
-                        effect={effect}
-                        onUpdate={onUpdate}
-                        readOnly={readOnly}
-                        initialPokemon={getTargetPokemon()}
-                    />
-                )}
-                {effect.type === "ability-item" && (
-                    <AbilityItemEffect
-                        effect={effect}
-                        onUpdate={onUpdate}
-                        readOnly={readOnly}
-                        initialPokemon={getTargetPokemon()}
-                    />
+            <div className="px-2 py-2.5 bg-background/60 min-h-[40px] flex flex-col justify-center">
+                {(!targetOption) ? (
+                    <div className="text-[10px] text-muted-foreground italic text-center py-2">
+                        Please select a target Pokémon or Field side above to configure this effect.
+                    </div>
+                ) : (
+                    <>
+                        {effect.type === "hp-change" && (
+                            <HpChangeEffect
+                                effect={effect}
+                                onUpdate={onUpdate}
+                                readOnly={readOnly}
+                                initialHp={pokemonHpInfo?.hpPercent}
+                                initialHpMax={pokemonHpInfo?.hpMax}
+                                initialHpCurrent={pokemonHpInfo?.hpCurrent}
+                                initialStatProfile={pokemonHpInfo?.statProfile}
+                                hpMode={hpMode}
+                            />
+                        )}
+                        {effect.type === "status-change" && (
+                            <StatusChangeEffect
+                                effect={effect}
+                                onUpdate={onUpdate}
+                                readOnly={readOnly}
+                                initialPokemon={getTargetPokemon()}
+                            />
+                        )}
+                        {effect.type === "stats-modifier" && (
+                            <StatsModifierEffect
+                                effect={effect}
+                                onUpdate={onUpdate}
+                                readOnly={readOnly}
+                                initialPokemon={getTargetPokemon()}
+                                isAlly={isAlly}
+                            />
+                        )}
+                        {(effect.type === "others" || effect.type === "terrain") && (
+                            <OthersEffect
+                                effect={effect}
+                                onUpdate={onUpdate}
+                                readOnly={readOnly}
+                                initialTags={getTargetCustomTags()}
+                            />
+                        )}
+                        {effect.type === "mega-tera" && (
+                            <MegaTeraEffect
+                                effect={effect}
+                                onUpdate={onUpdate}
+                                readOnly={readOnly}
+                                initialPokemon={getTargetPokemon()}
+                            />
+                        )}
+                        {effect.type === "ability-item" && (
+                            <AbilityItemEffect
+                                effect={effect}
+                                onUpdate={onUpdate}
+                                readOnly={readOnly}
+                                initialPokemon={getTargetPokemon()}
+                                isAlly={isAlly}
+                            />
+                        )}
+                    </>
                 )}
             </div>
         </div>

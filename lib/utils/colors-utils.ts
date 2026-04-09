@@ -1,14 +1,15 @@
 import { PALETTE } from "../constants/color-constants"
 
-export const pokemonTypeColors = PALETTE.pokemon_types
+export const pokemonTypeColors = PALETTE.pokemon_types.light
+export const pokemonTypeColorsDark = PALETTE.pokemon_types.dark
 
 
 // Type for TypeScript autocompletion
 export type PokemonType = keyof typeof pokemonTypeColors
 
 // Helper function to get color by type
-export const getTypeColor = (type: PokemonType): string => {
-  return pokemonTypeColors[type]
+export const getTypeColor = (type: PokemonType, isDark = false): string => {
+  return isDark ? pokemonTypeColorsDark[type] : pokemonTypeColors[type]
 }
 
 // Helper function to get all available types

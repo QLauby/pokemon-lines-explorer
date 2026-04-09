@@ -190,8 +190,10 @@ export function PokemonCardHeader({
                 width="100%"
                 fontSize={16.5}
                 fontSizeRatio={0.6}
-                className="font-bold text-slate-800"
+                className="font-bold"
                 readOnly={readOnly}
+                mainColor={isMyTeam ? THEME.common.ally : THEME.common.opponent}
+                isMyTeam={isMyTeam}
               />
             </div>
           </div>
@@ -341,7 +343,10 @@ export function PokemonCardHeader({
             {pokemon.hpPercent === 0 && (
               <span 
                 className="text-white font-black px-1 py-[1px] rounded-[2px] text-[8px] leading-none select-none tracking-tight shrink-0"
-                style={{ backgroundColor: THEME.ko.bordeaux }}
+                style={{ 
+                    backgroundColor: THEME.ko.bordeaux,
+                    boxShadow: `0 0 calc(15px * var(--glow-intensity, 1)) var(--color-ko, #ff0055), 0 0 calc(5px * var(--glow-intensity, 1)) #fff` 
+                }}
               >
                 KO
               </span>
@@ -408,9 +413,6 @@ export function PokemonCardHeader({
                     backgroundColor: "transparent",
                     color: isStarter 
                         ? (isMyTeam ? THEME.common.ally : THEME.common.opponent) 
-                        : THEME.pokemon_card.header.move_icon,
-                    borderColor: isStarter
-                        ? (isMyTeam ? THEME.common.ally : THEME.common.opponent)
                         : THEME.pokemon_card.header.move_icon
                 } as React.CSSProperties}
                 title={isStarter ? "In combat" : "Click to select as starter"}

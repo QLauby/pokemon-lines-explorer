@@ -183,30 +183,28 @@ export function PokemonAction({
       return "UNKNOWN"
   }
   
-  // Define Styles (Teinté logic)
+  // Define Styles (Premium Bordered logic)
   let containerStyle: React.CSSProperties = {
-      backgroundColor: isAlly ? THEME.common.ally_bg + "33" : THEME.common.opponent_bg + "33",
-      borderColor: isAlly ? THEME.common.ally_bg + "80" : THEME.common.opponent_bg + "80",
-      "--action-border-strong": isAlly ? THEME.common.ally_bg : THEME.common.opponent_bg,
+      backgroundColor: THEME.battlefield.main_bg,
+      borderColor: isAlly ? THEME.common.ally : THEME.common.opponent,
+      borderWidth: '1px',
+      "--action-border-strong": isAlly ? THEME.common.ally : THEME.common.opponent,
+      boxShadow: `0 4px 12px -2px ${isAlly ? THEME.common.ally : THEME.common.opponent}25`,
   } as React.CSSProperties
   
-  let borderColorClass = "border-[var(--action-border-strong)]/50"
-  let containerClass = "hover:shadow-sm shadow-black/5 transition-all"
+  let borderColorClass = "border-[var(--action-border-strong)]/40"
+  let containerClass = "hover:shadow-md transition-all duration-200"
 
   if (isSwitchAfterKo) {
       containerStyle = {
           ...containerStyle,
           borderColor: THEME.ko.bordeaux,
           backgroundColor: THEME.ko.bg,
+          boxShadow: `0 4px 12px -2px ${THEME.ko.bordeaux}25`,
           "--action-border-strong": THEME.ko.bordeaux,
       } as React.CSSProperties
-      borderColorClass = "" // Remove border color class
-      containerClass = "hover:bg-slate-200/50" // Keep tailwind or replace
-  } else {
-      containerStyle = {
-          ...containerStyle,
-          "--action-border-strong": isAlly ? THEME.common.ally : THEME.common.opponent,
-      } as React.CSSProperties
+      borderColorClass = "border-[var(--action-border-strong)]/40" 
+      containerClass = "hover:brightness-95" 
   }
 
   const commonElementStyle = {
@@ -226,10 +224,9 @@ export function PokemonAction({
         {/* Reordering Strip */}
         <div 
             className={cn(
-                "flex flex-col gap-0 bg-background/50 rounded overflow-hidden border group-hover:border-input transition-colors shrink-0",
-                !isSwitchAfterKo && borderColorClass
+                "flex flex-col gap-0 bg-background/80 rounded overflow-hidden border transition-colors shrink-0",
+                borderColorClass
             )}
-            style={commonElementStyle}
         >
           <Button
             variant="ghost"
@@ -286,16 +283,16 @@ export function PokemonAction({
                       // Locked Badge for Forced Switch
                       <div className="flex items-center shrink-0">
                           <div 
-                            className="h-6 px-1.5 text-[9px] font-bold bg-background/50 border rounded-l flex items-center justify-center text-muted-foreground border-r-0"
-                            style={commonElementStyle}
+                            className="h-6 px-1.5 text-[9px] font-black bg-background/80 border rounded-l flex items-center justify-center text-muted-foreground border-r-0"
+                            style={{ borderColor: THEME.ko.bordeaux + "60" }}
                           >
                             SWT
                           </div>
                           <div 
-                            className="h-6 px-1 flex items-center justify-center bg-background/50 border rounded-r border-l-0 text-muted-foreground"
-                            style={commonElementStyle}
+                            className="h-6 px-1 flex items-center justify-center bg-background border rounded-r border-l-0"
+                            style={{ borderColor: THEME.ko.bordeaux + "60" }}
                           >
-                            <Repeat className="h-3.5 w-3.5 opacity-60" />
+                            <Repeat className="h-4 w-4" style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }} />
                           </div>
                     </div>
                   ) : (
@@ -303,7 +300,8 @@ export function PokemonAction({
                       <>
                         <select
                             className={cn(
-                                "h-6 text-[9px] font-bold bg-white/50 border rounded-l px-1 focus:ring-1 focus:ring-ring outline-none cursor-pointer appearance-none text-muted-foreground hover:text-foreground transition-colors border-r-0",
+                                "h-6 text-[9px] font-black bg-background/80 border rounded-l px-1 focus:ring-1 outline-none cursor-pointer appearance-none text-muted-foreground hover:text-foreground transition-colors border-r-0",
+                                "focus:ring-[var(--action-border-strong)]",
                                 borderColorClass
                             )}
                             value={action.type}
@@ -314,10 +312,10 @@ export function PokemonAction({
                             <option value="item">ITM</option>
                         </select>
                         <div className={cn(
-                            "h-6 px-1 flex items-center justify-center bg-white/50 border rounded-r border-l-0 text-muted-foreground",
+                            "h-6 px-1 flex items-center justify-center bg-background border rounded-r border-l-0 transition-colors",
                             borderColorClass
                         )}>
-                            <div className="opacity-60 flex items-center justify-center" style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }}>
+                            <div className="flex items-center justify-center" style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }}>
                                 {typeIcons[action.type]}
                             </div>
                         </div>
@@ -336,7 +334,8 @@ export function PokemonAction({
                       >
                         <SelectTrigger 
                             className={cn(
-                                "h-6 w-[100px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden min-w-0",
+                                "h-6 w-[100px] text-[10px] font-bold bg-background/80 px-1.5 transition-colors overflow-hidden min-w-0 shadow-none",
+                                "focus:ring-1 focus:ring-[var(--action-border-strong)]",
                                 borderColorClass
                             )}
                             title={(() => {
@@ -393,7 +392,8 @@ export function PokemonAction({
                                        >
                                          <SelectTrigger 
                                             className={cn(
-                                                "h-6 w-[100px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden min-w-0",
+                                                "h-6 w-[100px] text-[10px] font-bold bg-background/80 px-1.5 transition-colors overflow-hidden min-w-0 shadow-none",
+                                                "focus:ring-1 focus:ring-[var(--action-border-strong)]",
                                                 borderColorClass
                                             )}
                                             style={{ color: action.metadata?.attackName ? (isAlly ? THEME.common.ally_text : THEME.common.opponent_text) : THEME.common.neutral }}
@@ -420,7 +420,7 @@ export function PokemonAction({
                                            (() => {
                                                const selectedMoveObj = availableMoves.find(m => m.name === action.metadata?.attackName)
                                                return (
-                                                  <div className="flex items-center gap-1 bg-white/50 px-1 rounded-sm border border-dashed border-muted-foreground/20" title={`Consommer x PP (Max : ${selectedMoveObj?.currentPP || ' ?'})`}>
+                                                  <div className="flex items-center gap-1 bg-background/80 px-1 rounded-sm border border-dashed border-muted-foreground/20" title={`Consommer x PP (Max : ${selectedMoveObj?.currentPP || ' ?'})`}>
                                                       <span className="text-[10px] font-bold text-muted-foreground opacity-70">-</span>
                                                       <Counter
                                                           value={(action.metadata?.ppAmount || 1).toString()}
@@ -445,7 +445,8 @@ export function PokemonAction({
                                  <div className="flex items-center gap-1 ml-1 shrink-0">
                                      <input 
                                         className={cn(
-                                            "h-6 w-[100px] text-[10px] bg-white/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring placeholder:italic transition-colors",
+                                            "h-6 w-[100px] text-[10px] bg-background/80 border rounded px-2 outline-none focus:ring-1 transition-colors",
+                                            "focus:ring-[var(--action-border-strong)] placeholder:italic",
                                             borderColorClass
                                         )}
                                         style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }}
@@ -479,8 +480,9 @@ export function PokemonAction({
                           >
                             <SelectTrigger 
                               className={cn(
-                                "h-6 w-[110px] text-[10px] font-bold bg-white/50 px-1.5 transition-colors overflow-hidden min-w-0",
-                                !isSwitchAfterKo && borderColorClass
+                                "h-6 w-[110px] text-[10px] font-bold bg-background/80 px-1.5 transition-colors overflow-hidden min-w-0 shadow-none",
+                                "focus:ring-1 focus:ring-[var(--action-border-strong)]",
+                                borderColorClass
                               )} 
                               title={(() => {
                                   const selected = availableBenchMembers.find(t => JSON.stringify(action.target) === t.value)
@@ -517,7 +519,8 @@ export function PokemonAction({
                   {action.type === "item" && (
                       <input 
                         className={cn(
-                            "h-6 w-[130px] text-[10px] bg-background/50 border rounded px-2 outline-none focus:ring-1 focus:ring-ring placeholder:italic",
+                            "h-6 w-[130px] text-[10px] bg-background/50 border rounded px-2 outline-none focus:ring-1 transition-colors",
+                            "focus:ring-[var(--action-border-strong)] placeholder:italic",
                             borderColorClass
                         )}
                         placeholder="Item name..."
@@ -532,13 +535,13 @@ export function PokemonAction({
         <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 shrink-0"
+            className="h-7 w-7 shrink-0 transition-all"
             onClick={onToggleCollapse}
         >
             {action.isCollapsed ? (
-            <ChevronRight className="h-4 w-4 opacity-40" />
+            <ChevronRight className="h-4 w-4" style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }} />
             ) : (
-            <ChevronDown className="h-4 w-4 opacity-40" />
+            <ChevronDown className="h-4 w-4" style={{ color: isAlly ? THEME.common.ally_text : THEME.common.opponent_text }} />
             )}
         </Button>
       </div>

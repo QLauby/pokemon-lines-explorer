@@ -35,10 +35,10 @@ export default function RootLayout({
         className={`${inter.variable} ${robotoMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <TooltipProvider>
-            <main className="flex-grow">
+            <main className="flex-grow flex flex-col">
                 {children}
             </main>
-            <footer className="w-full border-t border-border/40 py-6 mt-12 bg-background/50 backdrop-blur-sm">
+            <footer className="w-full border-t border-border/40 py-6 bg-background/50 backdrop-blur-sm">
                 <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
                     <p>© {new Date().getFullYear()} Pokemon Lines Explorer. Created by LeQdu94.</p>
                     <div className="flex items-center gap-6">

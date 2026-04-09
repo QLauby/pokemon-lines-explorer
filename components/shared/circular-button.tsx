@@ -1,4 +1,5 @@
 "use client"
+import { cn } from "@/lib/utils/cn"
 
 interface CircularButtonProps {
   isActive: boolean
@@ -45,7 +46,7 @@ export const CircularButton = ({
   // 3. Sharpness: use thicker stroke only if the icon is very small
   const finalStrokeWidth = finalIconSize < 12 ? 2.2 : 2
 
-  const isHexColor = activeColor.startsWith("#")
+  const isCustomColor = activeColor.startsWith("#") || activeColor.startsWith("var(")
 
   const getOutlinedColors = (activeColor: string) => {
     const colorMap: { [key: string]: string } = {
@@ -99,21 +100,28 @@ export const CircularButton = ({
     padding: 0,
   }
 
-  if (isHexColor) {
+  if (isCustomColor) {
+    const isOutlined = variant === "outlined"
     return (
       <button
         onClick={readOnly ? undefined : onClick}
-        className={`rounded-full transition-colors border-none outline-none overflow-hidden ${
-          !readOnly && "cursor-pointer"
-        } ${isActive ? "text-white" : "bg-slate-100 text-slate-400 hover:bg-slate-200"}`}
+        className={cn(
+            "rounded-full transition-colors outline-none overflow-hidden",
+            !readOnly && "cursor-pointer",
+            isOutlined ? "border border-border" : "border-none",
+            !isActive && "bg-slate-100 text-slate-400 hover:bg-slate-200"
+        )}
         style={{
           ...commonStyles,
-          backgroundColor: isActive ? activeColor : undefined,
+          backgroundColor: isActive ? (isOutlined ? "transparent" : activeColor) : undefined,
+          color: isActive ? activeColor : undefined,
+          borderColor: undefined,
+          boxShadow: (isActive && !isOutlined) ? `0 0 calc(10px * var(--glow-intensity, 1)) ${activeColor.startsWith("#") ? activeColor + "88" : "rgba(var(--bg-neutral-low), 0.5)"}, 0 0 calc(4px * var(--glow-intensity, 1)) ${activeColor}` : undefined,
           ...style,
         }}
         title={title}
       >
-        <Icon size={finalIconSize} strokeWidth={finalStrokeWidth} style={iconStyle} className="flex-shrink-0" />
+        <Icon size={finalIconSize} strokeWidth={finalStrokeWidth} style={iconStyle} className={cn("flex-shrink-0", isActive && !isOutlined ? "text-white" : "")} />
       </button>
     )
   }

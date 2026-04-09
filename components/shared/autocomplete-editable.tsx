@@ -14,6 +14,8 @@ interface AutocompleteEditableProps {
   getSuggestions: (value: string) => SuggestionItem[]
   /** Callback riche lors de la sélection d'une suggestion */
   onSuggestionSelect?: (item: SuggestionItem) => void
+  /** Équipe active pour la couleur de sélection (Ally vs Opponent) */
+  isMyTeam?: boolean
   
   // Props héritées ou passées à EditableText pour la consistance visuelle
   placeholder?: string
@@ -42,6 +44,7 @@ export function AutocompleteEditable({
   onChange,
   getSuggestions,
   onSuggestionSelect,
+  isMyTeam = true,
   tooltip,
   ...editableProps
 }: AutocompleteEditableProps) {
@@ -138,6 +141,7 @@ export function AutocompleteEditable({
           selectedIndex={selectedIndex}
           onSelect={handleSelect}
           onHover={setSelectedIndex}
+          isMyTeam={isMyTeam}
         />
       </PopoverContent>
     </Popover>

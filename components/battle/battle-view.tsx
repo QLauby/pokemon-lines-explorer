@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react"
 
-import { THEME } from "@/lib/constants/color-constants"
+import { PALETTE, THEME } from "@/lib/constants/color-constants"
 import { BattleEngine } from "@/lib/logic/battle-engine"
 import { DistributionEngine } from "@/lib/logic/distribution-engine"
 import { recalculateTreeLayout } from "@/lib/logic/tree-layout"
 import { getCyclicColor } from "@/lib/utils/colors-utils"
+import { useIsDark } from "@/lib/hooks/use-is-dark"
 import type { BattleState, CombatSession, Pokemon, TreeNode } from "@/types/types"
 import { TurnData } from "@/types/types"
 
@@ -19,8 +20,13 @@ export type NodeKOInfo = {
   }[]
 }
 
-export function getTreeBranchColor(branchIndex: number): string {
-  return getCyclicColor(THEME.battle_tree.branch_base, 10, "shortList", branchIndex + 1)
+export function getTreeBranchColor(branchIndex: number | null | undefined, isDark: boolean): string {
+  // Turn 0 (root) has undefined/null branchIndex.
+  const ROOT_HEX = isDark ? PALETTE.battle_tree_root.dark : PALETTE.battle_tree_root.light
+  if (branchIndex === null || branchIndex === undefined) return ROOT_HEX
+
+  // Cycle from the theme-specific root hex
+  return getCyclicColor(ROOT_HEX, 12, "shortList", (branchIndex % 12) + 1)
 }
 
 import { BattleTree } from "./battle-tree"
@@ -62,7 +68,8 @@ export function CombatView({
   onCommit,
   onCancel,
   readOnly = false,
-}: CombatViewProps) {
+} : CombatViewProps) {
+  const isDark = useIsDark()
   const [highlightedNodeIds, setHighlightedNodeIds] = useState<string[]>([])
   const [preview, setPreview] = useState<{ mode: "add" | "update"; turnData: TurnData | null }>({ mode: "add", turnData: null })
   
@@ -180,7 +187,7 @@ export function CombatView({
   const { battlefieldState } = currentSession.initialState
   // We need to fetch the potentially updated selectedNode from displayNodes to get correct color if re-layout changed things
   const displaySelectedNode = displayNodes.get(selectedNodeId) || selectedNode
-  const branchColor = displaySelectedNode ? getTreeBranchColor(displaySelectedNode.branchIndex) : "inherit"
+  const branchColor = displaySelectedNode ? getTreeBranchColor(displaySelectedNode.branchIndex, isDark) : "inherit"
   
   // Compute state at the selected node explicitly (for setting NEXT turn, we need the END state of CURRENT node)
   const selectedNodeState = useMemo(() => {
@@ -353,7 +360,7 @@ export function CombatView({
   return (
     <div className="w-full p-2 bg-slate-50/50 min-h-screen">
        {/* Main Grid: Left (Tree + Battle) | Right (Actions) */}
-       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start max-w-[1800px] mx-auto">
+       <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-4 items-start max-w-[2000px] mx-auto">
           
           {/* LEFT COLUMN: VISUALIZATION */}
           <div className="flex flex-col gap-4 min-w-0 w-full">

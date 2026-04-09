@@ -4,8 +4,19 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-app);
+  --color-foreground: var(--text-main);
+  
+  /* Map standard colors used in components to our variables */
+  --color-white: var(--bg-card);
+  --color-slate-50: var(--bg-app);
+  --color-slate-100: var(--bg-neutral-low);
+  --color-slate-200: var(--bg-neutral);
+  --color-slate-300: var(--border-main);
+  --color-slate-400: var(--icon-low);
+  --color-slate-500: var(--text-dim);
+  --color-slate-600: var(--text-dim);
+  
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -37,6 +48,15 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+
+  /* Force standard HP colors to our neon variables in Dark Mode */
+  --color-green-500: var(--color-hp-high);
+  --color-green-600: var(--color-hp-high);
+  --color-orange-500: var(--color-hp-mid);
+  --color-orange-600: var(--color-hp-mid);
+  --color-red-500: var(--color-hp-low);
+  --color-red-600: var(--color-hp-low);
+  
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -48,78 +68,254 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #FFFFFF;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #3B82F6;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #1E293B;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #F1F5F9;
+  --accent-foreground: #1E293B;
+  --destructive: #EF4444;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #3B82F6;
+
+  /* --- THEME NEON VARIABLES (LIGHT) --- */
+  --bg-app: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-side: #f8fafc;
+  --bg-neutral: #e2e8f0;
+  --bg-neutral-low: #f1f5f9;
+  --bg-ko: #94a3b8;
+  --text-main: #000000;
+  --text-title: #334155;
+  --text-dim: #64748b;
+  --border-main: #cbd5e1;
+
+  --color-ally: #3b82f6;
+  --color-ally-bg: #eff6ff;
+  --color-ally-text: #1d4ed8;
+  --color-opp: #ef4444;
+  --color-opp-bg: #fef2f2;
+  --color-opp-text: #b91c1c;
+
+  --color-ally-bg-tint: color-mix(in srgb, var(--color-ally) 8%, transparent);
+  --color-opp-bg-tint: color-mix(in srgb, var(--color-opp) 8%, transparent);
+
+  --color-hp-high: #22c55e;
+  --color-hp-mid: #f97316;
+  --color-hp-low: #ef4444;
+
+  --color-success: #10b981;
+  --color-error: #dc2626;
+  --color-warning: #ea580c;
+  --color-item: #b45309;
+  --color-neutral: #cbd5e1;
+  --color-disabled: #94a3b8;
+  --color-ko-deep: #500724;
+  --color-white: #ffffff;
+  --color-rolls-main: #818cf8;
+  --color-tree-root: #3b82f6;
+  --icon-low: #94a3b8;
+  --icon-high: #475569;
+
+  /* Types (Light) */
+  --type-ghost: #9333EA;
+  --type-ice: #7DD3FC;
+  --type-dragon: #4F46E5;
+  --type-fighting: #BE123C;
+  --type-steel: #A1A1AA;
+  --type-fairy: #F472B6;
+  --type-dark: #404040;
+  --type-electric: #FACC15;
+  --type-fire: #F97316;
+  --type-ground: #FCD34D;
+  --type-poison: #A21CAF;
+  --type-rock: #B45309;
+  --type-bug: #84CC16;
+  --type-grass: #22C55E;
+  --type-psychic: #EC4899;
+  --type-flying: #A78BFA;
+  --type-normal: #A1A1AA;
+  --type-water: #3B82F6;
+  --type-stellar: #2DD4BF;
+
+  /* Status (Light) */
+  --status-brn: #F97316;
+  --status-par: #EAB308;
+  --status-slp: #94A3B8;
+  --status-frz: #38BDF8;
+  --status-psn: #A855F7;
+  --status-tox: #7E22CE;
+
+  /* Tooltips */
+  --tooltip-bg: #ffffff;
+  --tooltip-text: #0f172a;
+  --glow-intensity: 0;
+
+  /* RGB variants for JS */
+  --rgb-neutral: 226, 232, 240;
+  --rgb-border: 148, 163, 184;
+  --rgb-text: 71, 85, 105;
+  --rgb-hover: 203, 213, 225;
+  --rgb-hover-border: 100, 116, 139;
+  --rgb-hover-text: 51, 65, 85;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #010409;
+  --foreground: #f1f5f9;
+  --card: #0d1117;
+  --card-foreground: #f1f5f9;
+  --popover: #0d1117;
+  --popover-foreground: #f1f5f9;
+  --primary: #CCFF00;
+  --primary-foreground: #010409;
+  --secondary: #161b22;
+  --secondary-foreground: #f1f5f9;
+  --muted: #161b22;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #f1f5f9;
+  --destructive: #ff0055;
+  --border: #21262d;
+  --input: #21262d;
+  --ring: #CCFF00;
+
+  /* --- THEME NEON VARIABLES (DARK) --- */
+  --bg-app: #010409;
+  --bg-card: #0d1117;
+  --bg-side: #161b22;
+  --bg-neutral: #21262d;
+  --bg-neutral-low: #080b14;
+  --bg-ko: #0b0f1a;
+  --text-main: #f1f5f9;
+  --text-title: #f8fafc;
+  --text-dim: #94a3b8;
+  --border-main: #21262d;
+
+  --color-ally: #ccff00;
+  --color-opp: #ff6600;
+  --color-ally-bg: #1a1f0a;
+  --color-ally-text: #bef264;
+  --color-opp-bg: #1f1406;
+  --color-opp-text: #fb923c;
+
+  --color-ally-bg-tint: color-mix(in srgb, var(--color-ally) 15%, transparent);
+  --color-opp-bg-tint: color-mix(in srgb, var(--color-opp) 15%, transparent);
+
+  --color-hp-high: #34d399;
+  --color-hp-mid: #fbbf24;
+  --color-hp-low: #f97316;
+
+  --color-success: #10b981;
+  --color-error: #f97316;
+  --color-warning: #fb923c;
+  --color-item: #f59e0b;
+  --color-ko: #ff0055;
+  --color-ko-deep: #ff0055;
+  --color-rolls-main: #a78bfa;
+  --color-tree-root: #ccff00;
+
+  /* Types (Dark Neon) */
+  --type-ghost: #CC00FF;
+  --type-ice: #00FFFF;
+  --type-dragon: #6600FF;
+  --type-fighting: #FF3300;
+  --type-steel: #E0E0E0;
+  --type-fairy: #FF66CC;
+  --type-dark: #1A1A1A;
+  --type-electric: #FFFF00;
+  --type-fire: #FF6600;
+  --type-ground: #FFCC00;
+  --type-poison: #AA00FF;
+  --type-rock: #CC9933;
+  --type-bug: #CCFF00;
+  --type-grass: #33FF00;
+  --type-psychic: #FF0099;
+  --type-flying: #9966FF;
+  --type-normal: #FFFFFF;
+  --type-water: #0066FF;
+  --type-stellar: #00FFCC;
+
+  /* Status (Dark Neon) */
+  --status-brn: #FF4400;
+  --status-par: #FFFF00;
+  --status-slp: #66CCFF;
+  --status-frz: #CCFFFF;
+  --status-psn: #AA00FF;
+  --status-tox: #FF00FF;
+
+  /* Tooltips */
+  --tooltip-bg: #1e293b;
+  --tooltip-text: #f8fafc;
+  --glow-intensity: 1;
+
+  /* RGB variants */
+  --rgb-neutral: 17, 24, 39;
+  --rgb-border: 31, 41, 55;
+  --rgb-text: 241, 245, 249;
+  --rgb-hover: 31, 41, 55;
+  --rgb-hover-border: 55, 65, 81;
+  --rgb-hover-text: 255, 255, 255;
+}
+
+.glow-active {
+  filter: drop-shadow(0 0 calc(8px * var(--glow-intensity, 1)) var(--glow-color, currentColor));
+  animation: neon-pulse 2s infinite ease-in-out;
+}
+
+@keyframes neon-pulse {
+  0%, 100% { filter: drop-shadow(0 0 calc(8px * var(--glow-intensity, 1)) var(--glow-color, currentColor)); }
+  50% { filter: drop-shadow(0 0 calc(3px * var(--glow-intensity, 1)) var(--glow-color, currentColor)); opacity: 1; }
+}
+
+.glass {
+  background: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
   }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--bg-app);
+    color: var(--text-main);
+  }
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-main);
+  border-radius: 20px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+}
+.dark {
+  ::-webkit-scrollbar-thumb {
+    background: #334155;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
   }
 }

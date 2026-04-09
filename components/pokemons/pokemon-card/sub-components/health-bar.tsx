@@ -7,6 +7,7 @@ import {
   updatePokemonHpMax,
   updatePokemonHpPercent,
 } from "@/lib/utils/hp-utils"
+import { THEME } from "@/lib/constants/color-constants"
 import { Pokemon } from "@/types/types"
 import { useRef } from "react"
 
@@ -77,12 +78,18 @@ export function HealthBar({
 
       <div className="flex items-center flex-1">
         {/* Health bar — always driven by hpPercent */}
-        <div className="flex items-center h-6 flex-1">
-          <div className="bg-slate-200 rounded-full h-2 w-full">
+        <div className="flex items-center h-6 flex-1 px-1">
+          <div className="bg-slate-900/50 rounded-full h-[8px] w-full overflow-hidden border border-white/5 ring-1 ring-black/50">
             <div
-              className={`h-2 rounded-full transition-all duration-700 ease-in-out ${getHealthColor(hpPercent)}`}
-              style={{ width: `${Math.max(0, hpPercent)}%` }}
-            />
+              className={`h-full rounded-full transition-all duration-700 ease-in-out relative ${getHealthColor(hpPercent)}`}
+              style={{ 
+                width: `${Math.max(0, hpPercent)}%`,
+                boxShadow: `0 0 10px currentColor, 0 0 5px currentColor`,
+              }}
+            >
+              {/* Lightsaber Core */}
+              <div className="absolute inset-y-[1px] left-0 right-0 mx-[2px] bg-white/60 rounded-full blur-[0.5px]" />
+            </div>
           </div>
         </div>
 
@@ -103,6 +110,7 @@ export function HealthBar({
               fontSizeRatio={0.4}
               rounded={true}
               textAlign="center"
+              mainColor={isMyTeam ? THEME.common.ally : THEME.common.opponent}
             />
             <span className="text-xs text-slate-400 font-medium">/</span>
             {/* max HP — allowEmpty=false + min=1 → EditableText reverts on empty/invalid */}
@@ -119,6 +127,7 @@ export function HealthBar({
               fontSizeRatio={0.4}
               rounded={true}
               textAlign="center"
+              mainColor={isMyTeam ? THEME.common.ally : THEME.common.opponent}
             />
           </div>
 
@@ -144,6 +153,7 @@ export function HealthBar({
               fontSizeRatio={0.4}
               rounded={true}
               textAlign="center"
+              mainColor={isMyTeam ? THEME.common.ally : THEME.common.opponent}
             />
           </div>
 

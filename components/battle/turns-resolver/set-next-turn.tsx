@@ -13,6 +13,8 @@ import { BattleState, Pokemon, TreeNode, TurnData } from "@/types/types"
 import { BattleEndMessage } from "./battle-end-message"
 import { TurnCopyManager } from "./shared/turn-copy-manager"
 import { TurnEditor } from "./shared/turn-editor"
+import { getTreeBranchColor } from "../battle-view"
+import { useIsDark } from "@/lib/hooks/use-is-dark"
 
 interface SetNextTurnProps {
   selectedNodeId: string
@@ -26,6 +28,7 @@ interface SetNextTurnProps {
   currentBattleState?: BattleState
   sessionInitialState?: BattleState
   hpMode?: "percent" | "hp" | "rolls"
+  nextBranchColor?: string
 }
 
 
@@ -41,6 +44,7 @@ export function SetNextTurn({
   currentBattleState,
   sessionInitialState,
   hpMode = "percent",
+  nextBranchColor,
 }: SetNextTurnProps) {
   const { isCorrupted } = useCorruptionHandler()
   const [description, setDescription] = useState("")
@@ -160,10 +164,17 @@ export function SetNextTurn({
 
   if (isCorrupted) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 text-red-800">
+      <div 
+        className="rounded-lg p-4 flex items-center gap-3 border transition-all duration-300"
+        style={{ 
+            backgroundColor: "var(--color-opp-bg, #FEE2E2)", 
+            borderColor: "var(--color-opp-text, #B91C1C)",
+            color: "var(--color-opp-text, #B91C1C)"
+        }}
+      >
          <AlertTriangle className="h-5 w-5 shrink-0" />
          <div>
-            <p className="font-medium">Action Blocked</p>
+            <p className="font-bold">Action Blocked</p>
             <p className="text-sm">Cannot add new turns while battle tree is corrupted.</p>
          </div>
       </div>
@@ -245,6 +256,7 @@ export function SetNextTurn({
         turnNumber={nextTurnNumber}
         battleFormat={battleType}
         hpMode={hpMode}
+        saveButtonColor={nextBranchColor}
       />
     </div>
   )

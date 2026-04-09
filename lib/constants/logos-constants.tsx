@@ -1,5 +1,5 @@
-import type React from "react"
-import { type PokemonType, POKEMON_COLORS, darkenColor } from "../utils/colors-utils"
+import { type PokemonType, POKEMON_COLORS, darkenColor, lightenColor } from "../utils/colors-utils"
+import { PALETTE } from "../constants/color-constants"
 
 import BugLogo from "@/assets/logos/pokemon-types/bug.svg"
 import DarkLogo from "@/assets/logos/pokemon-types/dark.svg"
@@ -100,42 +100,42 @@ export const exclusiveStatuses: StatusInfo[] = [
     name: "Burned",
     icon: Flame,
     title: "Burned",
-    activeColor: POKEMON_COLORS.fire,
+    activeColor: PALETTE.status.light.brn,
   },
   {
     type: "freeze",
     name: "Frozen",
     icon: Snowflake,
     title: "Frozen",
-    activeColor: POKEMON_COLORS.ice,
+    activeColor: PALETTE.status.light.frz,
   },
   {
     type: "paralysis",
     name: "Paralyzed",
     icon: Zap,
     title: "Paralyzed",
-    activeColor: POKEMON_COLORS.electric,
+    activeColor: PALETTE.status.light.par,
   },
   {
     type: "poison",
     name: "Poisoned",
     icon: Skull,
     title: "Poisoned",
-    activeColor: POKEMON_COLORS.poison,
+    activeColor: PALETTE.status.light.psn,
   },
   {
     type: "badly-poison",
     name: "Badly Poisoned",
     icon: Skull,
     title: "Badly Poisoned",
-    activeColor: darkenColor(POKEMON_COLORS.poison, 30),
+    activeColor: PALETTE.status.light.tox,
   },
   {
     type: "sleep",
     name: "Asleep",
     icon: Moon,
     title: "Asleep",
-    activeColor: POKEMON_COLORS.normal,
+    activeColor: PALETTE.status.light.slp,
   },
 ]
 const ConfusionIcon = ({
@@ -173,14 +173,14 @@ export const independentStatuses: StatusInfo[] = [
     name: "Confused",
     icon: ConfusionIcon,
     title: "Confused",
-    activeColor: POKEMON_COLORS.psychic,
+    activeColor: POKEMON_COLORS.psychic, // Already neon hot pink
   },
   {
     type: "love",
     name: "Infatuated",
     icon: Heart,
     title: "Infatuated",
-    activeColor: POKEMON_COLORS.fairy,
+    activeColor: POKEMON_COLORS.fairy,   // Already neon pink
   },
 ]
 

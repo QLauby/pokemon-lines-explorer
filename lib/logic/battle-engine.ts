@@ -191,6 +191,9 @@ export class BattleEngine {
       hpMax: number
   ): import("@/types/types").StatProfile {
       if (delta.type !== "HP_RELATIVE" && delta.type !== "HP_SET") return { ...profile }
+      
+      // Skip if amount is missing and not forced KO
+      if (!Number.isFinite(delta.amount) && !delta.isForcedKo) return { ...profile }
 
       // Initialize distribution if missing
       let dist = profile.distribution
@@ -266,6 +269,12 @@ export class BattleEngine {
       case "HP_RELATIVE":
       case "HP_SET": {
         if (delta.target.type === "field") return newState;
+
+        // Skip if amount is missing/null and NOT forced KO
+        if (delta.amount === undefined || delta.amount === null || isNaN(delta.amount)) {
+            if (!delta.isForcedKo) return newState;
+        }
+
         const team = delta.target.side === "my" ? newState.myTeam : newState.enemyTeam
         
         // Resolve polymorphic target to team index
@@ -288,14 +297,16 @@ export class BattleEngine {
             // --- HP / ROLLS MODE (HP IS KING) ---
             // 1. Determine absolute HP magnitude of change
             let deltaHp: number;
+            const amount = delta.amount as number; // Safe due to guard above
+            
             if (delta.type === "HP_SET") {
                 deltaHp = delta.unit === "hp" 
-                    ? delta.amount 
-                    : Math.round((delta.amount / 100) * hpMax) // To-target sets use rounding
+                    ? amount 
+                    : Math.round((amount / 100) * hpMax) // To-target sets use rounding
             } else {
                 deltaHp = delta.unit === "hp"
-                    ? Math.trunc(delta.amount) // Already HP, floor it
-                    : Math.trunc((delta.amount * hpMax) / 100) // Percent -> HP: POKEMON FLOOR RULE
+                    ? Math.trunc(amount) // Already HP, floor it
+                    : Math.trunc((amount * hpMax) / 100) // Percent -> HP: POKEMON FLOOR RULE
             }
 
             // 2. Apply to current integer HP
@@ -330,14 +341,16 @@ export class BattleEngine {
             // --- PERCENT MODE (PERCENT IS KING) ---
             // 1. Determine absolute Percentage magnitude of change
             let deltaPct: number;
+            const amount = delta.amount as number; // Safe due to guard above
+
             if (delta.type === "HP_SET") {
                 deltaPct = delta.unit === "percent"
-                    ? delta.amount
-                    : (delta.amount / hpMax) * 100
+                    ? amount
+                    : (amount / hpMax) * 100
             } else {
                 deltaPct = delta.unit === "percent"
-                    ? delta.amount
-                    : (delta.amount / hpMax) * 100
+                    ? amount
+                    : (amount / hpMax) * 100
             }
 
             // 2. Apply to current floating-point Percent
@@ -428,7 +441,7 @@ export class BattleEngine {
         // Resolve polymorphic target to team index
         const teamIndex = this.resolveTargetToTeamIndex(newState, delta.target)
         
-        if (teamIndex === null) return newState
+        if (teamIndex === null || !Number.isFinite(delta.amount)) return newState
         
         const targetPokemon = team[teamIndex]
         
@@ -508,8 +521,9 @@ export class BattleEngine {
                         const counterKey = op.status === "sleep" ? "sleepCounter" : 
                                          op.status === "confusion" ? "confusionCounter" : "toxicCounter"
                         const currentValue = targetPokemon[counterKey as keyof Pokemon] as number ?? 0
+                        const amount = Number.isFinite(op.amount) ? op.amount : 0
                         // @ts-ignore
-                        targetPokemon[counterKey] = currentValue + op.amount
+                        targetPokemon[counterKey] = currentValue + amount
                         break
                     }
                     case "COUNTER_TOGGLE": {
@@ -787,7 +801,7 @@ export class BattleEngine {
           result = result.map(t => t.id === op.id ? { ...t, showCount: op.show, count: op.show ? t.count : 0 } : t);
           break;
         case "COUNTER_RELATIVE":
-          result = result.map(t => t.id === op.id ? { ...t, count: (t.count ?? 0) + op.amount } : t);
+          result = result.map(t => t.id === op.id ? { ...t, count: (t.count ?? 0) + (Number.isFinite(op.amount) ? op.amount : 0) } : t);
           break;
       }
     }

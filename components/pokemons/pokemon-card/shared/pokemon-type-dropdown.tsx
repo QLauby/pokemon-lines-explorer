@@ -62,11 +62,13 @@ const BadgeContainer = ({
       style={{ width: size, height: size }}
     >
       {variant === "tera" ? (
-        <StarBadgeIcon className="absolute inset-0 w-full h-full" style={{ color: color }} />
+        <StarBadgeIcon className="absolute inset-0 w-full h-full drop-shadow-sm" style={{ color: color }} />
       ) : (
         <div
           className="absolute inset-0 rounded-full"
-          style={{ backgroundColor: color }}
+          style={{ 
+            backgroundColor: color
+          }}
         />
       )}
       <div

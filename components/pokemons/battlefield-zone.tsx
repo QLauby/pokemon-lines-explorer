@@ -25,11 +25,11 @@ export function BattlefieldZone({
   const opponentBorderColor = THEME.battlefield.side_border_opponent
 
   return (
-    <div className="mb-6 mx-auto md:w-2/3">
+    <div>
       {/* Main Terrain Container */}
       <div 
-        className="border-2 rounded-lg p-4 bg-white"
-        style={{ borderColor: THEME.battlefield.main_border }}
+        className="border-2 rounded-lg p-4"
+        style={{ borderColor: THEME.battlefield.main_border, backgroundColor: THEME.common.white }}
       >
         <div className="mb-3">
           <h3 className="text-sm font-semibold mb-2" style={{ color: THEME.battlefield.title_text }}>Battlefield</h3>
@@ -45,8 +45,11 @@ export function BattlefieldZone({
         <div className="grid md:grid-cols-2 gap-4">
           {/* Player Side */}
           <div
-            className="border-2 rounded-lg p-3"
-            style={{ borderColor: playerBorderColor, backgroundColor: THEME.battlefield.side_bg }}
+            className="border-2 rounded-lg p-3 transition-all duration-300 shadow-sm"
+            style={{ 
+              borderColor: playerBorderColor, 
+              backgroundColor: THEME.common.ally_bg,
+            }}
           >
           <h4 className="text-xs font-semibold mb-2" style={{ color: THEME.battlefield.side_label_ally }}>
                Player
@@ -61,8 +64,11 @@ export function BattlefieldZone({
 
           {/* Opponent Side */}
           <div
-            className="border-2 rounded-lg p-3"
-            style={{ borderColor: opponentBorderColor, backgroundColor: THEME.battlefield.side_bg }}
+            className="border-2 rounded-lg p-3 transition-all duration-300 shadow-sm"
+            style={{ 
+              borderColor: opponentBorderColor, 
+              backgroundColor: THEME.common.opponent_bg,
+            }}
           >
           <h4 className="text-xs font-semibold mb-2" style={{ color: THEME.battlefield.side_label_opponent }}>
                Opponent

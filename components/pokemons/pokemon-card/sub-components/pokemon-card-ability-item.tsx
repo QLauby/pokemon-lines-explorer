@@ -6,6 +6,8 @@ import { Pokemon } from "@/types/types";
 import { ShoppingBag } from "lucide-react";
 import { AutocompleteEditable } from "@/components/shared/autocomplete-editable";
 import { searchAbilities, searchItems, getAbilityText, getItemText } from "@/lib/utils/pokedex-utils";
+import { THEME } from "@/lib/constants/color-constants";
+import { useIsDark } from "@/lib/hooks/use-is-dark";
 import { MegaColoredIcon } from "./pokemon-card-header";
 
 interface PokemonCardAbilityItemProps {
@@ -31,6 +33,7 @@ export function PokemonCardAbilityItem({
     readOnly,
     isCardExpanded
 }: PokemonCardAbilityItemProps) {
+    const isDark = useIsDark();
     return (
         <div className={cn("grid grid-cols-2 gap-2 items-center min-h-[32px]", !isCardExpanded ? "py-1" : "py-0.5")}>
              {/* Ability Section */}
@@ -40,28 +43,35 @@ export function PokemonCardAbilityItem({
                       {(() => {
                           const text = getAbilityText(pokemon.abilityName || defaultAbilityName);
                           const tooltip = text ? (
-                              <div className="space-y-1 p-1">
-                                  <div className="font-bold text-sm border-b border-white/20 pb-1">
-                                      {text.name}
-                                  </div>
-                                  <p className="text-[11px] text-slate-200 leading-snug italic">
-                                      {text.shortDesc || text.desc}
-                                  </p>
+                              <div className="space-y-1 p-1" style={{ color: THEME.tooltips.text }}>
+                                   <div 
+                                        className="font-bold text-sm border-b pb-1"
+                                        style={{ borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }}
+                                   >
+                                       {text.name}
+                                   </div>
+                                   <p 
+                                        className="text-[11px] leading-snug italic opacity-85"
+                                   >
+                                       {text.shortDesc || text.desc}
+                                   </p>
                               </div>
                           ) : null;
                           return (
-                            <AutocompleteEditable
-                                value={pokemon.abilityName || defaultAbilityName}
-                                placeholder={defaultAbilityName}
-                                onChange={handleAbilityNameChange}
-                                getSuggestions={searchAbilities}
-                                autoWidth={false}
-                                width="100%"
-                                fontSize={12}
-                                fontSizeRatio={0.6}
-                                readOnly={readOnly}
-                                tooltip={tooltip}
-                            />
+                              <AutocompleteEditable
+                                  value={pokemon.abilityName || defaultAbilityName}
+                                  placeholder={defaultAbilityName}
+                                  onChange={handleAbilityNameChange}
+                                  getSuggestions={searchAbilities}
+                                  autoWidth={false}
+                                  width="100%"
+                                  fontSize={12}
+                                  fontSizeRatio={0.6}
+                                  readOnly={readOnly}
+                                  tooltip={tooltip}
+                                  mainColor={isMyTeam ? THEME.common.ally : THEME.common.opponent}
+                                  isMyTeam={isMyTeam}
+                              />
                           );
                       })()}
                  </div>
@@ -74,7 +84,7 @@ export function PokemonCardAbilityItem({
                         isActive={pokemon.heldItem}
                         onClick={() => onToggleHeldItem(pokemon.id, isMyTeam)}
                         icon={pokemon.heldItem && pokemon.heldItemName === "Mega Stone" ? MegaColoredIcon : ShoppingBag}
-                        activeColor={pokemon.heldItem && pokemon.heldItemName === "Mega Stone" ? "bg-transparent" : "bg-amber-700 text-white"}
+                        activeColor={pokemon.heldItem && pokemon.heldItemName === "Mega Stone" ? "bg-transparent" : THEME.common.item}
                         title={pokemon.heldItem ? (pokemon.heldItemName === "Mega Stone" ? "Mega Stone" : "Held Item") : "No item"}
                         variant="outlined"
                         diameter={Math.round(24 * 0.9)}
@@ -87,11 +97,16 @@ export function PokemonCardAbilityItem({
                           {(() => {
                               const text = getItemText(pokemon.heldItemName || defaultItemName);
                               const tooltip = text ? (
-                                  <div className="space-y-1 p-1">
-                                      <div className="font-bold text-sm border-b border-white/20 pb-1">
+                                  <div className="space-y-1 p-1" style={{ color: THEME.tooltips.text }}>
+                                      <div 
+                                        className="font-bold text-sm border-b pb-1"
+                                        style={{ borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }}
+                                      >
                                           {text.name}
                                       </div>
-                                      <p className="text-[11px] text-slate-200 leading-snug italic">
+                                      <p 
+                                        className="text-[11px] leading-snug italic opacity-85"
+                                      >
                                           {text.shortDesc || text.desc}
                                       </p>
                                   </div>
@@ -108,6 +123,8 @@ export function PokemonCardAbilityItem({
                                      fontSizeRatio={0.6}
                                      readOnly={readOnly}
                                      tooltip={tooltip}
+                                     mainColor={isMyTeam ? THEME.common.ally : THEME.common.opponent}
+                                     isMyTeam={isMyTeam}
                                    />
                               );
                           })()}

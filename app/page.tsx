@@ -274,78 +274,87 @@ function InnerContent({
             updateSessionName={actions.updateSessionName}
             updateSessionsOrder={actions.updateSessionsOrder}
           />
-          <div className="container mx-auto p-6 space-y-6">
-          <AppHeader
-            currentView={state.currentView}
-            battleType={state.battleType}
-            hpMode={state.hpMode}
-            battleStarted={state.battleStarted}
-            onViewChange={setters.setCurrentView}
-            onBattleTypeChange={handleTryChangeBattleType}
-            onHpModeChange={handleTryChangeHpMode}
-            onResetBattle={actions.resetBattleIfNeeded}
-            onOpenSessions={() => setIsSessionsMenuOpen(true)}
-            navigationDisabled={isCorrupted}
-          />
-    
-          {state.currentView === "teams" ? (
-            <TeamsView
-              myTeam={state.myTeam}
-              enemyTeam={state.enemyTeam}
+          <div className="flex-grow flex flex-col px-10 pt-6 pb-6 gap-6">
+            <AppHeader
+              currentView={state.currentView}
               battleType={state.battleType}
-              activeSlots={state.activeSlots}
-              getSlotForPokemon={state.getSlotForPokemon}
-              editingPokemonId={state.editingPokemonId}
-              editingPokemonName={state.editingPokemonName}
-              onStartEditing={actions.startEditingPokemon}
-              onUpdateName={actions.updatePokemonName}
-              onCancelEditing={actions.cancelEditing}
-              onRemove={handleRemovePokemon} // Use intercepted handler
-              onUpdateHealth={actions.setPokemonHealth} // Reverted to default, though possibly unused
-              onUpdateStatus={handleTryUpdateStatus}
-              onUpdatePokemon={handleTryUpdatePokemon} // Intercepted handler
-              onToggleHeldItem={handleTryToggleHeldItem}
-              onToggleTerastallized={handleTryToggleTerastallized}
-              onToggleMega={handleTryToggleMega}
-              onFlagClick={handleFlagClick}
-              onAddPokemon={actions.addPokemon}
-              onMovePokemon={handleMovePokemon}
-              onBattleTypeChange={handleTryChangeBattleType} 
-              onResetBattle={actions.resetBattleIfNeeded}
-              getDefaultPokemonName={actions.getDefaultPokemonName}
-              getTeamCounterDisplay={actions.getTeamCounterDisplay}
-              isStarterPokemon={actions.isStarterPokemon}
-              battlefieldTags={state.battlefieldState.customTags}
-              playerSideTags={state.battlefieldState.playerSide.customTags}
-              opponentSideTags={state.battlefieldState.opponentSide.customTags}
-              onUpdateBattlefieldTags={actions.updateBattlefieldTags}
-              onUpdatePlayerSideTags={actions.updatePlayerSideTags}
-              onUpdateOpponentSideTags={actions.updateOpponentSideTags}
               hpMode={state.hpMode}
-              onImportPokemon={actions.importPokemons}
+              battleStarted={state.battleStarted}
+              onViewChange={setters.setCurrentView}
+              onBattleTypeChange={handleTryChangeBattleType}
+              onHpModeChange={handleTryChangeHpMode}
+              onResetBattle={actions.resetBattleIfNeeded}
+              onOpenSessions={() => setIsSessionsMenuOpen(true)}
+              navigationDisabled={isCorrupted}
             />
-    
-          ) : (
-            state.battleStarted && (
-              <CombatView
-                nodes={state.nodes}
-                selectedNodeId={state.selectedNodeId}
-                onSelectedNodeChange={setters.setSelectedNodeId}
-                onResetBattle={actions.resetBattle}
-                onAddAction={actions.addAction}
-                onUpdateNode={handleTryUpdateNode}
-                onDeleteNode={actions.deleteNode}
-                myTeam={state.myTeam}
-                enemyTeam={state.enemyTeam}
-                activeSlots={state.activeSlots}
-                currentSession={state.currentSession!}
-                onCommit={() => {}} // Legacy prop, safe to ignore
-                onCancel={() => {}} // Legacy prop, safe to ignore
-                readOnly={isCorrupted}
-              />
-            )
-          )}
-        </div>
+      
+            <div className="flex-grow flex flex-col">
+              {state.currentView === "teams" ? (
+                <div className="md:w-2/3 mx-auto flex-grow flex flex-col justify-center">
+                  <TeamsView
+                    myTeam={state.myTeam}
+                    enemyTeam={state.enemyTeam}
+                    battleType={state.battleType}
+                    activeSlots={state.activeSlots}
+                    getSlotForPokemon={state.getSlotForPokemon}
+                    editingPokemonId={state.editingPokemonId}
+                    editingPokemonName={state.editingPokemonName}
+                    onStartEditing={actions.startEditingPokemon}
+                    onUpdateName={actions.updatePokemonName}
+                    onCancelEditing={actions.cancelEditing}
+                    onRemove={handleRemovePokemon}
+                    onUpdateHealth={actions.setPokemonHealth}
+                    onUpdateStatus={handleTryUpdateStatus}
+                    onUpdatePokemon={handleTryUpdatePokemon}
+                    onToggleHeldItem={handleTryToggleHeldItem}
+                    onToggleTerastallized={handleTryToggleTerastallized}
+                    onToggleMega={handleTryToggleMega}
+                    onFlagClick={handleFlagClick}
+                    onAddPokemon={actions.addPokemon}
+                    onMovePokemon={handleMovePokemon}
+                    onBattleTypeChange={handleTryChangeBattleType} 
+                    onResetBattle={actions.resetBattleIfNeeded}
+                    getDefaultPokemonName={actions.getDefaultPokemonName}
+                    getTeamCounterDisplay={actions.getTeamCounterDisplay}
+                    isStarterPokemon={actions.isStarterPokemon}
+                    battlefieldTags={state.battlefieldState.customTags}
+                    playerSideTags={state.battlefieldState.playerSide.customTags}
+                    opponentSideTags={state.battlefieldState.opponentSide.customTags}
+                    onUpdateBattlefieldTags={actions.updateBattlefieldTags}
+                    onUpdatePlayerSideTags={actions.updatePlayerSideTags}
+                    onUpdateOpponentSideTags={actions.updateOpponentSideTags}
+                    hpMode={state.hpMode}
+                    onImportPokemon={actions.importPokemons}
+                    newMyPokemonName={state.newMyPokemonName}
+                    newOpponentPokemonName={state.newOpponentPokemonName}
+                    setNewMyPokemonName={setters.setNewMyPokemonName}
+                    setNewOpponentPokemonName={setters.setNewOpponentPokemonName}
+                  />
+                </div>
+              ) : (
+                state.battleStarted && (
+                  <div className="w-full flex-grow">
+                    <CombatView
+                      nodes={state.nodes}
+                      selectedNodeId={state.selectedNodeId}
+                      onSelectedNodeChange={setters.setSelectedNodeId}
+                      onResetBattle={actions.resetBattle}
+                      onAddAction={actions.addAction}
+                      onUpdateNode={handleTryUpdateNode}
+                      onDeleteNode={actions.deleteNode}
+                      myTeam={state.myTeam}
+                      enemyTeam={state.enemyTeam}
+                      activeSlots={state.activeSlots}
+                      currentSession={state.currentSession!}
+                      onCommit={() => {}} // Legacy prop, safe to ignore
+                      onCancel={() => {}} // Legacy prop, safe to ignore
+                      readOnly={isCorrupted}
+                    />
+                  </div>
+                )
+              )}
+            </div>
+          </div>
       </>
     )
 }

@@ -15,6 +15,7 @@ import { findCompatibleNodes, smartCopyTurnData, sortCompatibleNodes } from "@/l
 import { cn } from "@/lib/utils/cn"
 import { BattleState, TreeNode, TurnData } from "@/types/types"
 import { getTreeBranchColor } from "../../battle-view"
+import { useIsDark } from "@/lib/hooks/use-is-dark"
 
 interface TurnCopyManagerProps {
   allNodes: TreeNode[]
@@ -37,6 +38,7 @@ export function TurnCopyManager({
   onCopy,
   onReset
 }: TurnCopyManagerProps) {
+  const isDark = useIsDark()
   const [selectedBranchIndex, setSelectedBranchIndex] = useState<string>("")
   const [selectedNodeId, setSelectedNodeId] = useState<string>("")
 
@@ -137,7 +139,7 @@ export function TurnCopyManager({
                 </SelectTrigger>
                 <SelectContent>
                   {branchGroups.map(([idx, nodes]) => {
-                    const color = getTreeBranchColor(idx)
+                    const color = getTreeBranchColor(idx, isDark)
                     return (
                         <SelectItem key={idx} value={idx.toString()} className="text-[11px] py-1 px-2">
                             <div className="flex items-center gap-2">
@@ -170,7 +172,7 @@ export function TurnCopyManager({
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
                   {nodesInSelectedBranch.map(node => {
-                    const color = getTreeBranchColor(node.branchIndex)
+                    const color = getTreeBranchColor(node.branchIndex, isDark)
                     return (
                         <SelectItem key={node.id} value={node.id} className="text-[11px] py-1 px-2">
                             <div className="flex items-center gap-2">

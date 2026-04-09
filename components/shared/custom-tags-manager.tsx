@@ -1,12 +1,15 @@
 "use client"
 
-import { THEME } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils"
 import { CustomTagData } from "@/types/types"
 import { Plus } from "lucide-react"
 import { useEffect, useState } from "react"
 import { CircularButton } from "./circular-button"
 import { CustomTag } from "./custom-tag"
+import { useIsDark } from "@/lib/hooks/use-is-dark"
+import { THEME } from "@/lib/constants/color-constants"
+
+
 
 interface CustomTagsManagerProps {
   tags: CustomTagData[]
@@ -32,6 +35,8 @@ export function CustomTagsManager({
   readOnly = false,
 }: CustomTagsManagerProps) {
   const [animatedTags, setAnimatedTags] = useState<TagAnimationState[]>([])
+  const isDark = useIsDark()
+  const tagColors = isDark ? THEME.tags.dark : THEME.tags.light
 
   useEffect(() => {
     setAnimatedTags((prev) => {
@@ -107,6 +112,9 @@ export function CustomTagsManager({
                 fontSizeRatio={fontSizeRatio}
                 defaultValue={`Tag ${tagIndex + 1}`}
                 placeholder={`Tag ${tagIndex + 1}`}
+                mainColor={tagColors.base_bg}
+                darkTextColor={tagColors.base_text}
+                lightTextColor={tagColors.base_text}
                 readOnly={readOnly}
               />
             </div>
@@ -118,15 +126,10 @@ export function CustomTagsManager({
             onClick={handleAddTag}
             icon={Plus}
             activeColor=""
-            inactiveColor={cn("bg-[var(--btn-bg)] text-[var(--btn-text)] hover:bg-[var(--btn-hover)]")}
-            style={{ 
-                "--btn-bg": THEME.common.neutral, 
-                "--btn-text": THEME.pokemon_card.status.label,
-                "--btn-hover": THEME.pokemon_card.status.label + "40"
-            } as React.CSSProperties}
+            inactiveColor={cn("bg-[var(--tag-btn-bg)] text-[var(--tag-btn-text)] hover:opacity-80")}
             title="Ajouter un tag"
             diameter={Math.round((typeof fontSize === "number" ? fontSize : Number.parseFloat(fontSize as string) || 12) / 0.6 * 0.8)}
-            iconRatio={0.7} // Ratio par défaut comme demandé
+            iconRatio={0.7}
             variant="filled"
             readOnly={readOnly}
           />

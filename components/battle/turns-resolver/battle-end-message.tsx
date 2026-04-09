@@ -9,10 +9,10 @@ export function BattleEndMessage({ winner }: BattleEndMessageProps) {
   
   return (
     <div className={cn(
-      "border rounded-lg p-12 text-center shadow-lg",
+      "border rounded-lg p-12 text-center shadow-lg transition-all duration-300",
       isVictory 
-        ? "bg-gradient-to-br from-green-50 to-emerald-50 border-green-300" 
-        : "bg-gradient-to-br from-red-50 to-rose-50 border-red-300"
+        ? "bg-[var(--color-ally-bg)] border-[var(--color-ally)]" 
+        : "bg-[var(--color-opp-bg)] border-[var(--color-opp)]"
     )}>
       <div className="max-w-md mx-auto space-y-4">
         <div className="text-6xl mb-4">
@@ -20,13 +20,13 @@ export function BattleEndMessage({ winner }: BattleEndMessageProps) {
         </div>
         
         <h2 className={cn(
-          "text-4xl font-bold mb-2",
-          isVictory ? "text-green-700" : "text-red-700"
+          "text-4xl font-bold mb-2 uppercase tracking-tight",
+          isVictory ? "text-[var(--color-ally-text)]" : "text-[var(--color-opp-text)]"
         )}>
           {isVictory ? "You won the battle !" : "Unfortunately you lost the battle."}
         </h2>
         
-        <p className="text-lg text-muted-foreground">
+        <p className="text-lg font-medium opacity-80">
           {isVictory 
             ? "All opponent Pokémon have been defeated !" 
             : "All your Pokémon have been defeated !"}

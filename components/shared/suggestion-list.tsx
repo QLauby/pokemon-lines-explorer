@@ -22,6 +22,7 @@ interface SuggestionListProps {
   selectedIndex: number
   onSelect: (item: SuggestionItem) => void
   onHover: (index: number) => void
+  isMyTeam?: boolean
   className?: string
 }
 
@@ -29,16 +30,24 @@ interface SuggestionListProps {
  * Composant de liste de suggestions optimisé pour l'affichage dans un Popover.
  * Il gère l'affichage visuel des Pokémon avec leurs types.
  */
-export function SuggestionList({ items, selectedIndex, onSelect, onHover, className }: SuggestionListProps) {
+export function SuggestionList({ items, selectedIndex, onSelect, onHover, isMyTeam = true, className }: SuggestionListProps) {
   if (items.length === 0) return null
+
+  const selectedBg = isMyTeam ? THEME.suggestion_list.item_selected : THEME.common.opponent_bg_tint
+  const indicatorColor = isMyTeam ? THEME.common.ally : THEME.common.opponent
 
   return (
     <div
       className={cn(
-        "flex flex-col bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-100",
+        "flex flex-col rounded-lg shadow-xl overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-100",
         className,
       )}
-      style={{ minWidth: "180px", maxWidth: "250px" }}
+      style={{ 
+          minWidth: "180px", 
+          maxWidth: "250px",
+          backgroundColor: THEME.suggestion_list.bg,
+          border: `1px solid ${THEME.suggestion_list.border}`,
+      }}
     >
       <div className="max-h-[200px] overflow-y-auto overflow-x-hidden custom-scrollbar">
         {items.map((item, index) => {
@@ -49,8 +58,11 @@ export function SuggestionList({ items, selectedIndex, onSelect, onHover, classN
               key={item.id}
               className={cn(
                 "group flex items-center gap-2.5 px-3 py-2 cursor-pointer transition-all duration-150 relative",
-                isSelected ? "bg-slate-50 pl-4" : "hover:bg-slate-50/80 hover:pl-4",
+                isSelected ? "pl-4" : "hover:pl-4",
               )}
+              style={{
+                  backgroundColor: isSelected ? selectedBg : "transparent",
+              }}
               onMouseEnter={() => onHover(index)}
               onClick={() => onSelect(item)}
               role="option"
@@ -60,7 +72,7 @@ export function SuggestionList({ items, selectedIndex, onSelect, onHover, classN
               {isSelected && (
                 <div 
                   className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full" 
-                  style={{ backgroundColor: THEME.common.ally }} 
+                  style={{ backgroundColor: indicatorColor }} 
                 />
               )}
 
@@ -71,13 +83,17 @@ export function SuggestionList({ items, selectedIndex, onSelect, onHover, classN
                 <span
                   className={cn(
                     "text-[13px] truncate transition-colors",
-                    isSelected ? "text-slate-900 font-semibold" : "text-slate-700",
+                    isSelected ? "font-semibold" : "",
                   )}
+                  style={{ color: THEME.suggestion_list.text_main }}
                 >
                   {item.label}
                 </span>
                 {item.subtitle && (
-                  <span className="text-[10px] text-slate-400 truncate leading-tight">
+                  <span 
+                    className="text-[10px] truncate leading-tight"
+                    style={{ color: THEME.suggestion_list.text_dim }}
+                  >
                     {item.subtitle}
                   </span>
                 )}
@@ -88,12 +104,30 @@ export function SuggestionList({ items, selectedIndex, onSelect, onHover, classN
       </div>
       
       {/* Footer informatif discret */}
-      <div className="px-3 py-1 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center bg-zinc-50">
-        <span className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">
+      <div 
+        className="px-3 py-1 border-t flex justify-between items-center"
+        style={{ 
+            backgroundColor: THEME.suggestion_list.footer_bg,
+            borderColor: THEME.suggestion_list.border
+        }}
+      >
+        <span 
+            className="text-[9px] font-medium uppercase tracking-wider"
+            style={{ color: THEME.suggestion_list.text_dim }}
+        >
           {items.length} résultat{items.length > 1 ? "s" : ""}
         </span>
         <div className="flex gap-1">
-           <kbd className="px-1 py-0.5 rounded border border-slate-200 bg-white text-[8px] text-slate-400 font-sans shadow-sm">↵</kbd>
+           <kbd 
+            className="px-1 py-0.5 rounded border font-sans shadow-sm text-[8px]"
+            style={{ 
+                backgroundColor: THEME.suggestion_list.bg,
+                borderColor: THEME.suggestion_list.border,
+                color: THEME.suggestion_list.text_dim
+            }}
+           >
+                ↵
+           </kbd>
         </div>
       </div>
     </div>

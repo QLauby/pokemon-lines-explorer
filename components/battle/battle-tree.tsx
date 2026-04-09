@@ -18,8 +18,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { THEME } from "@/lib/constants/color-constants"
+import { PALETTE, THEME } from "@/lib/constants/color-constants"
 import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
+import { useIsDark } from "@/lib/hooks/use-is-dark"
 import { cn } from "@/lib/utils/cn"
 import { darkenColor, lightenColor } from "@/lib/utils/colors-utils"
 import { formatKoRisk } from "@/lib/utils/hp-utils"
@@ -47,6 +48,7 @@ export function BattleTree({
   previewNodeId = null,
   koNodesInfo = new Map(),
 }: BattleTreeProps) {
+  const isDark = useIsDark()
   const [zoom, setZoom] = useState(1)
   const [isRestartDialogOpen, setIsRestartDialogOpen] = useState(false)
   const { corruptedNodeIds, isCorrupted } = useCorruptionHandler()
@@ -98,7 +100,7 @@ export function BattleTree({
       <div className="flex-1 min-h-0 p-4">
         <div
 
-          className="relative border rounded bg-slate-50 overflow-auto h-full w-full"
+          className="relative border rounded bg-[var(--color-tree-bg)] overflow-auto h-full w-full transition-colors duration-300"
         >
           <div
             className="relative origin-top-left transition-transform duration-200"
@@ -124,7 +126,7 @@ export function BattleTree({
 
                     const isNodeCorrupted = corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id)
                     const isPreview = node.id === previewNodeId
-                    const color = isNodeCorrupted ? THEME.common.error : getTreeBranchColor(node.branchIndex)
+                    const color = isNodeCorrupted ? THEME.common.error : getTreeBranchColor(node.branchIndex, isDark)
 
 
                     if (node.branchIndex === 0) {
@@ -136,8 +138,9 @@ export function BattleTree({
                                 x2={node.x}
                                 y2={node.y}
                                 stroke={color}
-                                strokeWidth="2.5"
+                                strokeWidth="3.5"
                                 strokeDasharray={isPreview ? "6 4" : "none"}
+                                style={{ filter: `drop-shadow(0 0 calc(5px * var(--glow-intensity, 1)) ${color})` }}
                             />
                         )
                     } else {
@@ -156,9 +159,14 @@ export function BattleTree({
                                 key={`${parent.id}-${node.id}`} 
                                 d={pathData} 
                                 stroke={color} 
-                                strokeWidth="2.5" 
+                                strokeWidth="3.5"
+                                strokeOpacity={1}
+                                strokeDasharray={node.id.startsWith("preview-") ? "4 2" : "0"}
                                 fill="none"
-                                strokeDasharray={isPreview ? "6 4" : "none"} 
+                                className="transition-all duration-300 transition-colors"
+                                style={{ 
+                                    filter: `drop-shadow(0 0 calc(5px * var(--glow-intensity, 1)) ${color})`
+                                } as React.CSSProperties}
                             />
                         )
                     }
@@ -190,7 +198,7 @@ export function BattleTree({
 
                     const isNodeCorrupted = corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id)
                     const isPreview = node.id === previewNodeId
-                    const branchColor = isNodeCorrupted ? THEME.common.error : getTreeBranchColor(node.branchIndex)
+                    const branchColor = isNodeCorrupted ? THEME.common.error : getTreeBranchColor(node.branchIndex, isDark)
 
                     if (isPreview) return null
 
@@ -229,13 +237,17 @@ export function BattleTree({
                                             </div>
                                         </PopoverTrigger>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top" className="bg-slate-900 text-white border-slate-700 shadow-xl z-[100] p-2">
-                                        <div className="flex flex-col items-center">
+                                    <TooltipContent 
+                                        side="top" 
+                                        className="shadow-xl z-[100] p-2"
+                                        style={{ backgroundColor: THEME.tooltips.bg, color: THEME.tooltips.text }}
+                                    >
+                                        <div className="flex flex-col items-center" style={{ color: THEME.tooltips.text }}>
                                             <p className="font-bold text-[11px]">Probability : {(() => {
                                                 const val = node.probability * 100
                                                 return (val % 1 === 0 ? val.toFixed(0) : val.toFixed(1))
                                             })()} %</p>
-                                            <p className="text-[9px] text-slate-400">Click to edit</p>
+                                            <p className="text-[9px] opacity-50">Click to edit</p>
                                         </div>
                                     </TooltipContent>
                                 </Tooltip>
@@ -274,10 +286,11 @@ export function BattleTree({
                 // Turn 0 is never "corrupted" visually (it's a reset), so never show red
                 const isNodeCorrupted = node.turn !== 0 && (corruptedNodeIds.includes(node.id) || highlightedNodeIds.includes(node.id))
                 const isPreview = node.id === previewNodeId
-                const branchColor = isNodeCorrupted ? THEME.common.error : getTreeBranchColor(node.branchIndex)
+                const branchColor = isNodeCorrupted ? THEME.common.error : getTreeBranchColor(node.branchIndex, isDark)
                 
-                const activeBg = isNodeCorrupted ? THEME.battle_tree.node_corrupted_bg : lightenColor(branchColor, 30)
-                const activeText = isNodeCorrupted ? THEME.battle_tree.node_corrupted_text : darkenColor(branchColor, 40)
+                const safeBranchColor = node.turn === 0 ? (isDark ? PALETTE.battle_tree_root.dark : PALETTE.battle_tree_root.light) : branchColor
+                const nodeText = isSelected ? (isDark ? "#000000" : "#ffffff") : safeBranchColor
+                const nodeBg = isSelected ? safeBranchColor : THEME.battle_tree.node_bg
 
                 return (
                     <div
@@ -286,37 +299,35 @@ export function BattleTree({
                         style={{
                             left: `${node.x - 12}px`,
                             top: `${node.y - 12}px`,
-                            "--node-active-bg": activeBg,
-                            "--node-active-text": activeText,
-                            "--node-branch-color": branchColor,
-                            zIndex: 40
+                            zIndex: isSelected ? 50 : 40
                         } as React.CSSProperties}
                     >
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className={`
-                                    w-6 h-6 rounded-full text-[10px] font-extrabold transition-all duration-200 cursor-pointer
-                                    flex items-center justify-center p-0
-                                    border-[2px] border-[var(--node-branch-color)]
-                                    hover:bg-[var(--node-active-bg)] hover:text-[var(--node-active-text)]
-                                    ${isSelected 
-                                        ? "bg-[var(--node-active-bg)] text-[var(--node-active-text)] scale-110 shadow-lg" 
-                                        : "bg-white text-[var(--node-branch-color)]"
-                                    }
-                                    `}
+                                <button
+                                    className={cn(
+                                        "w-6 h-6 rounded-full text-[10px] font-extrabold transition-all duration-200 cursor-pointer flex items-center justify-center p-0 border-[2px] outline-none",
+                                        isSelected ? "scale-110 glow-active shadow-lg border-2" : "hover:scale-105"
+                                    )}
                                     style={{
-                                        boxShadow: isSelected ? `0 0 12px ${branchColor}44` : "none",
-                                    }}
+                                        borderColor: safeBranchColor,
+                                        backgroundColor: nodeBg,
+                                        color: nodeText,
+                                        boxShadow: isSelected ? `0 0 calc(20px * var(--glow-intensity, 1)) ${safeBranchColor}` : "none",
+                                        zIndex: isSelected ? 50 : 40,
+                                        opacity: 1
+                                    } as React.CSSProperties}
                                     onClick={() => onSelectedNodeChange(node.id)}
                                 >
                                     {node.turn}
-                                </Button>
+                                </button>
                             </TooltipTrigger>
-                            <TooltipContent side="bottom" className="bg-slate-900 text-white border-slate-700 shadow-xl z-[100] max-w-[220px] text-center p-2 space-y-1">
-                                <div className="font-bold flex items-center justify-between gap-4">
+                            <TooltipContent 
+                                side="bottom" 
+                                className="shadow-xl z-[100] max-w-[220px] text-center p-2 space-y-1"
+                                style={{ backgroundColor: THEME.tooltips.bg, color: THEME.tooltips.text }}
+                            >
+                                <div className="font-bold flex items-center justify-between gap-4" style={{ color: THEME.tooltips.text }}>
                                     <span className="tabular-nums text-[11px]">
                                         P(<span style={{ color: branchColor }}>{node.turn}</span>) = {(() => {
                                             const val = node.cumulativeProbability * 100
@@ -334,12 +345,12 @@ export function BattleTree({
                                                     className={cn(
                                                         "text-[9px] px-2 py-1 rounded-[4px] font-medium flex items-center justify-between gap-1.5 shadow-sm border",
                                                         isKO 
-                                                            ? "bg-red-950/40 text-red-200 border-red-500/30" 
-                                                            : "bg-orange-950/40 text-orange-200 border-orange-500/30"
+                                                            ? "bg-amber-600/10 dark:bg-amber-900 text-amber-900 dark:text-amber-100 border-amber-600/30 dark:border-amber-500" 
+                                                            : "bg-orange-600/10 dark:bg-orange-900 text-orange-900 dark:text-orange-100 border-orange-600/30 dark:border-orange-500"
                                                     )}
                                                 >
                                                     <div className="flex items-center gap-1.5 overflow-hidden">
-                                                        <span className={cn("text-[10px]", isKO ? "text-red-400" : "text-orange-400")}>
+                                                        <span className={cn("text-[10px]", isKO ? "text-amber-600 dark:text-amber-400" : "text-orange-600 dark:text-orange-400")}>
                                                             {isKO ? "☠" : "⚠"}
                                                         </span>
                                                         <span className="leading-tight font-black uppercase tracking-tight shrink-0">
@@ -353,8 +364,11 @@ export function BattleTree({
                                                         </span>
                                                         {event.isTriggered && (
                                                             <span 
-                                                                className="text-[7px] text-white px-1 rounded-[2px] font-black uppercase animate-pulse"
-                                                                style={{ backgroundColor: THEME.ko.bordeaux }}
+                                                                className="text-[7px] text-white px-1 rounded-[2px] font-black uppercase animate-pulse glow-active"
+                                                                style={{ 
+                                                                    backgroundColor: THEME.ko.bordeaux,
+                                                                    boxShadow: `0 0 calc(12px * var(--glow-intensity, 1)) var(--color-ko, #ff0055)` 
+                                                                }}
                                                             >
                                                                 Triggered
                                                             </span>
@@ -366,7 +380,7 @@ export function BattleTree({
                                     </div>
                                 )}
                                 {node.description && (
-                                    <p className="text-[10px] italic border-t border-white/10 pt-1.5 mt-1.5 line-clamp-3 text-slate-400">
+                                    <p className="text-[10px] italic border-t border-black/10 dark:border-white/10 pt-1.5 mt-1.5 line-clamp-3 opacity-50">
                                         {node.description}
                                     </p>
                                 )}
@@ -374,12 +388,16 @@ export function BattleTree({
                         </Tooltip>
                         {koNodesInfo.has(node.id) && koNodesInfo.get(node.id)!.events.length > 0 && (
                             <div 
-                                className="absolute -top-[4.5px] -right-[7px] text-white rounded-[2px] px-[2.5px] py-0.5 flex items-center justify-center text-[7px] font-black z-[60] leading-none select-none tracking-tight border border-white shadow-sm pointer-events-none"
+                                className="absolute -top-[4.5px] -right-[7px] text-white rounded-[2px] px-[2.5px] py-0.5 flex items-center justify-center text-[7px] font-black z-[60] leading-none select-none tracking-tight border border-white shadow-lg pointer-events-none glow-active"
                                 style={{ 
                                     backgroundColor: koNodesInfo.get(node.id)!.events.some(e => e.type === "ko" || e.isTriggered) 
                                         ? THEME.ko.bordeaux 
-                                        : THEME.ko.uncertain 
-                                }}
+                                        : THEME.ko.uncertain,
+                                    boxShadow: `0 0 calc(12px * var(--glow-intensity, 1)) var(--glow-color, #ff0055)`,
+                                    "--glow-color": koNodesInfo.get(node.id)!.events.some(e => e.type === "ko" || e.isTriggered) 
+                                        ? "var(--color-ko, #ff0055)" 
+                                        : "var(--color-opp, #ff6600)"
+                                } as React.CSSProperties}
                             >
                                 KO
                             </div>

@@ -1,0 +1,29 @@
+{
+  "games": [
+    {
+      "id": "emerald-kaizo",
+      "name": "Emerald Kaizo",
+      "file": "emerald-kaizo.json"
+    },
+    {
+      "id": "platinum-kaizo",
+      "name": "Platinum Kaizo",
+      "file": "platinum-kaizo.json"
+    },
+    {
+      "id": "pokemon-null",
+      "name": "Pokemon Null",
+      "file": "pokemon-null.json"
+    },
+    {
+      "id": "radical-red-hardcore",
+      "name": "Radical Red Hardcore",
+      "file": "radical-red-hardcore.json"
+    },
+    {
+      "id": "run-and-bun",
+      "name": "Run & Bun",
+      "file": "run-and-bun.json"
+    }
+  ]
+}

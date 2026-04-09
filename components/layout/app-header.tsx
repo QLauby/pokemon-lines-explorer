@@ -5,6 +5,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { Layers } from "lucide-react"
+import { ThemeToggle } from "../shared/theme-toggle"
 
 interface AppHeaderProps {
   currentView: "teams" | "combat"
@@ -32,8 +33,8 @@ export function AppHeader({
   navigationDisabled = false,
 }: AppHeaderProps) {
   return (
-    <>
-      <div className="flex items-center justify-between mb-4">
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
         <TooltipProvider delayDuration={200}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -45,7 +46,7 @@ export function AppHeader({
                 <span>Sessions</span>
               </button>
             </TooltipTrigger>
-            <TooltipContent className="bg-slate-900 border-slate-800 text-slate-50 text-xs">
+            <TooltipContent className="text-xs shadow-md">
               Manage battle sessions
             </TooltipContent>
           </Tooltip>
@@ -55,10 +56,12 @@ export function AppHeader({
             <h1 className="text-3xl font-bold tracking-tight">Pokemon Lines Explorer</h1>
             <p className="text-base text-slate-500 font-medium italic mt-0.5">Trace your path to victory !</p>
         </div>
-        <div className="w-[100px]" /> {/* Spacer to balance the header */}
+        <div className="w-[120px] flex justify-end">
+           <ThemeToggle />
+        </div>
       </div>
 
-      <div className="border-b border-border mb-6">
+      <div className="border-b border-border">
         {/* Top row: navigation tabs */}
         <div className="flex items-center justify-between pb-1">
           <div className="flex gap-6">
@@ -158,8 +161,8 @@ export function AppHeader({
                       Work with Rolls
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent className="bg-slate-900 border-slate-800 text-slate-50 text-[11px] leading-relaxed p-3 max-w-xs shadow-xl">
-                    <p className="font-bold border-b border-white/10 pb-1.5 mb-1.5 uppercase text-[9px] tracking-wider text-slate-400">Rolls Mode (Variance)</p>
+                  <TooltipContent className="text-[11px] leading-relaxed p-3 max-w-xs shadow-xl">
+                    <p className="font-bold border-b pb-1.5 mb-1.5 uppercase text-[9px] tracking-wider opacity-60">Rolls Mode (Variance)</p>
                     <p>Utilizes Pokémon Showdown's 16 damage rolls (85% to 100%) to provide a statistical overview of battle outcomes.</p>
                     <p className="mt-1.5">The HP bar displays the <b>min</b>, <b>max</b>, <b>median</b>, and <b>quartiles</b> of possible damage. When a K.O. is possible, the app calculates and alerts you to the exact probability of the K.O. occurring.</p>
                   </TooltipContent>
@@ -170,6 +173,6 @@ export function AppHeader({
           </div>
         </div>
       </div>
-    </>
+    </div>
   )
 }

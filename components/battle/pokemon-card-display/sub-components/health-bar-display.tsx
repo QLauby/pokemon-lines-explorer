@@ -20,7 +20,7 @@ export function HealthBarDisplay({
   hpCurrent,
   showText = true, 
   className,
-  height = 10,
+  height = 8,
   statProfile
 }: HealthBarDisplayProps) {
   

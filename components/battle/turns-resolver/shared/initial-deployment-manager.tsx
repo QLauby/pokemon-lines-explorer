@@ -140,7 +140,7 @@ export function InitialDeploymentManager({
       deltas: [{
           type: "HP_RELATIVE",
           target: defaultTarget,
-          amount: 0,
+          amount: undefined,
           unit: hpMode === "rolls" ? "hp" : hpMode
       }]
     }

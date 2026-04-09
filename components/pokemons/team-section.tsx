@@ -1,10 +1,11 @@
 "use client"
 
-import { Plus } from "lucide-react"
+import { Plus, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { ImportDialog } from "@/components/shared/import-dialog"
 
 import { THEME } from "@/lib/constants/color-constants"
@@ -53,6 +54,8 @@ interface TeamSectionProps {
   isStarterPokemon: (pokemon: Pokemon, index: number, isMyTeam: boolean) => boolean
   hpMode?: "percent" | "hp" | "rolls"
   onImportPokemon: (pokemons: Omit<Pokemon, "id">[], mode: "replace" | "add", isMyTeam: boolean) => void
+  newPokemonName: string
+  setNewPokemonName: (name: string) => void
 }
 
 
@@ -82,15 +85,17 @@ export function TeamSection({
   isStarterPokemon,
   hpMode = "percent",
   onImportPokemon,
+  newPokemonName,
+  setNewPokemonName,
 }: TeamSectionProps) {
 
   return (
     <Card 
       style={{ 
-          backgroundColor: isMyTeam ? THEME.common.ally_bg + "33" : THEME.common.opponent_bg + "33",
-          borderColor: isMyTeam ? THEME.common.ally_bg + "80" : THEME.common.opponent_bg + "80"
+          backgroundColor: isMyTeam ? THEME.common.ally_bg : THEME.common.opponent_bg,
+          borderColor: isMyTeam ? THEME.common.ally : THEME.common.opponent
       }}
-      className="shadow-sm transition-all hover:shadow-md border rounded-xl"
+      className="shadow-sm transition-all hover:shadow-md border-[1.5px] rounded-xl"
     >
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
@@ -153,7 +158,8 @@ export function TeamSection({
             variant="outline"
             size="sm"
             onClick={() => onAddPokemon(isMyTeam ? "my" : "opponent")}
-            className="h-9 text-xs w-full bg-white/40 hover:bg-white/60 border-2 cursor-pointer transition-all"
+            disabled={team.length >= 100} // Safety limit
+            className="h-9 text-xs w-full bg-white/40 hover:bg-white/60 border-2 cursor-pointer transition-all font-bold"
             style={{ 
                 color: isMyTeam ? THEME.common.ally_text : THEME.common.opponent_text,
                 borderColor: isMyTeam ? THEME.common.ally_bg : THEME.common.opponent_bg

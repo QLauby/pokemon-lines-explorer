@@ -73,18 +73,22 @@ export function StatHpBar({
       )}
       
       <div 
-        className="relative w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200"
+        className="relative w-full bg-slate-200 dark:bg-slate-900/50 rounded-full overflow-hidden border border-black/5 dark:border-white/5 ring-1 ring-black/5 dark:ring-black/50"
         style={{ height: `${barHeight}px` }}
       >
         {/* Survival (Solid Min HP) */}
         {!isDead && (
           <div 
-            className="absolute top-0 left-0 h-full transition-all duration-300"
+            className="absolute top-0 left-0 h-full transition-all duration-300 relative"
             style={{ 
                 width: `${minPct}%`, 
-                backgroundColor: mainColor 
+                backgroundColor: mainColor,
+                boxShadow: `0 0 10px ${mainColor}aa, 0 0 5px ${mainColor}cc`
             }}
-          />
+          >
+            {/* Lightsaber Core */}
+            <div className="absolute inset-y-[1px] left-0 right-0 mx-[1.5px] bg-white/50 rounded-full blur-[0.5px]" />
+          </div>
         )}
         
         {/* Variance Area (Min to Max) */}
@@ -102,17 +106,21 @@ export function StatHpBar({
              
              {/* Central Zone (IQR) - More visible */}
              <div 
-               className="absolute top-0 h-full transition-all duration-300 opacity-50 rounded-[1px]"
+               className="absolute top-0 h-full transition-all duration-300 opacity-60 rounded-[1px] relative"
                style={(() => {
                   const leftPct = clamp((percentiles!.q25 / hpMax) * 100);
                   const rightPct = clamp((percentiles!.q75 / hpMax) * 100);
                   return { 
                       left: `${leftPct}%`, 
                       width: `${rightPct - leftPct}%`, 
-                      backgroundColor: mainColor 
+                      backgroundColor: mainColor,
+                      boxShadow: `0 0 8px ${mainColor}88`
                   };
                })()}
-             />
+             >
+                {/* Variance Core Sub-glow */}
+                <div className="absolute inset-y-[2px] left-0 right-0 mx-[1px] bg-white/30 rounded-full blur-[1px]" />
+             </div>
            </>
         )}
         
@@ -123,7 +131,7 @@ export function StatHpBar({
              style={{ 
                  left: `${centralPct}%`, 
                  transform: "translateX(-50%)", 
-                 boxShadow: '0 0 4px rgba(255,255,255,0.8)' 
+                 boxShadow: '0 0 8px rgba(255,255,255,0.9)' 
              }}
            />
         )}
@@ -139,9 +147,9 @@ export function StatHpBar({
         </TooltipTrigger>
         <TooltipContent 
           side="top" 
-          className="p-3 text-[11px] space-y-2 bg-slate-900 text-slate-50 border-slate-800 shadow-xl"
+          className="p-3 text-[11px] space-y-2 shadow-xl"
         >
-          <div className="font-bold border-b border-white/10 pb-1.5 mb-1.5 flex justify-between items-center text-[9px] uppercase tracking-wider text-slate-400">
+          <div className="font-bold border-b pb-1.5 mb-1.5 flex justify-between items-center text-[9px] uppercase tracking-wider opacity-60">
             <span>Battle Status</span>
             <span 
               className="px-1.5 py-0.5 rounded-[2px] text-[8px] font-black leading-none text-white shadow-sm"
@@ -170,21 +178,26 @@ export function StatHpBar({
                       return (
                         <>
                           {/* The Ruler / Axis */}
-                          <div className="absolute left-0 w-full h-1.5 bg-slate-800 rounded-full border border-white/5 overflow-hidden">
-                             {/* Central Zone (25-75%) Highlight */}
-                             <div className="absolute inset-y-0 bg-blue-500/20" style={{ left: `${pctQ25}%`, width: `${pctQ75 - pctQ25}%` }} />
+                          <div className="absolute left-0 w-full h-1.5 top-1/2 -translate-y-1/2 bg-slate-400 dark:bg-slate-800 rounded-full border border-black/5 dark:border-white/5 overflow-visible ring-1 ring-black/5 dark:ring-black/50">
+                             {/* Central Zone (25-75%) Highlight - HIGH VISIBILITY */}
+                             <div 
+                                className="absolute inset-y-0 bg-blue-600 dark:bg-blue-400 opacity-100 shadow-[0_0_12px_#3b82f6] rounded-full" 
+                                style={{ left: `${pctQ25}%`, width: `${pctQ75 - pctQ25}%` }}
+                             >
+                                <div className="absolute inset-0 bg-white/40 blur-[1px]" />
+                             </div>
                           </div>
 
                           {/* All points (ticks + labels + values) */}
                           {(() => {
                             const rawPoints = [
-                              { label: "MIN", value: Math.max(0, Math.round(stats!.minHp)), originalPct: 0, color: "text-rose-800" },
-                              { label: "Q5", value: Math.round(percentiles!.q5), originalPct: pctQ5, color: "text-red-300" },
-                              { label: "Q25", value: Math.round(percentiles!.q25), originalPct: pctQ25, color: "text-blue-300" },
-                              { label: "MED", value: Math.round(percentiles!.median), originalPct: pctMed, color: "text-white", isBold: true },
-                              { label: "Q75", value: Math.round(percentiles!.q75), originalPct: pctQ75, color: "text-blue-300" },
-                              { label: "Q95", value: Math.round(percentiles!.q95), originalPct: pctQ95, color: "text-green-300" },
-                              { label: "MAX", value: Math.max(0, Math.round(stats!.maxHp)), originalPct: 100, color: "text-green-400" }
+                              { label: "MIN", value: Math.max(0, Math.round(stats!.minHp)), originalPct: 0, color: "text-rose-500 dark:text-rose-400", bgClass: "bg-rose-500 dark:bg-rose-400" },
+                              { label: "Q5", value: Math.round(percentiles!.q5), originalPct: pctQ5, color: "text-red-400 dark:text-red-300", bgClass: "bg-red-400 dark:bg-red-300" },
+                              { label: "Q25", value: Math.round(percentiles!.q25), originalPct: pctQ25, color: "text-blue-400 dark:text-blue-300", bgClass: "bg-blue-400 dark:bg-blue-300" },
+                              { label: "MED", value: Math.round(percentiles!.median), originalPct: pctMed, color: "text-foreground", bgClass: "bg-foreground", isBold: true },
+                              { label: "Q75", value: Math.round(percentiles!.q75), originalPct: pctQ75, color: "text-blue-400 dark:text-blue-300", bgClass: "bg-blue-400 dark:bg-blue-300" },
+                              { label: "Q95", value: Math.round(percentiles!.q95), originalPct: pctQ95, color: "text-green-400 dark:text-green-300", bgClass: "bg-green-400 dark:bg-green-300" },
+                              { label: "MAX", value: Math.max(0, Math.round(stats!.maxHp)), originalPct: 100, color: "text-emerald-500 dark:text-emerald-400", bgClass: "bg-emerald-500 dark:bg-emerald-400" }
                             ];
 
                             const MIN_GAP = 15;
@@ -225,13 +238,15 @@ export function StatHpBar({
                                      {item.label}
                                    </div>
                                    
-                                   <div 
-                                     className={cn(
-                                        "w-[1px] h-3 bg-white/30 absolute top-1/2 -translate-y-1/2",
-                                        item.isBold ? "bg-white w-[1.5px] h-4 z-20" : ""
+                                    <div 
+                                      className={cn(
+                                        "w-[2px] h-6 absolute top-1/2 -translate-y-1/2 z-[50]",
+                                        item.bgClass,
+                                        item.isBold ? "w-[3px] h-8 z-[60]" : ""
                                      )} 
                                      style={{ 
-                                       left: item.visualPct <= 5 ? `calc(0% + ${diff}%)` : (item.visualPct >= 95 ? `calc(100% + ${diff}%)` : `calc(50% + ${diff}%)`) 
+                                       left: item.visualPct <= 5 ? `calc(0% + ${item.originalPct - item.visualPct}%)` : (item.visualPct >= 95 ? `calc(100% + ${item.originalPct - item.visualPct}%)` : `calc(50% + ${item.originalPct - item.visualPct}%)`),
+                                       filter: item.isBold ? `drop-shadow(0 0 5px currentColor)` : `none`
                                      }}
                                    />
    
@@ -242,7 +257,7 @@ export function StatHpBar({
                                       item.visualPct <= 5 ? "justify-start" : item.visualPct >= 95 ? "justify-end" : "justify-center"
                                    )}>
                                      <div className="flex items-baseline gap-0.5">
-                                        <span className={cn(item.isBold && "text-white text-[13px]")}>{item.value}</span>
+                                        <span className={cn(item.isBold && "text-[13px]")}>{item.value}</span>
                                         <span className="opacity-40 text-[8px] font-medium">/{hpMax}</span>
                                      </div>
                                    </div>
@@ -256,29 +271,29 @@ export function StatHpBar({
                   </div>
 
                   {/* Legend Footer */}
-                  <div className="bg-white/5 rounded p-2 border border-white/5 space-y-1 mt-1 text-[8.5px]">
-                    <div className="flex justify-between items-center text-slate-400">
-                        <span className="font-bold flex gap-1.5 items-center"><span className="text-red-300">Q5</span>/ <span className="text-green-300">Q95</span></span>
+                  <div className="bg-black/5 dark:bg-white/5 rounded p-2 border border-black/10 dark:border-white/5 space-y-1 mt-1 text-[8.5px]">
+                    <div className="flex justify-between items-center text-black/60 dark:text-slate-400">
+                        <span className="font-bold flex gap-1.5 items-center"><span className="text-red-600 dark:text-red-300">Q5</span>/ <span className="text-green-600 dark:text-green-300">Q95</span></span>
                         <span>5% / 95% extreme outcomes</span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-400">
-                        <span className="font-bold flex gap-1.5 items-center"><span className="text-blue-300">Q25</span>/ <span className="text-blue-300">Q75</span></span>
+                    <div className="flex justify-between items-center text-black/60 dark:text-slate-400">
+                        <span className="font-bold flex gap-1.5 items-center"><span className="text-blue-600 dark:text-blue-300">Q25</span>/ <span className="text-blue-600 dark:text-blue-300">Q75</span></span>
                         <span>25% / 75% realistic outcomes</span>
                     </div>
-                    <div className="flex justify-between items-center text-slate-400">
-                        <span className="font-bold text-white">MEDIAN</span>
+                    <div className="flex justify-between items-center text-black/60 dark:text-slate-400">
+                        <span className="font-bold text-foreground">MEDIAN</span>
                         <span>Exact center (50%) of all combinations</span>
                     </div>
                   </div>
                </div>
              ) : (
-               <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 tabular-nums">
-                 <span className="text-slate-400 font-medium">Actual</span>
-                 <span className="text-white font-bold">{Math.round(centralHp)} / {hpMax} HP</span>
-                 
-                 <span className="text-slate-400 font-medium">Ratio</span>
-                 <span className="text-white font-bold">{hpPercent.toFixed(1)}%</span>
-               </div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 tabular-nums">
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Actual</span>
+                  <span className="text-foreground font-bold">{Math.round(centralHp)} / {hpMax} HP</span>
+                  
+                  <span className="text-slate-500 dark:text-slate-400 font-medium">Ratio</span>
+                  <span className="text-foreground font-bold">{hpPercent.toFixed(1)}%</span>
+                </div>
              )}
         </TooltipContent>
       </Tooltip>

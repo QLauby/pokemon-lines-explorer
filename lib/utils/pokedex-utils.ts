@@ -177,6 +177,14 @@ export function getMoveDetails(idOrName: string) {
 }
 
 /**
+ * Récupère les données brutes d'un Pokémon par son nom ou ID (ex: types).
+ */
+export function getPokemonDetails(idOrName: string) {
+    const id = toShowdownId(idOrName);
+    return Pokedex[id] || null;
+}
+
+/**
  * Utilitaire de tri partagé pour mettre en avant les correspondances exactes/début de chaîne.
  */
 function sortResults(results: SuggestionItem[], query: string): SuggestionItem[] {

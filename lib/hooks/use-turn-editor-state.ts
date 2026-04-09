@@ -262,16 +262,16 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" |
     const action = newActions[actionIndex]
 
     const isSwitch = action.type === "switch" || action.type === "switch-after-ko"
-    const defaultTarget: SlotReference = defaultTargetOverride
-      ? defaultTargetOverride
-      : isSwitch
-      ? { type: "battlefield_slot", side: action.actor.side, slotIndex: Number((action.actor as any).slotIndex) }
-      : action.target || action.actor
+    
+    // Default to the action's target if it exists and is valid, otherwise use unselected state
+    const defaultTarget: SlotReference = (action.target && action.target.slotIndex !== -1)
+      ? { ...action.target }
+      : { type: "battlefield_slot", side: "opponent", slotIndex: -1 }
 
     const newEffect: Effect = {
       type: "hp-change",
       target: { ...defaultTarget },
-      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: 0, unit: hpMode === "rolls" ? "hp" : hpMode }],
+      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: undefined, unit: hpMode === "rolls" ? "hp" : hpMode }],
     }
 
     newActions[actionIndex] = { ...action, effects: [...action.effects, newEffect] }
@@ -306,12 +306,13 @@ export function useTurnEditorState(readOnly: boolean, hpMode: "percent" | "hp" |
 
   /* ─── End-of-Turn effect handlers ────────────────────────── */
 
-  const addEndOfTurnEffect = (defaultTarget: SlotReference) => {
+  const addEndOfTurnEffect = () => {
     if (readOnly) return
+    const defaultTarget: SlotReference = { type: "battlefield_slot", side: "opponent", slotIndex: -1 }
     const newEffect: Effect = {
       type: "hp-change",
       target: { ...defaultTarget },
-      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: 0, unit: hpMode === "rolls" ? "hp" : hpMode }],
+      deltas: [{ type: "HP_RELATIVE", target: { ...defaultTarget }, amount: undefined, unit: hpMode === "rolls" ? "hp" : hpMode }],
     }
     setEndOfTurnEffects(prev => [...prev, newEffect])
   }

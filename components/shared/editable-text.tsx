@@ -10,6 +10,7 @@ import { THEME } from "@/lib/constants/color-constants"
 import { cn } from "@/lib/utils/cn"
 import { darkenColor, getTextColorForBackground, lightenColor } from "@/lib/utils/colors-utils"
 import { floatToFraction } from "@/lib/utils/math-utils"
+import { useIsDark } from "@/lib/hooks/use-is-dark"
 
 interface EditableTextProps {
   value: string
@@ -59,8 +60,8 @@ interface EditableTextProps {
 
 const DEFAULT_TEXT_IF_VOID = "Click to edit ..."
 const DEFAULT_MAIN_COLOR = THEME.editable_text.default_main
-const DEFAULT_DARK_TEXT_COLOR = THEME.common.black
-const DEFAULT_LIGHT_TEXT_COLOR = THEME.common.white
+const DEFAULT_DARK_TEXT_COLOR = "#000000"
+const DEFAULT_LIGHT_TEXT_COLOR = "#FFFFFF"
 
 const DEFAULT_TRANSITION_DURATION = "0.8s"
 
@@ -164,8 +165,17 @@ export const EditableText = forwardRef<EditableTextRef, EditableTextProps>(({
   const resolvedMax: number | undefined = dynamicMax ? dynamicMax() : max
   const resolvedDecimals = decimals
 
-  const darkenedMainColor = darkenColor(mainColor, 10)
-  const lightenedMainColor = lightenColor(mainColor, 95)
+  const isDark = useIsDark()
+  
+  // Use hex bridge for internal computations if using default theme variable
+  const hexMainColor = mainColor === DEFAULT_MAIN_COLOR 
+    ? (isDark ? THEME.editable_text.primary_dark : THEME.editable_text.primary_light)
+    : mainColor;
+
+  const darkenedMainColor = darkenColor(hexMainColor, 10)
+  const lightenedMainColor = isDark 
+    ? lightenColor(hexMainColor, 15)
+    : lightenColor(hexMainColor, 95)
 
   const numericFontSizePx = useMemo(() => {
     if (typeof fontSize === "number") return fontSize
@@ -338,9 +348,11 @@ export const EditableText = forwardRef<EditableTextRef, EditableTextProps>(({
 
   // 5. Functions
   const getDisplayStyles = () => {
+    const isActuallyMainTransparent = mainColor === "transparent" || !mainColor;
+
     if (visualMode === "default") {
       if (mode === "button") {
-        const textColor = getTextColorForBackground(mainColor, darkTextColor, lightTextColor)
+        const textColor = getTextColorForBackground(hexMainColor, darkTextColor, lightTextColor)
         const hoverTextColor = getTextColorForBackground(darkenedMainColor, darkTextColor, lightTextColor)
         return {
           backgroundColor: mainColor,
@@ -353,47 +365,51 @@ export const EditableText = forwardRef<EditableTextRef, EditableTextProps>(({
           },
         }
       }
+      
+      // SOBER HOVER FOR TEXT MODE
       return {
         backgroundColor: "transparent",
-        color: darkTextColor,
+        color: "inherit",
         border: "1px solid transparent",
         hover: {
-          backgroundColor: mainColor,
-          color: getTextColorForBackground(mainColor, darkTextColor, lightTextColor),
-          border: `1px solid ${mainColor}`,
+          backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.04)",
+          color: "inherit",
+          border: isActuallyMainTransparent ? "1px solid var(--border-main)" : `1px solid ${mainColor}`,
         },
       }
     }
+
     if (mode === "button") {
       return {
         backgroundColor: "transparent",
-        color: darkTextColor,
+        color: "inherit",
         border: `1px solid ${mainColor}`,
         hover: {
-          backgroundColor: lightenedMainColor,
-          color: darkTextColor,
+          backgroundColor: isDark ? "rgba(255, 255, 255, 0.05)" : lightenedMainColor,
+          color: "inherit",
           border: `1px solid ${mainColor}`,
         },
       }
     }
+
+    // Border mode
     return {
       backgroundColor: "transparent",
-      color: darkTextColor,
+      color: "inherit",
       border: "1px solid transparent",
       hover: {
-        backgroundColor: "transparent",
-        color: darkTextColor,
+        backgroundColor: isDark ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.02)",
+        color: "inherit",
         border: `1px solid ${mainColor}`,
       },
     }
   }
 
   const getEditingStyles = () => {
-    const editingBackgroundColor = "white"
     return {
-      backgroundColor: editingBackgroundColor,
+      backgroundColor: "var(--bg-neutral)",
       border: `1px solid ${mainColor}`,
-      color: darkTextColor,
+      color: "var(--text-main)",
     }
   }
 
@@ -626,7 +642,15 @@ export const EditableText = forwardRef<EditableTextRef, EditableTextProps>(({
                   {displayText}
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[300px] whitespace-normal bg-slate-900 text-white border-slate-700 shadow-xl z-[100]">
+              <TooltipContent 
+                side="top" 
+                className="max-w-[300px] whitespace-normal shadow-xl z-[100]"
+                style={{ 
+                    backgroundColor: THEME.tooltips.bg, 
+                    color: THEME.tooltips.text,
+                    border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`
+                }}
+              >
                 {tooltip}
               </TooltipContent>
             </Tooltip>

@@ -1,474 +1,256 @@
 /**
  * Centralized color constants for the entire project.
- * Organized into two parts: 
- * 1. PALETTE: Raw color tokens (Primitive) mirroring the Tailwind CSS color chart.
- * 2. THEME: Semantic aliases grouped by page/component (Functional).
+ * 
+ * 1. THEME: Semantic aliases mapping to CSS variables (for React UI).
+ * 2. JS_PALETTE: Raw hex values for engine logic (hue rotation, luminance).
  */
 
-// ==========================================
-// 1. PALETTE (Primitive Tokens - Tailwind CSS)
-// ==========================================
-export const PALETTE = {
-  white: "#FFFFFF",
-  black: "#000000",
-  transparent: "transparent",
-
-  slate: {
-    50: "#F8FAFC",
-    100: "#F1F5F9",
-    200: "#E2E8F0",
-    300: "#CBD5E1",
-    400: "#94A3B8",
-    500: "#64748B",
-    600: "#475569",
-    700: "#334155",
-    800: "#1E293B",
-    900: "#0F172A",
-    950: "#020617",
-  },
-
-  gray: {
-    50: "#F9FAFB",
-    100: "#F3F4F6",
-    200: "#E5E7EB",
-    300: "#D1D5DB",
-    400: "#9CA3AF",
-    500: "#6B7280",
-    600: "#4B5563",
-    700: "#374151",
-    800: "#1F2937",
-    900: "#111827",
-    950: "#030712",
-  },
-
-  zinc: {
-    50: "#FAFAFA",
-    100: "#F4F4F5",
-    200: "#E4E4E7",
-    300: "#D4D4D8",
-    400: "#A1A1AA",
-    500: "#71717A",
-    600: "#52525B",
-    700: "#3F3F46",
-    800: "#27272A",
-    900: "#18181B",
-    950: "#09090B",
-  },
-
-  neutral: {
-    50: "#FAFAFA",
-    100: "#F5F5F5",
-    200: "#E5E5E5",
-    300: "#D4D4D4",
-    400: "#A3A3A3",
-    500: "#737373",
-    600: "#525252",
-    700: "#404040",
-    800: "#262626",
-    900: "#171717",
-    950: "#0A0A0A",
-  },
-
-  stone: {
-    50: "#FAFAF9",
-    100: "#F5F5F4",
-    200: "#E7E5E4",
-    300: "#D6D3D1",
-    400: "#A8A29E",
-    500: "#78716C",
-    600: "#57534E",
-    700: "#44403C",
-    800: "#292524",
-    900: "#1C1917",
-    950: "#0C0A09",
-  },
-
-  red: {
-    50: "#FEF2F2",
-    100: "#FEE2E2",
-    200: "#FECACA",
-    300: "#FCA5A5",
-    400: "#F87171",
-    500: "#EF4444",
-    600: "#DC2626",
-    700: "#B91C1C",
-    800: "#991B1B",
-    900: "#7F1D1D",
-    950: "#450A0A",
-  },
-
-  orange: {
-    50: "#FFF7ED",
-    100: "#FFEDD5",
-    200: "#FED7AA",
-    300: "#FDBA74",
-    400: "#FB923C",
-    500: "#F97316",
-    600: "#EA580C",
-    700: "#C2410C",
-    800: "#9A3412",
-    900: "#7C2D12",
-    950: "#431407",
-  },
-
-  amber: {
-    50: "#FFFBEB",
-    100: "#FEF3C7",
-    200: "#FDE68A",
-    300: "#FCD34D",
-    400: "#FBBF24",
-    500: "#F59E0B",
-    600: "#D97706",
-    700: "#B45309",
-    800: "#92400E",
-    900: "#78350F",
-    950: "#451A03",
-  },
-
-  yellow: {
-    50: "#FEFCE8",
-    100: "#FEF9C3",
-    200: "#FEF08A",
-    300: "#FDE047",
-    400: "#FACC15",
-    500: "#EAB308",
-    600: "#CA8A04",
-    700: "#A16207",
-    800: "#854D0E",
-    900: "#713F12",
-    950: "#422006",
-  },
-
-  lime: {
-    50: "#F7FEE7",
-    100: "#ECFCCB",
-    200: "#D9F99D",
-    300: "#BEF264",
-    400: "#A3E635",
-    500: "#84CC16",
-    600: "#65A30D",
-    700: "#4D7C0F",
-    800: "#3F6212",
-    900: "#365314",
-    950: "#1A2E05",
-  },
-
-  green: {
-    50: "#F0FDF4",
-    100: "#DCFCE7",
-    200: "#BBF7D0",
-    300: "#86EFAC",
-    400: "#4ADE80",
-    500: "#22C55E",
-    600: "#16A34A",
-    700: "#15803D",
-    800: "#166534",
-    900: "#14532D",
-    950: "#052e16",
-  },
-
-  emerald: {
-    50: "#ECFDF5",
-    100: "#D1FAE5",
-    200: "#A7F3D0",
-    300: "#6EE7B7",
-    400: "#34D399",
-    500: "#10B981",
-    600: "#059669",
-    700: "#047857",
-    800: "#065F46",
-    900: "#064E3B",
-    950: "#022c22",
-  },
-
-  teal: {
-    50: "#F0FDFA",
-    100: "#CCFBF1",
-    200: "#99F6E4",
-    300: "#5EEAD4",
-    400: "#2DD4BF",
-    500: "#14B8A6",
-    600: "#0D9488",
-    700: "#0F766E",
-    800: "#115E59",
-    900: "#134E4A",
-    950: "#042f2e",
-  },
-
-  cyan: {
-    50: "#ECFEFF",
-    100: "#CFFAFE",
-    200: "#A5F3FC",
-    300: "#67E8F9",
-    400: "#22D3EE",
-    500: "#06B6D4",
-    600: "#0891B2",
-    700: "#0E7490",
-    800: "#155E75",
-    900: "#164E63",
-    950: "#083344",
-  },
-
-  sky: {
-    50: "#F0F9FF",
-    100: "#E0F2FE",
-    200: "#BAE6FD",
-    300: "#7DD3FC",
-    400: "#38BDF8",
-    500: "#0EA5E9",
-    600: "#0284C7",
-    700: "#0369A1",
-    800: "#075985",
-    900: "#0C4A6E",
-    950: "#082f49",
-  },
-
-  blue: {
-    50: "#EFF6FF",
-    100: "#DBEAFE",
-    200: "#BFDBFE",
-    300: "#93C5FD",
-    400: "#60A5FA",
-    500: "#3B82F6",
-    600: "#2563EB",
-    700: "#1D4ED8",
-    800: "#1E40AF",
-    900: "#1E3A8A",
-    950: "#172554",
-  },
-
-  indigo: {
-    50: "#EEF2FF",
-    100: "#E0E7FF",
-    200: "#C7D2FE",
-    300: "#A5B4FC",
-    400: "#818CF8",
-    500: "#6366F1",
-    600: "#4F46E5",
-    700: "#4338CA",
-    800: "#3730A3",
-    900: "#312E81",
-    950: "#1E1B4B",
-  },
-
-  violet: {
-    50: "#F5F3FF",
-    100: "#EDE9FE",
-    200: "#DDD6FE",
-    300: "#C4B5FD",
-    400: "#A78BFA",
-    500: "#8B5CF6",
-    600: "#7C3AED",
-    700: "#6D28D9",
-    800: "#5B21B6",
-    900: "#4C1D95",
-    950: "#2E1065",
-  },
-
-  purple: {
-    50: "#FAF5FF",
-    100: "#F3E8FF",
-    200: "#E9D5FF",
-    300: "#D8B4FE",
-    400: "#C084FC",
-    500: "#A855F7",
-    600: "#9333EA",
-    700: "#7E22CE",
-    800: "#6B21A8",
-    900: "#581C87",
-    950: "#3B0764",
-  },
-
-  fuchsia: {
-    50: "#FDF4FF",
-    100: "#FAE8FF",
-    200: "#F5D0FE",
-    300: "#F0ABFC",
-    400: "#E879F9",
-    500: "#D946EF",
-    600: "#C026D3",
-    700: "#A21CAF",
-    800: "#86198F",
-    900: "#701A75",
-    950: "#4A044E",
-  },
-
-  pink: {
-    50: "#FDF2F8",
-    100: "#FCE7F3",
-    200: "#FBCFE8",
-    300: "#F9A8D4",
-    400: "#F472B6",
-    500: "#EC4899",
-    600: "#DB2777",
-    700: "#BE185D",
-    800: "#9D174D",
-    900: "#831843",
-    950: "#500724",
-  },
-
-  rose: {
-    50: "#FFF1F2",
-    100: "#FFE4E6",
-    200: "#FECDD3",
-    300: "#FDA4AF",
-    400: "#FB7185",
-    500: "#F43F5E",
-    600: "#E11D48",
-    700: "#BE123C",
-    800: "#9F1239",
-    900: "#881337",
-    950: "#4C0519",
-  },
-
-  // Map Pokemon Types to the best equivalent Tailwind Colors
-  pokemon_types: {
-    ghost: "#9333EA",      // purple-600
-    ice: "#7DD3FC",        // sky-300
-    dragon: "#4F46E5",     // indigo-600
-    fighting: "#BE123C",   // rose-700
-    steel: "#A1A1AA",      // zinc-400
-    fairy: "#F472B6",      // pink-400
-    dark: "#404040",       // neutral-700
-    electric: "#FACC15",   // yellow-400
-    fire: "#F97316",       // orange-500
-    ground: "#FCD34D",     // amber-300 (Very pale sand)
-    poison: "#A21CAF",     // fuchsia-700
-    rock: "#B45309",       // amber-700
-    bug: "#84CC16",        // lime-500
-    grass: "#22C55E",      // green-500
-    psychic: "#EC4899",    // pink-500
-    flying: "#A78BFA",     // violet-400
-    normal: "#A1A1AA",     // zinc-400
-    water: "#3B82F6",      // blue-500
-    stellar: "#2DD4BF",    // teal-400
-  }
-} as const;
-
-
-// ==========================================
-// 2. THEME (Semantic Aliases by Page/Component)
-// ==========================================
+/**
+ * Functional theme that uses CSS variables for dynamic switching.
+ * Values are defined in globals.css (supports Light and Dark modes).
+ */
 export const THEME = {
   // --- COMMON SEMANTICS ---
   common: {
-    white: PALETTE.white,
-    black: PALETTE.black,
-    ally: PALETTE.blue[500],
-    ally_bg: PALETTE.blue[100],
-    ally_text: PALETTE.blue[700],
-    opponent: PALETTE.red[500],
-    opponent_bg: PALETTE.red[100],
-    opponent_text: PALETTE.red[700],
+    white: "var(--bg-card, #FFFFFF)",
+    black: "var(--text-main, #000000)",
+    ally: "var(--color-ally, #3B82F6)",
+    ally_bg: "var(--color-ally-bg, #DBEAFE)",
+    ally_text: "var(--color-ally-text, #1D4ED8)",
+    opponent: "var(--color-opp, #EF4444)",
+    opponent_bg: "var(--color-opp-bg, #FEE2E2)",
+    opponent_text: "var(--color-opp-text, #B91C1C)",
     hp: {
-      high: PALETTE.green[500],
-      mid: PALETTE.amber[500],
-      low: PALETTE.red[500],
+      high: "var(--color-hp-high, #22C55E)",
+      mid: "var(--color-hp-mid, #F97316)",
+      low: "var(--color-hp-low, #EF4444)",
     },
-    success: PALETTE.emerald[500],
-    error: PALETTE.red[600],
-    warning: PALETTE.orange[700],
-    neutral: PALETTE.slate[300],
-    disabled: PALETTE.slate[400],
+    success: "var(--color-success, #10B981)",
+    error: "var(--color-error, #DC2626)",
+    error_bg: "var(--color-opp-bg, #FEE2E2)",
+    error_text: "var(--color-opp-text, #B91C1C)",
+    warning: "var(--color-warning, #EA580C)",
+    item: "var(--color-item, #B45309)",
+    neutral: "var(--color-neutral, #CBD5E1)",
+    disabled: "var(--color-disabled, #94A3B8)",
+    ally_bg_tint: "var(--color-ally-bg-tint, color-mix(in srgb, var(--color-ally) 8%, transparent))",
+    opponent_bg_tint: "var(--color-opp-bg-tint, color-mix(in srgb, var(--color-opp) 8%, transparent))",
+    ability: "var(--color-warning, #F59E0B)",
+    ko: "var(--color-ko, #ff0055)",
+    tree_root: "var(--color-tree-root, #ccff00)",
   },
 
   // --- COMPONENT: POKEMON TYPES ---
-  pokemon_types: PALETTE.pokemon_types,
+  pokemon_types: {
+    ghost: "var(--type-ghost, #9333EA)",
+    ice: "var(--type-ice, #7DD3FC)",
+    dragon: "var(--type-dragon, #4F46E5)",
+    fighting: "var(--type-fighting, #BE123C)",
+    steel: "var(--type-steel, #A1A1AA)",
+    fairy: "var(--type-fairy, #F472B6)",
+    dark: "var(--type-dark, #404040)",
+    electric: "var(--type-electric, #FACC15)",
+    fire: "var(--type-fire, #F97316)",
+    ground: "var(--type-ground, #FCD34D)",
+    poison: "var(--type-poison, #A21CAF)",
+    rock: "var(--type-rock, #B45309)",
+    bug: "var(--type-bug, #84CC16)",
+    grass: "var(--type-grass, #22C55E)",
+    psychic: "var(--type-psychic, #EC4899)",
+    flying: "var(--type-flying, #A78BFA)",
+    normal: "var(--type-normal, #A1A1AA)",
+    water: "var(--type-water, #3B82F6)",
+    stellar: "var(--type-stellar, #2DD4BF)",
+  },
 
   // --- PAGE: BATTLEFIELD ZONE ---
   battlefield: {
-    main_border: PALETTE.slate[300],
-    title_text: PALETTE.slate[700],
-    side_bg: PALETTE.slate[50],
-    side_label_ally: PALETTE.blue[700],
-    side_label_opponent: PALETTE.red[700],
-    side_border_ally: PALETTE.blue[500],
-    side_border_opponent: PALETTE.red[500],
+    main_border: "var(--border-main, #CBD5E1)",
+    title_text: "var(--text-title, #334155)",
+    side_bg: "var(--bg-side, #F8FAFC)",
+    side_label_ally: "var(--color-ally-text, #1D4ED8)",
+    side_label_opponent: "var(--color-opp-text, #B91C1C)",
+    side_border_ally: "var(--color-ally, #3B82F6)",
+    side_border_opponent: "var(--color-opp, #EF4444)",
+    main_bg: "var(--bg-card, #FFFFFF)",
   },
 
   // --- COMPONENT: POKEMON CARD ---
   pokemon_card: {
     header: {
-      expand_icon: PALETTE.slate[400],
-      expand_icon_hover: PALETTE.slate[600],
-      move_icon: PALETTE.slate[400],
-      move_icon_hover: PALETTE.slate[800],
-      tera_inactive: PALETTE.slate[400],
-      mega_inactive: PALETTE.slate[400],
-      marker_ko_bg: PALETTE.slate[400],
-      marker_ko_text: PALETTE.red[800],
+      expand_icon: "var(--icon-low, #94A3B8)",
+      expand_icon_hover: "var(--icon-high, #475569)",
+      move_icon: "var(--icon-low, #94A3B8)",
+      move_icon_hover: "var(--icon-high, #1E293B)",
+      tera_inactive: "var(--icon-low, #94A3B8)",
+      mega_inactive: "var(--icon-low, #94A3B8)",
+      marker_ko_bg: "var(--bg-ko, #94A3B8)",
+      marker_ko_text: "var(--color-opp-text, #7F1D1D)",
     },
     status: {
-      label: PALETTE.slate[600],
-      counter_text: PALETTE.slate[500],
-      toggle_plus: PALETTE.slate[200],
-      toggle_text: PALETTE.slate[600],
+      label: "var(--text-dim, #475569)",
+      counter_text: "var(--text-dim, #64748B)",
+      toggle_plus: "var(--bg-neutral, #CBD5E1)",
+      toggle_text: "var(--text-dim, #475569)",
+      colors: {
+        brn: "var(--status-brn)",
+        par: "var(--status-par)",
+        slp: "var(--status-slp)",
+        frz: "var(--status-frz)",
+        psn: "var(--status-psn)",
+        tox: "var(--status-tox)",
+      },
     }
   },
 
   // --- COMPONENT: BATTLE TREE ---
   battle_tree: {
-    branch_base: PALETTE.blue[400],
-    node_corrupted: PALETTE.red[500],
-    node_corrupted_bg: PALETTE.red[100],
-    node_corrupted_text: PALETTE.red[700],
-    node_bg: PALETTE.white,
-    zoom_label_bg: PALETTE.slate[50],
-    container_bg: PALETTE.slate[50],
-    description_text: PALETTE.slate[500],
-    node_description_badge: PALETTE.amber[400],
-    node_description_badge_text: PALETTE.amber[900],
+    branch_root_color: "var(--color-tree-root, #ccff00)",
+    branch_base: "var(--color-ally, #60A5FA)",
+    node_corrupted: "var(--color-opp, #EF4444)",
+    node_corrupted_bg: "var(--color-opp-bg, #FEE2E2)",
+    node_corrupted_text: "var(--color-opp-text, #B91C1C)",
+    node_bg: "var(--bg-card, #FFFFFF)",
+    zoom_label_bg: "var(--bg-side, #F8FAFC)",
+    container_bg: "var(--bg-app, #F8FAFC)",
+    description_text: "var(--text-dim, #64748B)",
+    node_description_badge: "var(--color-hp-mid, #FBBF24)",
+    node_description_badge_text: "var(--color-white, #78350F)",
   },
 
   // --- COMPONENT: COUNTER ---
   counter: {
-    // These RGB values should be kept as strings for CSS variable injection if needed, 
-    // but they now mirror the Tailwind palette.
-    base_rgb: "226, 232, 240", // slate-200
-    border_rgb: "148, 163, 184", // slate-400
-    text_rgb: "71, 85, 105", // slate-600
-    hover_base_rgb: "203, 213, 225", // slate-300
-    hover_border_rgb: "100, 116, 139", // slate-500
-    hover_text_rgb: "51, 65, 85", // slate-700
-    bg: PALETTE.slate[200],
-    text: PALETTE.slate[600],
+    bg: "var(--bg-neutral, #E2E8F0)",
+    text: "var(--text-main, #475569)",
   },
 
   // --- COMPONENT: SESSION MENU ---
   session_menu: {
-    header_footer_bg: PALETTE.slate[50],
-    scrollbar_thumb: PALETTE.slate[200],
-    scrollbar_hover: PALETTE.slate[300],
+    scrollbar_bg: "var(--bg-neutral-low, #F1F5F9)",
+    scrollbar_thumb: "var(--border-main, #CBD5E1)",
+    scrollbar_thumb_hover: "var(--text-dim, #64748B)",
+    item_hover_bg: "var(--bg-neutral-low, #F1F5F9)",
+    item_active_bg: "color-mix(in srgb, var(--color-ally) 12%, transparent)",
+    item_active_text: "var(--color-ally, #3B82F6)",
+    item_text: "var(--text-main, #0F172A)",
+    item_subtext: "var(--text-dim, #64748B)",
+    border: "var(--border-main, #CBD5E1)",
   },
 
   // --- COMPONENT: OTHERS EFFECTS MARKERS ---
   effects: {
     markers: {
-      green: PALETTE.emerald[500],
-      blue: PALETTE.blue[500],
-      red: PALETTE.red[500],
-      gray: PALETTE.slate[400],
+      green: "var(--color-success, #22C55E)",
+      blue: "var(--color-ally, #3B82F6)",
+      red: "var(--color-error, #EF4444)",
+      gray: "var(--color-disabled, #94A3B8)",
     }
   },
 
   // --- COMPONENT: EDITABLE TEXT ---
   editable_text: {
-    default_empty: PALETTE.slate[200],
-    default_main: PALETTE.slate[200],
+    default_empty: "var(--color-neutral, #CBD5E1)",
+    default_main: "var(--color-ally, #3B82F6)",
+    // Hex equivalents for JS color computation (darkenColor, lightenColor cannot parse CSS vars).
+    primary_light: "#3b82f6", 
+    primary_dark:  "#ccff00", 
+    opponent_light: "#EF4444",
+    opponent_dark: "#FF6600",
+    neutral_light: "#64748b",
+    neutral_dark:  "#94a3b8",
   },
 
-  // --- KO SPECIFIC ---
+  // --- COMPONENT: CUSTOM TAGS ---
+  // NOTE: These MUST be raw hex values for JS functions (darkenColor)
+  tags: {
+    light: {
+      base_bg: "#e2e8f0", base_text: "#334155",
+      added_bg: "#d1fae5", added_text: "#065f46",
+      renamed_bg: "#dbeafe", renamed_text: "#1d4ed8",
+    },
+    dark: {
+      base_bg: "#475569", base_text: "#f8fafc",
+      added_bg: "#059669", added_text: "#f0fdf4",
+      renamed_bg: "#2563eb", renamed_text: "#eff6ff",
+    },
+  },
+
+  // --- KO / UNCERTAINTY ---
   ko: {
-    bordeaux: PALETTE.rose[900],
-    uncertain: PALETTE.orange[500],
-    bg: PALETTE.slate[100],
+    bordeaux: "var(--color-ko-deep, #500724)",
+    uncertain: "var(--color-hp-mid, #F97316)",
+    bg: "var(--bg-neutral-low, #F1F5F9)",
   },
 
   // --- COMPONENT: ROLLS HP BAR ---
   rolls_hp_bar: {
-    avant_bar: PALETTE.indigo[400],
-    apres_bar: PALETTE.green[500],
-    ko_zone_base: PALETTE.red[500],
-    mean_marker: PALETTE.white,
+    avant_bar: "var(--color-rolls-main, #818CF8)",
+    apres_bar: "var(--color-hp-high, #22C55E)",
+    ko_zone_base: "var(--color-opp, #EF4444)",
+    mean_marker: "var(--bg-card, #FFFFFF)",
+  },
+
+  // --- COMPONENT: TOOLTIPS ---
+  tooltips: {
+    bg: "var(--tooltip-bg, #FFFFFF)",
+    text: "var(--tooltip-text, #0F172A)",
+  },
+
+  // --- COMPONENT: SUGGESTION LIST ---
+  suggestion_list: {
+    bg: "var(--bg-card, #FFFFFF)",
+    border: "var(--border-main, #CBD5E1)",
+    item_hover: "var(--bg-neutral-low, #F1F5F9)",
+    item_selected: "var(--color-ally-bg-tint, color-mix(in srgb, var(--color-ally) 8%, transparent))",
+    text_main: "var(--text-main, #0F172A)",
+    text_dim: "var(--text-dim, #64748B)",
+    footer_bg: "var(--bg-neutral-low, #F1F5F9)",
   }
 } as const;
+
+/**
+ * JS-Specific Palette.
+ * These are RAW hex codes used by the Battle Engine and Utility functions.
+ * Must be manually kept in sync with globals.css for visual parity.
+ */
+export const JS_PALETTE = {
+  // Battle Tree Root (JS Hue cycle)
+  battle_tree_root: {
+    light: "#3b82f6", 
+    dark: "#ccff00"
+  },
+  
+  // Pokemon Types (Engine logic)
+  pokemon_types: {
+    light: {
+      ghost: "#9333EA", ice: "#7DD3FC", dragon: "#4F46E5", fighting: "#BE123C",
+      steel: "#A1A1AA", fairy: "#F472B6", dark: "#404040", electric: "#FACC15",
+      fire: "#F97316", ground: "#FCD34D", poison: "#A21CAF", rock: "#B45309",
+      bug: "#84CC16", grass: "#22C55E", psychic: "#EC4899", flying: "#A78BFA",
+      normal: "#A1A1AA", water: "#3B82F6", stellar: "#2DD4BF"
+    },
+    dark: {
+      ghost: "#CC00FF", ice: "#00FFFF", dragon: "#6600FF", fighting: "#FF3300",
+      steel: "#E0E0E0", fairy: "#FF66CC", dark: "#1A1A1A", electric: "#FFFF00",
+      fire: "#FF6600", ground: "#FFCC00", poison: "#AA00FF", rock: "#CC9933",
+      bug: "#CCFF00", grass: "#33FF00", psychic: "#FF0099", flying: "#9966FF",
+      normal: "#FFFFFF", water: "#0066FF", stellar: "#00FFCC"
+    }
+  },
+  
+  // Status (Engine logic)
+  status: {
+    light: {
+      brn: "#F97316", par: "#EAB308", slp: "#94A3B8", frz: "#38BDF8", psn: "#A855F7", tox: "#7E22CE"
+    },
+    dark: {
+      brn: "#FF4400", par: "#FFFF00", slp: "#66CCFF", frz: "#CCFFFF", psn: "#AA00FF", tox: "#FF00FF"
+    }
+  }
+} as const;
+
+/**
+ * Compatibility Layer: Exporting PALETTE pointing to JS_PALETTE 
+ * for files already using this identifier.
+ */
+export const PALETTE = JS_PALETTE;

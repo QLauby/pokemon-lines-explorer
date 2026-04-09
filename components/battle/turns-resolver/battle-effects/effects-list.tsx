@@ -56,7 +56,7 @@ export function EffectsList({
           <Button
             variant="outline"
             size="sm"
-            className="h-5 text-[10px] gap-0.5 px-1.5"
+            className="h-5 text-[10px] gap-0.5 px-1.5 transition-all hover:bg-primary hover:text-primary-foreground border-primary/30"
             onClick={onAdd}
             disabled={options.length === 0}
           >

@@ -9,6 +9,7 @@ import { buildRollProfileFromRolls, parseRolls } from "@/lib/logic/roll-engine"
 import { cn } from "@/lib/utils"
 import { convertAmountLocalToggle, formatKoRisk } from "@/lib/utils/hp-utils"
 import { floatToFraction } from "@/lib/utils/math-utils"
+import { useIsDark } from "@/lib/hooks/use-is-dark"
 import { Effect, StatProfile } from "@/types/types"
 import { MoveRight } from "lucide-react"
 import React from "react"
@@ -47,20 +48,20 @@ export function HpChangeEffect({
 
     // ── Mode toggle state ───────────────────────────────────────────────
     const [modeUI, setModeUI] = React.useState<HpModeUI>(
-        delta.type === "HP_SET" ? "set" : (delta.amount > 0 ? "heal" : "damage")
+        delta.type === "HP_SET" ? "set" : ((delta.amount ?? 0) > 0 ? "heal" : "damage")
     )
 
     React.useEffect(() => {
         if (delta.type === "HP_SET") {
             setModeUI("set")
-        } else if (delta.amount !== 0) {
-            setModeUI(delta.amount > 0 ? "heal" : "damage")
+        } else if ((delta.amount ?? 0) !== 0) {
+            setModeUI((delta.amount ?? 0) > 0 ? "heal" : "damage")
         }
     }, [delta.type, delta.amount])
 
     const currentMode: HpModeUI = delta.type === "HP_SET" 
         ? "set" 
-        : (delta.amount !== 0 ? (delta.amount > 0 ? "heal" : "damage") : (modeUI === "set" ? "damage" : modeUI))
+        : ((delta.amount ?? 0) !== 0 ? ((delta.amount ?? 0) > 0 ? "heal" : "damage") : (modeUI === "set" ? "damage" : modeUI))
 
     const [isRollsActive, setIsRollsActive] = React.useState(!!((delta as any).rollProfile))
     const [rollsInputStr, setRollsInputStr] = React.useState((delta as any).rollProfile 
@@ -77,11 +78,11 @@ export function HpChangeEffect({
         if (isLockedToPercent || isRollsActive) return
         const newUnit = effectiveUnit === "percent" ? "hp" : "percent"
         const hpMax = initialHpMax ?? 100
-        const converted = convertAmountLocalToggle(Math.abs(delta.amount), effectiveUnit, hpMax)
+        const converted = convertAmountLocalToggle(Math.abs(delta.amount ?? 0), effectiveUnit, hpMax)
         const newAmount = currentMode === "damage" ? -converted : Math.abs(converted)
         let newEq = undefined;
         if (newUnit === "percent") {
-            newEq = "= " + floatToFraction(Math.abs(delta.amount) / hpMax);
+            newEq = "= " + floatToFraction(Math.abs(delta.amount ?? 0) / hpMax);
         }
         
         onUpdate({
@@ -90,7 +91,14 @@ export function HpChangeEffect({
         })
     }
 
-    const currentAmount = Math.abs(delta.amount)
+    const currentAmount = delta.amount // Keep as number | undefined
+    // Use isDark to resolve pure hex colors for EditableText button bg
+    const isDark = useIsDark()
+    const isTargetAlly = delta.target?.side === "my"
+    const targetHex = isTargetAlly 
+        ? (isDark ? THEME.editable_text.primary_dark : THEME.editable_text.primary_light)
+        : (isDark ? THEME.editable_text.opponent_dark : THEME.editable_text.opponent_light)
+    const primaryHex = targetHex
     const equationRef = React.useRef<string | undefined>(delta.rawAmountExpression);
 
     // Sync local state when delta changes (handled by parent or turn updates)
@@ -116,7 +124,7 @@ export function HpChangeEffect({
             const rollProfile = (delta as any).rollProfile
             const rollsVal = rollProfile?.rolls || []
             
-            let preservedAmount = Math.abs(delta.amount)
+            let preservedAmount = Math.abs(delta.amount ?? 0)
             if (rollsVal.length > 0) {
                 const minRoll = Math.min(...rollsVal)
                 const maxRoll = Math.max(...rollsVal)
@@ -140,7 +148,7 @@ export function HpChangeEffect({
             // Turning ON rolls
             setIsRollsActive(true)
             
-            const currentAmountAbs = Math.abs(delta.amount)
+            const currentAmountAbs = Math.abs(delta.amount ?? 0)
             const currentAmountStr = currentAmountAbs > 0 ? String(Math.round(currentAmountAbs)) : ""
             
             if (isTargetAlly) {
@@ -150,20 +158,26 @@ export function HpChangeEffect({
             }
 
             // Ensure we are in HP unit when rolls are active
-            if (effectiveUnit === "percent") {
-                const hpMax = initialHpMax ?? 100
-                const converted = convertAmountLocalToggle(currentAmountAbs, "percent", hpMax)
-                onUpdate({
-                    ...effect,
-                    deltas: [{ ...delta, amount: currentMode === "damage" ? -converted : converted, unit: "hp" } as any]
-                })
-            }
+            const hpMax = initialHpMax ?? 100
+            const converted = effectiveUnit === "percent" 
+                ? convertAmountLocalToggle(currentAmountAbs, "percent", hpMax)
+                : currentAmountAbs
+
+            onUpdate({
+                ...effect,
+                deltas: [{ 
+                    ...delta, 
+                    amount: currentMode === "damage" ? -converted : converted, 
+                    unit: "hp",
+                    rollProfile: { rolls: [] } 
+                } as any]
+            })
         }
     }
 
     const handleAmountChange = (valStr: string) => {
-        let val = parseFloat(valStr) || 0;
-        if (effectiveUnit === "percent") val = val * 100;
+        let val = parseFloat(valStr);
+        if (effectiveUnit === "percent") val = val / 100;
         const newAmount = currentMode === "damage" ? -Math.abs(val) : Math.abs(val)
         
         onUpdate({
@@ -223,13 +237,29 @@ export function HpChangeEffect({
             }
         
         const newMode = nextMode[currentMode]
+        
+        // Safety: ensure we don't accidentally enter 'set' mode if rolls are active
+        if (isRollsActive && newMode === "set") {
+            // This should normally be handled by the nextMode mapping but let's be safe
+            setModeUI(newMode === "set" ? "damage" : newMode)
+            return 
+        }
+
         setModeUI(newMode)
 
         const newType = newMode === "set" ? "HP_SET" : "HP_RELATIVE"
-        const absoluteAmount = Math.abs(currentAmount)
-        const newAmount = newMode === "damage" ? -absoluteAmount : absoluteAmount
+        const absoluteAmount = currentAmount !== undefined ? Math.abs(currentAmount) : undefined
+        const newAmount = (absoluteAmount === undefined || isNaN(absoluteAmount)) 
+            ? undefined 
+            : (newMode === "damage" ? -absoluteAmount : absoluteAmount)
 
-        if (currentAmount !== 0 || newType !== delta.type) {
+        // We update the delta IF:
+        // - the type changed (e.g. going to/from '=')
+        // - OR we have a defined amount to flip
+        // - OR we are changing between heal/damage and we need to ensure local modeUI doesn't get overwritten by state sync
+        const isPolarityChange = (currentMode === "damage" && newMode === "heal") || (currentMode === "heal" && newMode === "damage")
+
+        if (newType !== delta.type || absoluteAmount !== undefined || isPolarityChange) {
             const newDelta = { 
                 ...delta, 
                 type: newType, 
@@ -237,6 +267,11 @@ export function HpChangeEffect({
                 unit: effectiveUnit,
                 rawAmountExpression: delta.rawAmountExpression
             } as any
+
+            // CRITICAL: Ensure rollProfile is preserved if rolls are active
+            if (isRollsActive && !newDelta.rollProfile) {
+                newDelta.rollProfile = { rolls: [] }
+            }
             
             if (newMode === "set") {
                 delete newDelta.rollProfile
@@ -251,10 +286,10 @@ export function HpChangeEffect({
         }
     }
 
-    const inputDisplayValue = currentAmount === 0 ? "" : (
+    const inputDisplayValue = (currentAmount === undefined || isNaN(currentAmount as number) || currentAmount === 0) ? "" : (
         effectiveUnit === "percent"
-            ? (currentAmount / 100).toString()
-            : currentAmount.toString()
+            ? (Math.abs(currentAmount as number) / 100).toString()
+            : Math.abs(currentAmount as number).toString()
     )
 
     // ── Visualization Logic ──────────────────────────────────────────────
@@ -300,11 +335,14 @@ export function HpChangeEffect({
         const actualStartHp = initialHpCurrent ?? Math.round((startHpPct / 100) * maxHp)
         
         let deltaAmountHp = 0
-        if (delta.type === "HP_SET") {
-            const targetHp = delta.unit === "hp" ? Math.abs(delta.amount) : (Math.abs(delta.amount) / 100) * maxHp
-            deltaAmountHp = targetHp - actualStartHp
-        } else {
-            deltaAmountHp = delta.unit === "hp" ? delta.amount : (delta.amount / 100) * maxHp
+        const amount = delta.amount
+        if (amount !== undefined && !isNaN(amount)) {
+            if (delta.type === "HP_SET") {
+                const targetHp = delta.unit === "hp" ? Math.abs(amount) : (Math.abs(amount) / 100) * maxHp
+                deltaAmountHp = targetHp - actualStartHp
+            } else {
+                deltaAmountHp = delta.unit === "hp" ? amount : (amount / 100) * maxHp
+            }
         }
 
         const actualEndHpRaw = actualStartHp + deltaAmountHp
@@ -314,35 +352,43 @@ export function HpChangeEffect({
         const isActuallyHealing = deltaAmountHp > 0
 
         legacyBarContent = (
-            <div className="flex-1 h-5 bg-slate-100 rounded-full overflow-hidden relative border border-slate-200">
+            <div className="flex-1 h-[20px] bg-slate-900/50 rounded-lg overflow-hidden relative border border-white/10 ring-1 ring-black/50">
                 {isActuallyHealing ? (
                     <>
                         <div
-                            className={cn("absolute top-0 left-0 h-full transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white", getLegacyHpColor(startHpPct))}
-                            style={{ width: `${startHpPct}%` }}
+                            className={cn("absolute top-0 left-0 h-full transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white relative", getLegacyHpColor(startHpPct))}
+                            style={{ 
+                                width: `${startHpPct}%`,
+                                boxShadow: `0 0 10px currentColor`
+                            }}
                         >
-                            {startHpPct > 10 && (hpMode !== "percent" ? `${Math.round(actualStartHp)}` : `${startHpPct.toFixed(1)}%`)}
+                            <div className="absolute inset-y-[2px] left-0 right-0 mx-[2px] bg-white/40 rounded-full blur-[0.5px]" />
+                            <span className="relative z-10">{startHpPct > 10 && (hpMode !== "percent" ? `${Math.round(actualStartHp)}` : `${startHpPct.toFixed(1)}%`)}</span>
                         </div>
                         <div
-                            className="absolute top-0 h-full bg-green-500/50 transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white"
+                            className="absolute top-0 h-full bg-green-500/30 transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white border-l border-white/20"
                             style={{ left: `${startHpPct}%`, width: `${diffPct}%` }}
                         >
-                            {diffPct > 5 && (hpMode !== "percent" ? `+${Math.abs(Math.round(deltaAmountHp))}` : `+${diffPct.toFixed(1)}%`)}
+                            <span className="relative z-10">{diffPct > 5 && (hpMode !== "percent" ? `+${Math.abs(Math.round(deltaAmountHp))}` : `+${diffPct.toFixed(1)}%`)}</span>
                         </div>
                     </>
                 ) : (
                     <>
                         <div
-                            className={cn("absolute top-0 left-0 h-full transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white", getLegacyHpColor(endHpPct))}
-                            style={{ width: `${endHpPct}%` }}
+                            className={cn("absolute top-0 left-0 h-full transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white relative", getLegacyHpColor(endHpPct))}
+                            style={{ 
+                                width: `${endHpPct}%`,
+                                boxShadow: `0 0 10px currentColor`
+                            }}
                         >
-                            {endHpPct > 10 && (hpMode !== "percent" ? `${Math.round(actualEndHp)}` : `${endHpPct.toFixed(1)}%`)}
+                            <div className="absolute inset-y-[2px] left-0 right-0 mx-[2px] bg-white/40 rounded-full blur-[0.5px]" />
+                            <span className="relative z-10">{endHpPct > 10 && (hpMode !== "percent" ? `${Math.round(actualEndHp)}` : `${endHpPct.toFixed(1)}%`)}</span>
                         </div>
                         <div
-                            className="absolute top-0 h-full bg-red-500/50 transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white"
+                            className="absolute top-0 h-full bg-red-500/30 transition-all duration-300 flex items-center justify-center text-[10px] font-bold text-white border-l border-white/20"
                             style={{ left: `${endHpPct}%`, width: `${diffPct}%` }}
                         >
-                            {diffPct > 5 && (hpMode !== "percent" ? `-${Math.abs(Math.round(actualEndHp - actualStartHp))}` : `-${diffPct.toFixed(1)}%`)}
+                            <span className="relative z-10">{diffPct > 5 && (hpMode !== "percent" ? `-${Math.abs(Math.round(actualEndHp - actualStartHp))}` : `-${diffPct.toFixed(1)}%`)}</span>
                         </div>
                     </>
                 )}
@@ -379,7 +425,7 @@ export function HpChangeEffect({
             </div>
             <div className="flex flex-col items-center justify-center pt-3">
                  <MoveRight className="h-4 w-4 text-slate-300" />
-                 {delta.amount !== 0 && (
+                 {(delta.amount ?? 0) !== 0 && (
                      <span className={cn(
                          "text-[9px] font-bold tabular-nums",
                          currentMode === "heal" ? "text-green-600" : currentMode === "damage" ? "text-red-600" : "text-blue-600"
@@ -387,7 +433,7 @@ export function HpChangeEffect({
                          {currentMode === "damage" ? "−" : currentMode === "heal" ? "+" : ""}
                          {isRollsActive && (delta as any).rollProfile 
                             ? `${Math.min(...(delta as any).rollProfile.rolls)}~${Math.max(...(delta as any).rollProfile.rolls)}`
-                            : (effectiveUnit === "percent" ? `${Math.abs(delta.amount).toFixed(1)}%` : Math.abs(delta.amount))
+                            : (effectiveUnit === "percent" ? `${Math.abs(delta.amount ?? 0).toFixed(1)}%` : Math.abs(delta.amount ?? 0))
                          }
                      </span>
                  )}
@@ -420,9 +466,9 @@ export function HpChangeEffect({
             size="icon"
             className={cn(
                 "w-7 h-7 font-bold text-sm transition-all border shrink-0",
-                currentMode === "heal" ? "bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                : currentMode === "damage" ? "bg-red-50 hover:bg-red-100 text-red-700 border-red-200"
-                : "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                currentMode === "heal" ? "bg-[var(--color-ally-bg-tint)] text-[var(--color-ally)] border-[var(--color-ally)]/40"
+                : currentMode === "damage" ? "bg-[var(--color-opp-bg-tint)] text-[var(--color-opp)] border-[var(--color-opp)]/40"
+                : "bg-background text-muted-foreground border-border"
             )}
             onClick={handleModeToggle}
             disabled={readOnly}
@@ -438,9 +484,9 @@ export function HpChangeEffect({
             disabled={readOnly || currentMode === "set"}
             className={cn(
                 "text-[9px] font-black uppercase px-2 py-0.5 rounded border transition-colors h-5 flex items-center justify-center min-w-[36px]",
-                (readOnly || currentMode === "set") ? "cursor-default opacity-40 grayscale-[0.8]" : "cursor-pointer",
-                isRollsActive ? "bg-orange-100 border-orange-300 text-orange-700 shadow-sm"
-                : "bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100"
+                (readOnly || currentMode === "set") ? "cursor-default opacity-20 grayscale" : "cursor-pointer",
+                isRollsActive ? "bg-orange-600 border-orange-400 text-white shadow-sm"
+                : "bg-background border-border text-muted-foreground hover:text-foreground"
             )}
         >
             Rolls
@@ -454,10 +500,10 @@ export function HpChangeEffect({
             disabled={readOnly || isLockedToPercent || isRollsActive}
             className={cn(
                 "text-[9px] font-black uppercase min-w-[36px] text-center px-2 py-0.5 rounded border transition-colors h-5 flex items-center justify-center",
-                (readOnly || isLockedToPercent || isRollsActive) ? "cursor-default opacity-40 bg-slate-50 border-slate-200 text-slate-400" : "cursor-pointer",
-                !isRollsActive && effectiveUnit === "hp" ? "bg-violet-100 border-violet-300 text-violet-700 shadow-sm"
-                : !isRollsActive && effectiveUnit === "percent" ? "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
-                : "bg-slate-50 border-slate-200 text-slate-400"
+                (readOnly || isLockedToPercent || isRollsActive) ? "cursor-default opacity-20 bg-background border-border text-muted-foreground" : "cursor-pointer",
+                !isRollsActive && effectiveUnit === "hp" ? "bg-violet-600 border-violet-400 text-white shadow-md glow-active"
+                : !isRollsActive && effectiveUnit === "percent" ? "bg-blue-600 border-blue-400 text-white shadow-md glow-active"
+                : "bg-background border-border text-muted-foreground"
             )}
         >
             {effectiveUnit === "hp" ? "HP" : "%"}
@@ -517,7 +563,7 @@ export function HpChangeEffect({
                                         textAlign="center"
                                         fontSize={10}
                                         fontWeight="bold"
-                                        mainColor={rollError ? "#EF4444" : undefined}
+                                        mainColor={rollError ? "#EF4444" : primaryHex}
                                         readOnly={readOnly}
                                     />
                                 </div>
@@ -533,13 +579,18 @@ export function HpChangeEffect({
                                     max={effectiveUnit === "percent" ? 1 : undefined}
                                     decimals={1}
                                     autoWidth={true}
-                                    placeholder={effectiveUnit === "percent" ? "ex: 25 or = 1/4" : "0"}
+                                    placeholder={
+                                        currentMode === "set" 
+                                            ? (effectiveUnit === "percent" ? "Target %" : "Target HP...")
+                                            : (effectiveUnit === "percent" ? "ex: 25 or = 1/4" : "Amount...")
+                                    }
                                     rounded={true}
                                     mode="button"
                                     visualMode="border"
                                     textAlign="center"
                                     fontSize={10}
                                     fontWeight="bold"
+                                    mainColor={primaryHex}
                                     readOnly={readOnly}
                                 />
                             )}
@@ -555,30 +606,32 @@ export function HpChangeEffect({
                         <div 
                             className="flex items-center justify-between mt-1 pt-2 pb-2 border-t -mx-2 -mb-2 px-4 rounded-b-lg"
                             style={{ 
-                                backgroundColor: PALETTE.orange[50],
-                                borderTopColor: PALETTE.orange[100]
+                                backgroundColor: THEME.ko.bg,
+                                borderTopColor: "var(--border-main)"
                             }}
                         >
                             <div className="flex items-center gap-2">
                                 <span 
-                                    className="text-[10px] font-bold uppercase tracking-tight text-orange-700"
+                                    className="text-[10px] font-black uppercase tracking-tight"
+                                    style={{ color: THEME.ko.uncertain }}
                                 >
                                     K.O. Risk detected
                                 </span>
                                 <div 
-                                    className="px-2 py-0.5 text-white text-[10px] font-black rounded shadow-sm"
-                                    style={{ backgroundColor: THEME.ko.uncertain }}
+                                    className="px-2 py-0.5 text-white text-[10px] font-black rounded shadow-sm glow-active"
+                                    style={{ backgroundColor: THEME.ko.uncertain, "--glow-color": THEME.ko.uncertain } as React.CSSProperties}
                                 >
                                     {koProbabilityStr}%
                                 </div>
                             </div>
                             <Button
                                 size="sm"
-                                className="h-5 text-[10px] font-black uppercase px-3 py-0 transition-all border-none"
+                                className="h-5 text-[10px] font-black uppercase px-3 py-0 transition-all border-none shadow-sm glow-active"
                                 style={{ 
                                     backgroundColor: delta.isForcedKo ? THEME.ko.bordeaux : THEME.ko.uncertain,
-                                    opacity: delta.isForcedKo ? 1 : 0.8
-                                }}
+                                    opacity: delta.isForcedKo ? 1 : 0.8,
+                                    "--glow-color": delta.isForcedKo ? THEME.ko.bordeaux : THEME.ko.uncertain
+                                } as React.CSSProperties}
                                 onClick={handleForceKo}
                             >
                                 {delta.isForcedKo ? "K.O. Active" : "Trigger K.O."}
@@ -587,10 +640,16 @@ export function HpChangeEffect({
                     )}
 
                     {isCertainKo && (
-                        <div className="flex items-center justify-center mt-1 py-1.5 -mx-2 -mb-2 rounded-b-lg bg-white border-t border-slate-100 gap-2">
+                        <div 
+                            className="flex items-center justify-center mt-1 py-1.5 -mx-2 -mb-2 rounded-b-lg border-t gap-2"
+                            style={{ 
+                                backgroundColor: THEME.ko.bg,
+                                borderTopColor: "var(--border-main)"
+                            }}
+                        >
                              <div 
-                                className="px-1.5 py-0.5 text-white text-[8px] font-black rounded uppercase tracking-wider shadow-sm"
-                                style={{ backgroundColor: THEME.ko.bordeaux }}
+                                className="px-1.5 py-0.5 text-white text-[8px] font-black rounded uppercase tracking-wider shadow-sm glow-active"
+                                style={{ backgroundColor: THEME.ko.bordeaux, "--glow-color": THEME.ko.bordeaux } as React.CSSProperties}
                              >
                                  Guaranteed K.O.
                              </div>
@@ -614,13 +673,18 @@ export function HpChangeEffect({
                             max={effectiveUnit === "percent" ? 1 : undefined}
                             decimals={1}
                             autoWidth={true}
-                            placeholder={effectiveUnit === "percent" ? "ex: 25 or = 1/4" : "0"}
+                            placeholder={
+                                currentMode === "set" 
+                                    ? (effectiveUnit === "percent" ? "Target %" : "Target HP...")
+                                    : (effectiveUnit === "percent" ? "ex: 25 or = 1/4" : "Amount...")
+                            }
                             rounded={true}
                             mode="button"
                             visualMode="border"
                             textAlign="center"
                             fontSize={10}
                             fontWeight="bold"
+                            mainColor={primaryHex}
                             readOnly={readOnly}
                         />
                         <div className="flex flex-col gap-1 items-center justify-center min-w-[45px] shrink-0">

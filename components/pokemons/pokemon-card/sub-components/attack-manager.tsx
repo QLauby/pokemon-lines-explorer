@@ -14,6 +14,8 @@ import { AutocompleteEditable } from "@/components/shared/autocomplete-editable"
 import { type SuggestionItem } from "@/components/shared/suggestion-list"
 import { searchMoves, getMoveDetails } from "@/lib/utils/pokedex-utils"
 import { PokemonTypeDropdown } from "../shared/pokemon-type-dropdown"
+import { THEME } from "@/lib/constants/color-constants"
+import { useIsDark } from "@/lib/hooks/use-is-dark"
 
 interface AttackManagerProps {
   pokemon: Pokemon
@@ -23,6 +25,7 @@ interface AttackManagerProps {
 }
 
 export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }: AttackManagerProps) {
+  const isDark = useIsDark();
 
 
   const getDefaultAttackName = (index: number, isMyTeam: boolean) => {
@@ -164,7 +167,10 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
 
   return (
     <div className="mt-1">
-      <div className="p-1.5 border rounded-lg bg-slate-50">
+      <div 
+        className="p-1.5 rounded-lg border"
+        style={{ backgroundColor: "var(--bg-side)", borderColor: "var(--border-main)" }}
+      >
         <div className="flex flex-col gap-1.5">
           {pokemon.attacks.length > 0 && (
             <div className="grid grid-cols-2 gap-1.5">
@@ -172,7 +178,11 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
                 const defaultName = getDefaultAttackName(index, isMyTeam)
 
                 return (
-                  <div key={attack.id} className="border rounded-lg p-2 bg-white space-y-1">
+                  <div 
+                    key={attack.id} 
+                    className="border rounded-lg p-2 space-y-1"
+                    style={{ backgroundColor: "var(--bg-card)", borderColor: "var(--border-main)" }}
+                  >
                     <div className="flex items-center gap-1">
                       <div className="flex-1 mr-1 h-5 flex items-center min-w-0">
                         {attack.type && (
@@ -181,31 +191,61 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
                         {(() => {
                           const details = getMoveDetails(attack.name);
                           const tooltipContent = details ? (
-                            <div className="space-y-1.5 p-1">
-                              <div className="font-bold text-sm border-b border-white/20 pb-1 flex justify-between items-center gap-4">
+                            <div className="space-y-1.5 p-1" style={{ color: THEME.tooltips.text }}>
+                              <div 
+                                className="font-bold text-sm border-b pb-1 flex justify-between items-center gap-4"
+                                style={{ borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)" }}
+                              >
                                 <span>{details.name}</span>
                                 <span className="text-[10px] opacity-70 uppercase tracking-wider">{details.type}</span>
                               </div>
                               <div className="flex flex-wrap gap-1">
-                                <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[10px]">
+                                <span 
+                                    className="px-1.5 py-0.5 rounded border text-[10px]"
+                                    style={{ 
+                                        backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+                                        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+                                        opacity: 0.8
+                                    }}
+                                >
                                   {details.category}
                                 </span>
-                                <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[10px]">
+                                <span 
+                                    className="px-1.5 py-0.5 rounded border text-[10px]"
+                                    style={{ 
+                                        backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+                                        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+                                        opacity: 0.8
+                                    }}
+                                >
                                   BP: {details.basePower || '--'}
                                 </span>
-                                <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[10px]">
+                                <span 
+                                    className="px-1.5 py-0.5 rounded border text-[10px]"
+                                    style={{ 
+                                        backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+                                        borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+                                        opacity: 0.8
+                                    }}
+                                >
                                   Acc: {details.accuracy === true ? '100' : details.accuracy}%
                                 </span>
-                                <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/10 text-[10px]">
+                                <span 
+                                    className="px-1.5 py-0.5 rounded border text-[10px] font-medium"
+                                    style={{ 
+                                        backgroundColor: isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)",
+                                        borderColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)"
+                                    }}
+                                >
                                   Pri: {details.priority > 0 ? `+${details.priority}` : details.priority}
                                 </span>
                                 {details.flags?.contact && (
-                                   <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[10px]">
+                                   <span className="px-1.5 py-0.5 rounded bg-amber-600/20 border border-amber-600/40 text-amber-900 dark:text-amber-200 text-[10px] font-bold">
                                       Contact
                                    </span>
                                 )}
                               </div>
-                              <p className="text-[11px] text-slate-200 leading-snug italic">
+                              <p className="text-[11px] leading-snug italic opacity-85">
                                 {details.shortDesc || details.desc}
                               </p>
                             </div>
@@ -223,6 +263,8 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
                               fontSize={12}
                               readOnly={readOnly}
                               tooltip={tooltipContent}
+                              mainColor={isMyTeam ? THEME.common.ally : THEME.common.opponent}
+                              isMyTeam={isMyTeam}
                             />
                           );
                         })()}
@@ -241,7 +283,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
 
                     <div className="flex items-center gap-1 text-xs">
                       <div className="flex items-center gap-1">
-                        <span className="text-slate-600 whitespace-nowrap" style={{ fontSize: "8px" }}>
+                        <span className="whitespace-nowrap" style={{ fontSize: "8px", color: "var(--text-dim)" }}>
                           PP :
                         </span>
                         <Counter
@@ -256,7 +298,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
                           defaultValue="0"
                           placeholder=""
                         />
-                        <span className="text-slate-500">/</span>
+                        <span style={{ color: "var(--text-dim)" }}>/</span>
                         <EditableText
                           value={attack.maxPP.toString()}
                           onChange={(newValue) => handleMaxPPChange(attack.id, newValue)}
@@ -270,6 +312,7 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
                           textAlign="center"
                           defaultValue={attack.maxPP.toString()}
                           placeholder=""
+                          mainColor={isMyTeam ? THEME.common.ally : THEME.common.opponent}
                         />
                       </div>
                       <div className="flex-1 flex justify-end">
@@ -294,7 +337,11 @@ export function AttackManager({ pokemon, onUpdate, isMyTeam, readOnly = false }:
               variant="outline"
               size="sm"
               onClick={addAttack}
-              className="h-6 text-xs w-full bg-transparent cursor-pointer dashed border-slate-300 text-slate-400 hover:text-slate-600 hover:border-slate-400"
+              className="h-6 text-xs w-full bg-transparent cursor-pointer border-dashed transition-colors"
+              style={{ 
+                  color: "var(--text-dim)", 
+                  borderColor: "var(--border-main)",
+              }}
             >
               <Plus className="h-3 w-3 mr-1" />
               Add Attack

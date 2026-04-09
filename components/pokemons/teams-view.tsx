@@ -56,6 +56,10 @@ interface TeamsViewProps {
   onUpdateOpponentSideTags: (tags: CustomTagData[]) => void
   hpMode?: "percent" | "hp" | "rolls"
   onImportPokemon: (pokemons: Omit<Pokemon, "id">[], mode: "replace" | "add", isMyTeam: boolean) => void
+  newMyPokemonName: string
+  newOpponentPokemonName: string
+  setNewMyPokemonName: (name: string) => void
+  setNewOpponentPokemonName: (name: string) => void
 }
 
 export function TeamsView({
@@ -92,10 +96,14 @@ export function TeamsView({
   onUpdateOpponentSideTags,
   hpMode = "percent",
   onImportPokemon,
+  newMyPokemonName,
+  newOpponentPokemonName,
+  setNewMyPokemonName,
+  setNewOpponentPokemonName,
 }: TeamsViewProps) {
 
   return (
-    <>
+    <div className="space-y-6">
       <BattlefieldZone
         battlefieldTags={battlefieldTags}
         playerSideTags={playerSideTags}
@@ -105,7 +113,7 @@ export function TeamsView({
         onUpdateOpponentSideTags={onUpdateOpponentSideTags}
       />
 
-      <div className="grid md:grid-cols-2 gap-6 md:w-2/3 mx-auto">
+      <div className="grid md:grid-cols-2 gap-6">
         <TeamSection
           team={myTeam}
           title="My Team"
@@ -132,6 +140,8 @@ export function TeamsView({
           isStarterPokemon={isStarterPokemon}
           hpMode={hpMode}
           onImportPokemon={onImportPokemon}
+          newPokemonName={newMyPokemonName}
+          setNewPokemonName={setNewMyPokemonName}
         />
 
         <TeamSection
@@ -160,8 +170,10 @@ export function TeamsView({
           isStarterPokemon={isStarterPokemon}
           hpMode={hpMode}
           onImportPokemon={onImportPokemon}
+          newPokemonName={newOpponentPokemonName}
+          setNewPokemonName={setNewOpponentPokemonName}
         />
       </div>
-    </>
+    </div>
   )
 }

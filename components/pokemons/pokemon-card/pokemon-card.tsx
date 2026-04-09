@@ -273,12 +273,13 @@ export function PokemonCard({
     <div
       className={cn(
         "relative flex flex-col pt-3 pb-3 px-3 border rounded-lg transition-all duration-300",
-        isKO ? "grayscale-[0.5]" : "bg-white",
-        !isKO && (isStarter ? "border-2" : "border")
+        isKO ? "grayscale-[0.5]" : "",
+        !isKO && (isStarter ? "border-2 shadow-lg" : "border shadow-sm")
       )}
       style={{
           borderColor: isKO ? THEME.ko.bordeaux : (isStarter ? (isMyTeam ? THEME.common.ally : THEME.common.opponent) : THEME.battlefield.main_border),
-          backgroundColor: isKO ? THEME.ko.bg : "white"
+          backgroundColor: isKO ? THEME.ko.bg : THEME.common.white,
+          boxShadow: isKO ? `0 0 15px ${THEME.ko.bordeaux}44` : (isStarter ? `0 0 15px ${isMyTeam ? THEME.common.ally : THEME.common.opponent}44` : "none")
       }}
     >
         <PokemonCardHeader 
