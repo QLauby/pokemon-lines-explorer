@@ -125,7 +125,7 @@ export function ImportDialog({ isMyTeam, hpMode = "percent", currentTeamSize, on
   const [db, setDb] = useState<TrainerDB | null>(null);
   const [selectedGame, setSelectedGame] = useState<string>("");
   const [selectedSplit, setSelectedSplit] = useState<string>("");
-  const [selectedTrainer, setSelectedTrainer] = useState<string>("");
+  const [selectedTrainer, setSelectedTrainer] = useState<string>(""); // Store index as string
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
 
   const storageKey = `pokemon-explorer-import-box-${isMyTeam ? 'ally' : 'opponent'}`;
@@ -179,6 +179,11 @@ export function ImportDialog({ isMyTeam, hpMode = "percent", currentTeamSize, on
     }
   }, [selectedGame, manifest]);
 
+  // Reset trainer selection when game or split changes
+  useEffect(() => {
+    setSelectedTrainer("");
+  }, [selectedGame, selectedSplit]);
+
   const clearBox = () => {
     setText("");
     setSelectedGame("");
@@ -193,17 +198,20 @@ export function ImportDialog({ isMyTeam, hpMode = "percent", currentTeamSize, on
     const split = db?.splits.find(s => s.name === selectedSplit);
     if (!split) return [];
     
-    return split.trainers.map(t => {
+    return split.trainers.map((t, index) => {
       const cleanName = t.name.split(/[(\-\[]/)[0].trim();
       return {
         ...t,
+        index,
         displayName: cleanName || t.name
       };
     });
   }, [db, selectedSplit]);
 
   const selectedTrainerData = useMemo(() => {
-    return trainers.find(t => t.name === selectedTrainer);
+    const idx = parseInt(selectedTrainer, 10);
+    if (isNaN(idx)) return undefined;
+    return trainers[idx];
   }, [trainers, selectedTrainer]);
 
   const dbParsed = useMemo<ParsedPokemon[]>(() => {
@@ -361,10 +369,10 @@ export function ImportDialog({ isMyTeam, hpMode = "percent", currentTeamSize, on
                       <SelectValue placeholder="Select Trainer" />
                     </SelectTrigger>
                     <SelectContent className="min-w-[300px]">
-                      {trainers.map(t => (
+                      {trainers.map((t) => (
                         <SelectItem 
-                          key={t.name} 
-                          value={t.name} 
+                          key={`${t.name}-${t.index}`} 
+                          value={t.index.toString()} 
                           className="text-[10px] group"
                           extra={(
                             <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-200 min-w-[140px]">

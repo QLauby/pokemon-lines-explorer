@@ -1,6 +1,7 @@
 import DeletionDialog from "@/components/shared/deletion-dialog"
 import { Button } from "@/components/ui/button"
 import { useCorruptionHandler } from "@/lib/hooks/tree-corruption/use-corruption-handler"
+import { THEME } from "@/lib/constants/color-constants"
 import { TreeNode } from "@/types/types"
 import { useEffect, useState } from "react"
 
@@ -50,7 +51,14 @@ export function DeleteFromCurrentTurn({
 
   return (
     <div className="space-y-4">
-      <div className="bg-red-50 border border-red-100 rounded-lg p-4 text-sm text-red-800">
+      <div 
+        className="rounded-lg p-4 text-sm border shadow-sm transition-colors duration-200"
+        style={{ 
+            backgroundColor: THEME.common.opponent_bg, 
+            borderColor: THEME.common.opponent_bg_tint,
+            color: THEME.common.opponent_text
+        }}
+      >
         <p className="font-semibold mb-1">Attention Required</p>
         <p>
           {mainNode.turn === 0 
@@ -61,7 +69,7 @@ export function DeleteFromCurrentTurn({
           }
           {" "}This action cannot be undone.
         </p>
-        <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-red-600/80">
+        <p className="mt-2 text-xs font-semibold uppercase tracking-wider opacity-80">
             See highlighted turns in the tree
         </p>
       </div>
@@ -75,7 +83,11 @@ export function DeleteFromCurrentTurn({
           </p>
         )}
         <Button 
-            className="w-full bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-200 border disabled:opacity-50"
+            className="w-full bg-red-500/10 hover:bg-red-500/20 border disabled:opacity-50 transition-colors"
+            style={{
+                color: THEME.common.opponent_text,
+                borderColor: THEME.common.opponent_bg_tint
+            }}
             onClick={() => setIsDialogOpen(true)}
             disabled={(mainNode.turn !== 0 && affectedNodes.length === 0) || isCorrupted}
         >
