@@ -216,18 +216,21 @@ export function ImportDialog({ isMyTeam, hpMode = "percent", currentTeamSize, on
 
   const dbParsed = useMemo<ParsedPokemon[]>(() => {
     if (!selectedTrainerData) return [];
-    return selectedTrainerData.team.map(p => ({
-      name: p.name,
-      level: p.level,
-      item: p.item,
-      ability: p.ability,
-      nature: p.nature,
-      moves: p.moves,
-      ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-      evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
-      types: ["normal"],
-      baseHp: 70
-    }));
+    return selectedTrainerData.team.map(p => {
+      const dexData = getPokemonDetails(p.name);
+      return {
+        name: p.name,
+        level: p.level,
+        item: p.item,
+        ability: p.ability,
+        nature: p.nature,
+        moves: p.moves,
+        ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+        evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+        types: dexData?.types?.map((t: string) => t.toLowerCase()) as any || ["normal"],
+        baseHp: dexData?.baseStats?.hp || 70
+      };
+    });
   }, [selectedTrainerData]);
 
   const format = useMemo(() => detectFormat(text), [text]);
